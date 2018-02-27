@@ -1,21 +1,24 @@
-package net.senmori.btsuite.util;
+package net.senmori.btsuite.buildtools.process;
 
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.util.StreamRedirector;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public class ProcessRunner {
+import static net.senmori.btsuite.util.ProcessRunner.PORTABLE_GIT_DIR;
 
-    public static final File CWD = Main.WORK_DIR;
-    public static final boolean IS_WINDOWS = System.getProperty("os.name").startsWith("Windows");
-    public static final boolean AUTOCRLF = !"\n".equalsIgnoreCase(System.getProperty("line.separator"));
+public class JavaProcessRunner implements IProcessRunner {
 
-    public static File PORTABLE_GIT_DIR;
+    private final File portableGitDir;
 
-    public static int runProcess(File workDir, String... command) throws Exception {
-        if(PORTABLE_GIT_DIR != null) {
+    public JavaProcessRunner(File portableGitDir) {
+        this.portableGitDir = portableGitDir;
+    }
+
+    @Override
+    public int runProcess(File workDir, String... command) throws Exception {
+        if(portableGitDir != null) {
             if( "bash".equalsIgnoreCase( command[0] ) ) {
                 command[0] = "git-bash";
             }
@@ -27,7 +30,7 @@ public class ProcessRunner {
         return runProcess0(workDir, command);
     }
 
-    private static int runProcess0(File workDir, String...command) throws Exception {
+    private int runProcess0(File workDir, String...command) throws Exception {
         ProcessBuilder pb = new ProcessBuilder( command );
         pb.directory(workDir);
         pb.environment().put("JAVA_HOME", System.getProperty("java.home"));
@@ -35,7 +38,7 @@ public class ProcessRunner {
             pb.environment().put("MAVEN_OPTS", "-Xmx1024M"); // TODO: Lets users change maven options
         }
 
-        if(PORTABLE_GIT_DIR != null) {
+        if(portableGitDir != null) {
             String pathEnv = null;
             for(String key : pb.environment().keySet()) {
                 if(key.equalsIgnoreCase("path")) {
@@ -64,5 +67,4 @@ public class ProcessRunner {
         }
         return status;
     }
-
 }

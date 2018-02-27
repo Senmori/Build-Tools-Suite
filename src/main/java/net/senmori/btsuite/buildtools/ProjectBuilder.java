@@ -1,5 +1,7 @@
 package net.senmori.btsuite.buildtools;
 
+import net.senmori.btsuite.Controller;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +17,13 @@ public class ProjectBuilder {
     public String version = "latest";
 
     public List<String> outputDir = new ArrayList<>();
+
+    private Controller controller;
+
+    public ProjectBuilder(Controller controller) {
+        this.controller = controller;
+    }
+
 
     public boolean isGenDocs() {
         return genDocs;

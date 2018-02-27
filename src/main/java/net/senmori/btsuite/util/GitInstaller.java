@@ -1,5 +1,8 @@
 package net.senmori.btsuite.util;
 
+import net.senmori.btsuite.Main;
+import net.senmori.btsuite.buildtools.BuildTools;
+
 import java.io.File;
 
 public class GitInstaller {
@@ -14,32 +17,31 @@ public class GitInstaller {
     }
 
     public static void install() {
-        String gitVersion = "PortableGit-2.15.0-" + ( System.getProperty("os.arch").endsWith("64") ? "64" : "32" ) + "-bit";
+        String gitVersion = Main.SETTINGS.getGitVersion();
 
-        if(!GitInstaller.isGitInstalled() && ProcessRunner.IS_WINDOWS) {
-            ProcessRunner.msysDir = new File(gitVersion, "PortableGit");
+        if(!GitInstaller.isGitInstalled()) {
+            if(!SystemChecker.isWindows()) {
+                System.exit(1); // can't run build tools on non-windows platform yet!
+            }
+            BuildTools.mysDir = new File(gitVersion, "PortableGit");
             System.out.println("*** Could not find PortableGit installation, downloading. ***");
 
-            String gitName = gitVersion + ".7z.exe";
+            String gitName = Main.SETTINGS.getGitName();
 
             File gitInstall = new File(gitVersion, gitName);
             gitInstall.getParentFile().mkdirs();
 
             if(!gitInstall.exists()) {
                 try {
-                    Downloader.download("https://static.spigotmc.org/git/" + gitName, gitInstall);
+                    Downloader.download(Main.SETTINGS.getGitInstallerLink(), gitInstall);
                     ProcessRunner.runProcess(gitInstall.getParentFile(), gitInstall.getAbsolutePath(), "-y", "-gm2", "-nr");
                 }catch (Exception e) {
                     e.printStackTrace();
                 }
 
-                System.out.println("*** Using downloaded git " + ProcessRunner.msysDir + " ***");
+                System.out.println("*** Using downloaded git " + ProcessRunner.PORTABLE_GIT_DIR + " ***");
                 System.out.println("*** Please note this is a beta feature, so if it does not work please also try a manual install of git from https://git-for-windows.github.io/ ***");
             }
-        } else {
-            // not windows, we require
-            System.exit(1);
         }
-
     }
 }

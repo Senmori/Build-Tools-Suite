@@ -1,7 +1,3 @@
-/**
- * Sample Skeleton for 'buildTab.fxml' Controller Class
- */
-
 package net.senmori.btsuite.controllers;
 
 import java.net.URL;
@@ -78,6 +74,5 @@ public class BuildTabController {
         assert delOutputBtn != null : "fx:id=\"delOutputBtn\" was not injected: check your FXML file 'buildTab.fxml'.";
         assert outputDirListView != null : "fx:id=\"outputDirListView\" was not injected: check your FXML file 'buildTab.fxml'.";
         assert choiceComboBox != null : "fx:id=\"choiceComboBox\" was not injected: check your FXML file 'buildTab.fxml'.";
-
     }
 }

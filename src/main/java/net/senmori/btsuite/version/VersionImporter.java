@@ -1,16 +1,19 @@
 package net.senmori.btsuite.version;
 
+import com.google.common.collect.Maps;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.gui.Console;
-import net.senmori.btsuite.settings.Settings;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.Map;
 
-public class VersionImporter extends Task<Elements> {
+public class VersionImporter extends Task<Map<Version, BuildInfo>> {
 
     private final Console console;
     private final String url;
@@ -20,9 +23,17 @@ public class VersionImporter extends Task<Elements> {
     }
 
     @Override
-    public Elements call() {
-        Document doc = getVersionDocument(url);
-        return getVersionDocument(url).getElementsByTag("a");
+    protected Map<Version, BuildInfo> call() throws Exception {
+        Elements links = getVersionDocument(url).getElementsByTag("a");
+        Map<Version, BuildInfo> map = Maps.newHashMap();
+        for(Element element : links) {
+            String text = element.wholeText(); // 1.12.2.json
+            String versionText = text.replaceAll(".json", ""); // 1.12.2
+            if(!versionText.contains(".")) {
+                continue; // ignore any version strings that are not in the X.XX.XX format
+            }
+        }
+        return map;
     }
 
     private void appendMessage(String message) {

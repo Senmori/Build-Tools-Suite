@@ -77,4 +77,13 @@ public final class Version implements Comparable<Version> {
         }
         return 0;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o == null || !(o instanceof Version)) {
+            return false;
+        }
+        Version ver = (Version)o;
+        return this.compareTo(ver) == 0;
+    }
 }

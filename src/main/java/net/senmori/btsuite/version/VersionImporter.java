@@ -1,23 +1,45 @@
 package net.senmori.btsuite.version;
 
-import net.senmori.btsuite.Main;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+import net.senmori.btsuite.gui.Console;
+import net.senmori.btsuite.settings.Settings;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
-public class VersionImporter {
+public class VersionImporter extends Task<Elements> {
 
+    private final Console console;
+    private final String url;
+    public VersionImporter(String url, Console console) {
+        this.url = url;
+        this.console = console;
+    }
 
-    public File getVersionFile(String link) {
-        File workFile = new File(Main.WORK_DIR, "version.html");
+    @Override
+    public Elements call() {
+        Document doc = getVersionDocument(url);
+        return getVersionDocument(url).getElementsByTag("a");
+    }
+
+    private void appendMessage(String message) {
+        Platform.runLater(() -> console.appendText(message));
+    }
+
+    private Document getVersionDocument(String link) {
         try {
-            Document doc = Jsoup.parse(workFile, StandardCharsets.UTF_8.name(), Main.SETTINGS.versionLink);
+            Document doc = Jsoup.connect(link).timeout(5 * 1000).get();
+            return doc;
         } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private Elements getLinks(Document doc) {
+        return doc.getElementsByTag("a");
     }
 }

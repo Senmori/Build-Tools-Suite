@@ -1,4 +1,4 @@
-package net.senmori.btsuite.buildtools.process;
+package net.senmori.btsuite.buildtools;
 
 import net.senmori.btsuite.api.IProcessRunner;
 import net.senmori.btsuite.util.StreamRedirector;

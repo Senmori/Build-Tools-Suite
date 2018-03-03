@@ -1,6 +1,6 @@
 package net.senmori.btsuite.buildtools;
 
-import net.senmori.btsuite.Controller;
+import net.senmori.btsuite.controllers.MainController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +18,10 @@ public class ProjectBuilder {
 
     public List<String> outputDir = new ArrayList<>();
 
-    private Controller controller;
+    private MainController mainController;
 
-    public ProjectBuilder(Controller controller) {
-        this.controller = controller;
+    public ProjectBuilder(MainController mainController) {
+        this.mainController = mainController;
     }
 
 

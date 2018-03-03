@@ -17,7 +17,7 @@ public class GitInstaller {
     }
 
     public static void install() {
-        String gitVersion = Main.SETTINGS.getGitVersion();
+        String gitVersion = Main.SETTINGS.gitVersion;
 
         if(!GitInstaller.isGitInstalled()) {
             if(!SystemChecker.isWindows()) {
@@ -26,14 +26,14 @@ public class GitInstaller {
             BuildTools.mysDir = new File(gitVersion, "PortableGit");
             System.out.println("*** Could not find PortableGit installation, downloading. ***");
 
-            String gitName = Main.SETTINGS.getGitName();
+            String gitName = Main.SETTINGS.gitName;
 
             File gitInstall = new File(gitVersion, gitName);
             gitInstall.getParentFile().mkdirs();
 
             if(!gitInstall.exists()) {
                 try {
-                    Downloader.download(Main.SETTINGS.getGitInstallerLink(), gitInstall);
+                    Downloader.download(Main.SETTINGS.gitInstallerLink, gitInstall);
                     ProcessRunner.runProcess(gitInstall.getParentFile(), gitInstall.getAbsolutePath(), "-y", "-gm2", "-nr");
                 }catch (Exception e) {
                     e.printStackTrace();

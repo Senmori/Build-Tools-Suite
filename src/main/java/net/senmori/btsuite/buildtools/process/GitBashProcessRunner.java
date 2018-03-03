@@ -1,5 +1,6 @@
 package net.senmori.btsuite.buildtools.process;
 
+import net.senmori.btsuite.api.IProcessRunner;
 import net.senmori.btsuite.util.StreamRedirector;
 
 import java.io.File;
@@ -8,11 +9,11 @@ import java.util.stream.Stream;
 
 import static net.senmori.btsuite.util.ProcessRunner.PORTABLE_GIT_DIR;
 
-public class JavaProcessRunner implements IProcessRunner {
+public class GitBashProcessRunner implements IProcessRunner {
 
     private final File portableGitDir;
 
-    public JavaProcessRunner(File portableGitDir) {
+    public GitBashProcessRunner(File portableGitDir) {
         this.portableGitDir = portableGitDir;
     }
 

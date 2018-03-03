@@ -23,8 +23,8 @@ public class Main extends Application {
         Main.WINDOW = primaryStage;
         initWindow(WINDOW);
 
-        URL fileURL = this.getClass().getClassLoader().getResource("application.fxml");
-        TabPane tabPane = FXMLLoader.load(fileURL);
+        URL mainController = this.getClass().getClassLoader().getResource("fxml/mainController.fxml");
+        TabPane tabPane = FXMLLoader.load(mainController);
 
         Scene scene = new Scene(tabPane);
         Main.WINDOW.setScene(scene);

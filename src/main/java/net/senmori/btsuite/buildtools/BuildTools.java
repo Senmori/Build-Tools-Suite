@@ -2,20 +2,23 @@ package net.senmori.btsuite.buildtools;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import lombok.Data;
+import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.version.Version;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+@Data
 public final class BuildTools {
-    public boolean disableCertificateCheck = false;
-    public boolean dontUpdate = false;
-    public boolean skipCompile = false;
-    public boolean genSrc = false;
-    public boolean genDoc = false;
+    private boolean disableCertificateCheck = false;
+    private boolean dontUpdate = false;
+    private boolean skipCompile = false;
+    private boolean genSrc = false;
+    private boolean genDoc = false;
 
-    public String version = "latest";
+    private String version = "latest";
 
     private List<String> outputDirectories = Lists.newArrayList();
 
@@ -29,5 +32,10 @@ public final class BuildTools {
     public void setOutputDirectories(List<String> directories) {
         this.outputDirectories.clear();
         this.outputDirectories.addAll(directories);
+    }
+
+    public void addOutputDirectory(File directory) {
+        if(FileUtil.isDirectory(directory))
+            outputDirectories.add(directory.getAbsolutePath());
     }
 }

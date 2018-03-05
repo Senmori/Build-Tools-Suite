@@ -20,9 +20,9 @@ public final class BuildTools {
 
     public String version = "latest";
 
-    List<String> outputDirectories = Lists.newArrayList();
+    private List<String> outputDirectories = Lists.newArrayList();
 
-    Map<Version, BuildInfo> versionMap = Maps.newHashMap();
+    private Map<Version, BuildInfo> versionMap = Maps.newHashMap();
 
     public void setVersionMap(Map<Version, BuildInfo> newMap) {
         this.versionMap.clear();

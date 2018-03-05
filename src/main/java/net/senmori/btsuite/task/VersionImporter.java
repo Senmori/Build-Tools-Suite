@@ -2,8 +2,10 @@ package net.senmori.btsuite.task;
 
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import net.senmori.btsuite.Main;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.gui.Console;
 import net.senmori.btsuite.settings.Settings;
@@ -14,7 +16,10 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class VersionImporter extends Task<Map<Version, BuildInfo>> {
@@ -27,20 +32,32 @@ public class VersionImporter extends Task<Map<Version, BuildInfo>> {
 
     @Override
     protected Map<Version, BuildInfo> call() throws Exception {
-        Elements links = getVersionDocument(url).getElementsByTag("a");
+        File versionFile = new File(Main.TMP_DIR, "versions.html");
+        if(!versionFile.exists()) {
+            versionFile.createNewFile();
+            FileDownloader downloader = new FileDownloader(url, versionFile);
+            versionFile = downloader.call();
+        }
+        Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
         Map<Version, BuildInfo> map = Maps.newHashMap();
         for(Element element : links) {
             if(element.wholeText().startsWith("..")) // ignore non-version links
                 continue;
             String text = element.wholeText(); // 1.12.2.json
             String versionText = text.replaceAll(".json", ""); // 1.12.2
-            if(!versionText.contains(".")) //TODO: add filters so we can include the obscure versions
+            if(!Version.isVersionNumber(versionText))
                 continue;
             Version version = new Version(versionText);
-            String json = Downloader.get(url + text);
-            BuildInfo buildInfo = GSON.fromJson(json, BuildInfo.class);
+            String versionUrl = url + text; // .../versions/1.12.2.json
+            File verFile = new File(Main.TMP_DIR, text);
+            if(!verFile.exists()) {
+                verFile.createNewFile();
+                FileDownloader urlDownloader = new FileDownloader(versionUrl, verFile);
+                verFile = urlDownloader.call();
+            }
+            JsonReader reader = new JsonReader(new FileReader(verFile));
+            BuildInfo buildInfo = GSON.fromJson(reader, BuildInfo.class);
             map.put(version, buildInfo);
-            System.out.println("Imported version \'" + versionText + "\'.");
         }
         return map;
     }

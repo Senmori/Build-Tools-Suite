@@ -34,6 +34,6 @@ public class ConsoleController {
     void initialize() {
         assert consoleTextArea != null : "fx:id=\"consoleTextArea\" was not injected: check your FXML file 'console.fxml'.";
 
-        Main.console = new Console(consoleTextArea);
+        Main.setConsole(new Console(consoleTextArea));
     }
 }

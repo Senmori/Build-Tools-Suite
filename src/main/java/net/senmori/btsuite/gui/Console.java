@@ -31,6 +31,10 @@ public class Console extends OutputStream {
         System.setErr(new PrintStream(this, true));
     }
 
+    public TextArea getTextArea() {
+        return output;
+    }
+
     public void appendText(String text) {
         this.output.appendText(text);
         this.output.selectEnd();

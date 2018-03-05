@@ -44,6 +44,9 @@ public final class Version implements Comparable<Version> {
     }
 
     public void parse(String versionString) {
+        if(versionString.equalsIgnoreCase("latest")) {
+            return;
+        }
         String[] arr = versionString.split("\\.");
 
         try {
@@ -76,15 +79,18 @@ public final class Version implements Comparable<Version> {
 
     @Override
     public int compareTo(Version other) {
-        if(this.major != other.major) {
+        if(this.versionString.equalsIgnoreCase("latest"))
+            return 1;
+
+        if(this.major != other.major)
             return Integer.compare(this.major, other.major);
-        }
-        if(this.minor != other.minor) {
+
+        if(this.minor != other.minor)
             return Integer.compare(this.minor, other.minor);
-        }
-        if(this.revision != other.revision) {
+
+        if(this.revision != other.revision)
             return Integer.compare(this.revision, other.revision);
-        }
+
         return 0;
     }
 
@@ -95,5 +101,10 @@ public final class Version implements Comparable<Version> {
         }
         Version ver = (Version)o;
         return this.compareTo(ver) == 0;
+    }
+
+
+    public static boolean isVersionNumber(String versionString) {
+        return versionString.split("\\.").length > 1;
     }
 }

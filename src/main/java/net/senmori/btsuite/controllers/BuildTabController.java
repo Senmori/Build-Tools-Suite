@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.Lists;
 import javafx.collections.ObservableList;
@@ -21,8 +22,9 @@ import javafx.stage.DirectoryChooser;
 import net.senmori.btsuite.Main;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
+import net.senmori.btsuite.settings.Settings;
+import net.senmori.btsuite.task.VersionImporter;
 import net.senmori.btsuite.version.Version;
-import net.senmori.btsuite.version.VersionComparator;
 
 public class BuildTabController {
 
@@ -137,26 +139,26 @@ public class BuildTabController {
         buildTools = new BuildTools();
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-        //choiceComboBox.setVisibleRowCount(10);
-        // VersionImporter task = new VersionImporter(Settings.versionLink);
-        // task.setOnSucceeded((event) -> {
-        //     try {
-        //         handleVersionMap(task.get());
-        //     } catch (InterruptedException | ExecutionException e) {
-        //         e.printStackTrace();
-        //     }
-        // });
-        //Main.TASK_RUNNER.execute(task);
+        choiceComboBox.setVisibleRowCount(10);
+        VersionImporter task = new VersionImporter(Settings.versionLink);
+        task.setOnSucceeded((event) -> {
+            try {
+                handleVersionMap(task.get());
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        });
+        Main.TASK_RUNNER.execute(task);
     }
 
     private void handleVersionMap(Map<Version, BuildInfo> map) {
         List<Version> versions = Lists.newArrayList(map.keySet());
-        versions.sort(new VersionComparator());
+        versions.sort(Version::compareTo);
         versions = Lists.reverse(versions);
         for(Version v : versions) {
-            System.out.println("Version: " + v.getVersionString());
             this.choiceComboBox.getItems().add(v.getVersionString());
         }
+        this.choiceComboBox.getItems().add(0, "Latest");
         this.buildTools.setVersionMap(map);
     }
 }

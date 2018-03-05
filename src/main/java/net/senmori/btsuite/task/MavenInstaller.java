@@ -3,16 +3,20 @@ package net.senmori.btsuite.task;
 import javafx.concurrent.Task;
 import net.senmori.btsuite.Main;
 import net.senmori.btsuite.settings.Settings;
+import net.senmori.btsuite.util.ProcessRunner;
 import net.senmori.btsuite.util.ZipUtil;
 
+import javax.security.auth.login.FailedLoginException;
 import java.io.File;
 import java.io.IOException;
 
 public class MavenInstaller extends Task<File> {
     @Override
     protected File call() throws Exception {
-        if(isInstalled())
+        if(isInstalled()) {
+            ProcessRunner.execute("mvn", "--version");
             return new File(System.getenv("M2_HOME"));
+        }
 
         File maven = new File("apache-maven-3.5.0");
 
@@ -29,6 +33,7 @@ public class MavenInstaller extends Task<File> {
                 e.printStackTrace();
                 return null;
             }
+            ProcessRunner.execute("mvn", "--version");
         }
         return new File(System.getenv("M2_HOME"));
     }

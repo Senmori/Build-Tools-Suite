@@ -23,17 +23,17 @@
                   </CheckBox>
                   <CheckBox fx:id="skipCompile" mnemonicParsing="false" onAction="#onSkipCompileClicked" text="Skip Compile">
                       <tooltip>
-                          <Tooltip text="Do not compile the final Jar. This will still generate the source and/or javadoc jars." />
+                          <Tooltip text="Do not compile the final Jar. If enabled, source and javadoc jars are still generated." />
                       </tooltip>
                   </CheckBox>
                   <CheckBox fx:id="genSrc" mnemonicParsing="false" onAction="#onGenSrcClicked" text="Generate Sources">
                       <tooltip>
-                          <Tooltip text="Generate a source Jar during compilation" />
+                          <Tooltip text="Generate a source Jar during compilation." />
                       </tooltip>
                   </CheckBox>
                   <CheckBox fx:id="genDoc" mnemonicParsing="false" onAction="#onGenDocClicked" text="Generate Documentation">
                       <tooltip>
-                          <Tooltip text="Generate a javadoc Jar during compilation" />
+                          <Tooltip text="Generate a javadoc Jar during compilation." />
                       </tooltip>
                   </CheckBox>
               </children>

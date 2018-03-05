@@ -1,8 +1,10 @@
 package net.senmori.btsuite.util;
 
+import com.google.common.collect.ObjectArrays;
 import net.senmori.btsuite.buildtools.BuildTools;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -13,12 +15,8 @@ public class ProcessRunner {
             if( "bash".equalsIgnoreCase( command[0] ) ) {
                 command[0] = "git-bash";
             }
-            String[] shim = new String[] {
-                    "cmd.exe", "/C"
-            };
-            command = Stream.of(shim, command).flatMap(Stream::of).toArray(String[]::new); // concat both arrays into one
         }
-        return runProcess0(workDir, command);
+        return runProcess0(workDir, windowsShim(command));
     }
 
     private static int runProcess0(File workDir, String... command) throws Exception {
@@ -63,5 +61,21 @@ public class ProcessRunner {
         }
 
         return status;
+    }
+
+    public static int execute(String... command) {
+        try {
+            Process process = Runtime.getRuntime().exec( windowsShim(command) );
+            new Thread( new StreamCapturer( process.getInputStream(), System.out ) ).start();
+            new Thread( new StreamCapturer( process.getErrorStream(), System.err ) ).start();
+            return process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return 1;
+        }
+    }
+
+    private static String[] windowsShim(String[] command) {
+        return ObjectArrays.concat(new String[]{"cmd", "/c"}, command, String.class);
     }
 }

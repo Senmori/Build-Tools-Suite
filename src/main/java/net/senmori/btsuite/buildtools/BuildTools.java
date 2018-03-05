@@ -9,9 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 public final class BuildTools {
-
-    public static File portableGitDir = null;
-
     public boolean disableCertificateCheck = false;
     public boolean dontUpdate = false;
     public boolean skipCompile = false;

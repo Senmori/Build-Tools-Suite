@@ -19,7 +19,7 @@ public class FileDownloader extends Task<File> {
     }
 
     @Override
-    protected File call() throws Exception {
+    public File call() throws Exception {
         URL con = new URL(url);
         InputStream stream = con.openStream();
         ReadableByteChannel bis = Channels.newChannel(stream);

@@ -61,13 +61,4 @@ public class VersionImporter extends Task<Map<Version, BuildInfo>> {
         }
         return map;
     }
-
-    private Document getVersionDocument(String link) {
-        try {
-            return Jsoup.connect(link).timeout(5 * 1000).get();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 }

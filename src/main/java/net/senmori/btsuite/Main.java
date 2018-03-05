@@ -1,6 +1,7 @@
 package net.senmori.btsuite;
 
 import com.google.common.base.Strings;
+import com.sun.corba.se.impl.ior.WireObjectKeyTemplate;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -12,7 +13,6 @@ import net.senmori.btsuite.gui.Console;
 import net.senmori.btsuite.settings.Settings;
 import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.MavenInstaller;
-import net.senmori.btsuite.util.ProcessRunner;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +23,7 @@ public class Main extends Application {
     public static final File WORK_DIR = new File("BTSuite/");
     public static final File SETTINGS_FILE = new File(WORK_DIR, "settings.json");
     public static final File TMP_DIR = new File(WORK_DIR, "tmp/");
+    public static final File PORTABLE_GIT_DIR = new File(Main.WORK_DIR, Settings.gitVersion);
 
     public static Stage WINDOW;
     public static final Settings SETTINGS = new Settings();

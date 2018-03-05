@@ -34,7 +34,7 @@ public class GitUtil {
 
         try {
             StoredConfig config = result.getRepository().getConfig();
-            config.setBoolean("core", null, "autocrlf", ProcessRunner.AUTOCRLF);
+            config.setBoolean("core", null, "autocrlf", SystemChecker.isAutocrlf());
             config.save();
 
             System.out.println("Cloned git repository " + url + " to " + target.getAbsolutePath() + ". Current HEAD: " + commitHash( result ));

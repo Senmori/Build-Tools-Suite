@@ -1,39 +1,39 @@
 package net.senmori.btsuite.util;
 
+import com.google.common.io.CharStreams;
+import javafx.concurrent.Task;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Downloader {
 
     public static String get(String url) throws IOException {
-        URLConnection con = new URL(url).openConnection();
-        con.setConnectTimeout(5000);
-        con.setReadTimeout(5000);
+        URLConnection con = new URL( url ).openConnection();
+        con.setConnectTimeout( 5000 );
+        con.setReadTimeout( 5000 );
 
-        BufferedInputStream bis = null;
-        ByteArrayOutputStream buf = null;
+        InputStreamReader r = null;
         try {
-            bis = new BufferedInputStream(con.getInputStream());
-            buf = new ByteArrayOutputStream();
+            r = new InputStreamReader( con.getInputStream() );
 
-            int result = bis.read();
-            while( result != -1) {
-                buf.write((byte)result);
-                result = bis.read();
-            }
-            return buf.toString(StandardCharsets.UTF_8.name());
+            return CharStreams.toString( r );
         } finally {
-            if( bis != null) bis.close();
-            if( buf != null) buf.close();
+            if ( r != null ) {
+                r.close();
+            }
         }
     }
 
@@ -52,4 +52,27 @@ public class Downloader {
         return target;
     }
 
+    public static File asyncDownload(String url, File target) throws IOException {
+        Task<File> task = new Task<File>() {
+            @Override
+            protected File call() throws Exception {
+                URL con = new URL(url);
+                InputStream stream = con.openStream();
+                ReadableByteChannel bis = Channels.newChannel(stream);
+                FileOutputStream fos = new FileOutputStream(target);
+
+                fos.getChannel().transferFrom(bis, 0, Long.MAX_VALUE);
+
+                bis.close();
+                fos.close();
+                stream.close();
+                return target;
+            }
+        };
+        ExecutorService pool = Executors.newFixedThreadPool(1);
+        pool.submit(task);
+
+        pool.shutdown();
+        return task.getValue();
+    }
 }

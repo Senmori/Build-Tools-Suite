@@ -9,9 +9,12 @@ public final class FileUtil {
     public static void copyJar(String path, final String jarPrefix, File outJar) throws Exception {
         File[] files = new File(path).listFiles((dir, name) -> name.startsWith(jarPrefix) && name.endsWith(".jar"));
 
-        if(!outJar.getParentFile().isDirectory()) {
-            outJar.getParentFile().mkdirs();
-        }
+        if(!outJar.getParentFile().isDirectory())
+            if(!outJar.getParentFile().mkdir())
+                return; // access denied
+
+        if(files == null || files.length == 0)
+            return;
 
         for(File file : files) {
             System.out.println("Copying " + file.getName() + " to " +  outJar.getAbsolutePath());

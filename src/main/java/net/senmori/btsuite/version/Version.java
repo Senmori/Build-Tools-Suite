@@ -7,6 +7,7 @@ public final class Version implements Comparable<Version> {
     private int major;
     private int minor;
     private int revision;
+    private String[] extra;
     public Version(String versionString) {
         this.versionString = versionString;
         parse(versionString);
@@ -38,6 +39,10 @@ public final class Version implements Comparable<Version> {
         return revision;
     }
 
+    public String[] getExtra() {
+        return extra;
+    }
+
     public void parse(String versionString) {
         String[] arr = versionString.split("\\.");
 
@@ -51,6 +56,11 @@ public final class Version implements Comparable<Version> {
                 major = Integer.valueOf(arr[0]);
                 minor = Integer.valueOf(arr[1]);
                 revision = Integer.valueOf(arr[2]);
+
+                if(arr.length > 3) {
+                    extra = new String[arr.length - 3];
+                    System.arraycopy(arr, 3, extra, 0, arr.length);
+                }
             } else {
                 throw new IllegalArgumentException("Invalid version string (" + versionString + ")");
             }

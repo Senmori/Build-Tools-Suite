@@ -14,7 +14,6 @@ public class MavenInstaller extends Task<File> {
     @Override
     protected File call() throws Exception {
         if(isInstalled()) {
-            ProcessRunner.execute("mvn", "--version");
             return new File(System.getenv("M2_HOME"));
         }
 
@@ -27,13 +26,13 @@ public class MavenInstaller extends Task<File> {
             mvnTemp.deleteOnExit();
 
             try {
-                Main.TASK_RUNNER.execute(new FileDownloader(Settings.mvnInstallerLink, mvnTemp));
+                Main.TASK_RUNNER.execute(new FileDownloader(Main.getSettings().getMvnInstallerLink(), mvnTemp));
                 ZipUtil.unzip(mvnTemp, new File("."));
+                System.out.println(maven.getName() + " installed to " + mvnTemp.getPath());
             } catch(IOException e) {
                 e.printStackTrace();
                 return null;
             }
-            ProcessRunner.execute("mvn", "--version");
         }
         return new File(System.getenv("M2_HOME"));
     }

@@ -11,6 +11,10 @@ import java.util.stream.Stream;
 
 public class ProcessRunner {
 
+    public static int runProcess(String... command) throws Exception {
+        return runProcess(Main.WORK_DIR, command);
+    }
+
     public static int runProcess(File workDir, String... command) throws Exception {
         if( "bash".equalsIgnoreCase( command[0] ) ) {
             command[0] = "git-bash";
@@ -22,20 +26,11 @@ public class ProcessRunner {
         ProcessBuilder pb = new ProcessBuilder( command );
         pb.directory( workDir );
         pb.environment().put( "JAVA_HOME", System.getProperty( "java.home" ) );
-        if ( !pb.environment().containsKey( "MAVEN_OPTS" ) )
-        {
+        if ( !pb.environment().containsKey( "MAVEN_OPTS" ) ) {
             pb.environment().put( "MAVEN_OPTS", "-Xmx1024M" );
         }
-        String pathEnv = null;
-        for ( String key : pb.environment().keySet() )
-        {
-            if ( key.equalsIgnoreCase( "path" ) )
-            {
-                pathEnv = key;
-            }
-        }
-        if ( pathEnv == null )
-        {
+        String pathEnv = pb.environment().get("path");
+        if ( pathEnv == null ) {
             throw new IllegalStateException( "Could not find path variable!" );
         }
 

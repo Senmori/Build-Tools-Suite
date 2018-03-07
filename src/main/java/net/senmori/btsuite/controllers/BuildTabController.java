@@ -24,6 +24,7 @@ import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.settings.Settings;
 import net.senmori.btsuite.task.VersionImporter;
+import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.version.Version;
 
 public class BuildTabController {
@@ -74,27 +75,27 @@ public class BuildTabController {
 
     @FXML
     void onCertCheckClicked(ActionEvent event) {
-        buildTools.disableCertificateCheck = this.certCheck.isSelected();
+        buildTools.setDisableCertificateCheck(this.certCheck.isSelected());
     }
 
     @FXML
     void onDontUpdateClicked(ActionEvent event) {
-        buildTools.dontUpdate = this.dontUpdate.isSelected();
+        buildTools.setDontUpdate(this.dontUpdate.isSelected());
     }
 
     @FXML
     void onSkipCompileClicked(ActionEvent event) {
-        buildTools.skipCompile = this.skipCompile.isSelected();
+        buildTools.setSkipCompile(this.skipCompile.isSelected());
     }
 
     @FXML
     void onGenSrcClicked(ActionEvent event) {
-        buildTools.genSrc = this.genSrc.isSelected();
+        buildTools.setGenSrc(this.genSrc.isSelected());
     }
 
     @FXML
     void onGenDocClicked(ActionEvent event) {
-        buildTools.genDoc = this.genDoc.isSelected();
+        buildTools.setGenDoc(this.genDoc.isSelected());
     }
 
     @FXML
@@ -103,9 +104,8 @@ public class BuildTabController {
         dirChooser.setInitialDirectory(Main.WORK_DIR);
         dirChooser.setTitle("Add output directory");
         File output = dirChooser.showDialog(Main.getWindow());
-        if(output != null && output.isDirectory()) {
-            String absPath = output.getAbsolutePath();
-            this.outputDirListView.getItems().add(absPath);
+        if(FileUtil.isDirectory(output)) {
+            this.outputDirListView.getItems().add(output.getAbsolutePath());
             this.delOutputBtn.setDisable(false);
         }
     }
@@ -121,7 +121,12 @@ public class BuildTabController {
         }
     }
 
-    @FXML // This method is called by the FXMLLoader when initialization is complete
+    @FXML
+    void onRunBuildToolsClicked() {
+        buildTools.run();
+    }
+
+    @FXML
     void initialize() {
         assert flagBox != null : "fx:id=\"flagBox\" was not injected: check your FXML file 'buildTab.fxml'.";
         assert certCheck != null : "fx:id=\"certCheck\" was not injected: check your FXML file 'buildTab.fxml'.";
@@ -140,7 +145,7 @@ public class BuildTabController {
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         choiceComboBox.setVisibleRowCount(10);
-        VersionImporter task = new VersionImporter(Settings.versionLink);
+        VersionImporter task = new VersionImporter(Main.getSettings().getGitVersion(), Main.getTaskRunner().getPool());
         task.setOnSucceeded((event) -> {
             try {
                 handleVersionMap(task.get());
@@ -155,8 +160,8 @@ public class BuildTabController {
         List<Version> versions = Lists.newArrayList(map.keySet());
         versions.sort(Version::compareTo);
         versions = Lists.reverse(versions);
-        for(Version v : versions) {
-            this.choiceComboBox.getItems().add(v.getVersionString());
+        for(Version ver : versions) {
+            this.choiceComboBox.getItems().add(ver.getVersionString());
         }
         this.choiceComboBox.getItems().add(0, "Latest");
         this.buildTools.setVersionMap(map);

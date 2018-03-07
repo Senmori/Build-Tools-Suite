@@ -1,6 +1,9 @@
 package net.senmori.btsuite;
 
 import com.google.common.base.Strings;
+import com.google.common.io.Files;
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 import com.sun.corba.se.impl.ior.WireObjectKeyTemplate;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -15,7 +18,9 @@ import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.MavenInstaller;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
 
 public class Main extends Application {
@@ -23,10 +28,10 @@ public class Main extends Application {
     public static final File WORK_DIR = new File("BTSuite/");
     public static final File SETTINGS_FILE = new File(WORK_DIR, "settings.json");
     public static final File TMP_DIR = new File(WORK_DIR, "tmp/");
-    public static final File PORTABLE_GIT_DIR = new File(Main.WORK_DIR, Settings.gitVersion);
+    public static File PORTABLE_GIT_DIR = null;
 
     public static Stage WINDOW;
-    public static final Settings SETTINGS = new Settings();
+    public static Settings SETTINGS = new Settings();
     public static final TaskRunner TASK_RUNNER = new TaskRunner(3);
 
     private static Console console = null;
@@ -41,12 +46,10 @@ public class Main extends Application {
         WINDOW.getIcons().add(icon);
 
         URL mainController = this.getClass().getClassLoader().getResource("fxml/mainController.fxml");
-        TabPane tabPane = new FXMLLoader(mainController).load();
+        TabPane tabPane = FXMLLoader.load(mainController);
 
         Scene scene = new Scene(tabPane);
         Main.WINDOW.setScene(scene);
-        // must be last, duh
-        primaryStage.show();
 
         WINDOW.setOnCloseRequest((request) -> {
             TASK_RUNNER.getPool().shutdownNow();
@@ -54,6 +57,8 @@ public class Main extends Application {
 
         getTaskRunner().execute(new GitInstaller());
         getTaskRunner().execute(new MavenInstaller());
+
+        primaryStage.show();
     }
 
     public static Stage getWindow() {
@@ -90,15 +95,9 @@ public class Main extends Application {
         if(!Main.WORK_DIR.exists()) {
             Main.WORK_DIR.mkdir();
         }
-        if(!Main.SETTINGS_FILE.exists()) {
-            try {
-                Main.SETTINGS_FILE.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
         if(!Main.TMP_DIR.exists()) {
             Main.TMP_DIR.mkdir();
+            PORTABLE_GIT_DIR = new File(Main.WORK_DIR, getSettings().getGitVersion());
         }
     }
 

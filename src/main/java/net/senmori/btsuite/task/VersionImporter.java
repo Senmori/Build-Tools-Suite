@@ -21,13 +21,17 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class VersionImporter extends Task<Map<Version, BuildInfo>> {
     private static final Gson GSON = new Gson();
 
     private final String url;
-    public VersionImporter(String url) {
+    private final ExecutorService threadPool;
+    public VersionImporter(String url, ExecutorService pool) {
         this.url = url;
+        this.threadPool = pool;
     }
 
     @Override
@@ -35,8 +39,10 @@ public class VersionImporter extends Task<Map<Version, BuildInfo>> {
         File versionFile = new File(Main.TMP_DIR, "versions.html");
         if(!versionFile.exists()) {
             versionFile.createNewFile();
-            FileDownloader downloader = new FileDownloader(url, versionFile);
-            versionFile = downloader.call();
+            Future<File> future = threadPool.submit(new FileDownloader(url, versionFile), versionFile);
+            if(future.isDone()) {
+                versionFile = future.get();
+            }
         }
         Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
         Map<Version, BuildInfo> map = Maps.newHashMap();
@@ -52,8 +58,10 @@ public class VersionImporter extends Task<Map<Version, BuildInfo>> {
             File verFile = new File(Main.TMP_DIR, text);
             if(!verFile.exists()) {
                 verFile.createNewFile();
-                FileDownloader urlDownloader = new FileDownloader(versionUrl, verFile);
-                verFile = urlDownloader.call();
+                Future<File> future = threadPool.submit(new FileDownloader(versionUrl, versionFile), versionFile);
+                if(future.isDone()) {
+                    versionFile = future.get();
+                }
             }
             JsonReader reader = new JsonReader(new FileReader(verFile));
             BuildInfo buildInfo = GSON.fromJson(reader, BuildInfo.class);

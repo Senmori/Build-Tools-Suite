@@ -3,6 +3,8 @@ package net.senmori.btsuite.buildtools;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.Data;
+import net.senmori.btsuite.Main;
+import net.senmori.btsuite.task.BuildToolsExecutor;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.version.Version;
 
@@ -37,5 +39,27 @@ public final class BuildTools {
     public void addOutputDirectory(File directory) {
         if(FileUtil.isDirectory(directory))
             outputDirectories.add(directory.getAbsolutePath());
+    }
+
+    boolean running = false;
+    public void run() {
+        if(running) {
+            return;
+        }
+        BuildToolsExecutor task = new BuildToolsExecutor(this, Main.getTaskRunner().getPool(), Main.getSettings());
+        task.setOnRunning((event) -> {
+            running = true;
+        });
+        task.setOnSucceeded((event) -> {
+            running = false;
+        });
+        task.setOnCancelled((event) -> {
+            running = false;
+        });
+        task.setOnFailed((event) -> {
+            running = false;
+        });
+        running = true;
+        Main.getTaskRunner().execute(task);
     }
 }

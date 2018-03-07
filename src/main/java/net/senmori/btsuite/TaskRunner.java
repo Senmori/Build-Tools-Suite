@@ -42,8 +42,8 @@ public class TaskRunner {
         return pool;
     }
 
-    private ExecutorService newCachedThreadPool(int poolSize) {
-        return new ThreadPoolExecutor(poolSize, poolSize,
+    public ExecutorService newCachedThreadPool(int poolSize) {
+        return new ThreadPoolExecutor(poolSize, poolSize * poolSize,
                          15L, TimeUnit.SECONDS,
                                       new SynchronousQueue<Runnable>(true)); // FIFO
     }

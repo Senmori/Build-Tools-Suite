@@ -29,7 +29,11 @@ public class ProcessRunner {
         if (Main.PORTABLE_GIT_DIR != null) {
             String pathEnv = pb.environment().get("path");
             if (pathEnv == null) {
-                throw new IllegalStateException("Could not find path variable!");
+                //try 'Path'
+                pathEnv = pb.environment().get("Path");
+                if (pathEnv == null) {
+                    throw new IllegalStateException("Cannot find path variable!");
+                }
             }
 
             String path = pb.environment().get(pathEnv);

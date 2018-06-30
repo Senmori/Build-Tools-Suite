@@ -255,7 +255,6 @@ public final class BuildTools {
         String mappingsVersion = mappingsHash.hash().toString().substring(24); // Last 8 chars
 
         File finalMappedJar = new File(work, "mapped." + mappingsVersion + ".jar");
-
         if (! finalMappedJar.exists()) {
             System.out.println("Final mapped jar: " + finalMappedJar + " does not exist, creating!");
 
@@ -263,19 +262,18 @@ public final class BuildTools {
             File mMappedJar = new File(finalMappedJar + "-m");
 
             try {
-                ProcessRunner.runProcess(work, "java", "-jar", "BuildData/bin/SpecialSource-2.jar", "map", "-i", vanillaJar.getPath(), "-m", "BuildData/mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getPath());
+                ProcessRunner.runProcess(work, "java", "-jar", "BuildData/bin/SpecialSource-2.jar", "map", "-i", vanillaJar.getAbsolutePath(), "-m", "BuildData/mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getAbsolutePath());
 
-                ProcessRunner.runProcess(work, "java", "-jar", "BuildData/bin/SpecialSource-2.jar", "map", "-i", clMappedJar.getPath(),
-                        "-m", "BuildData/mappings/" + versionInfo.getMemberMappings(), "-o", mMappedJar.getPath());
+                ProcessRunner.runProcess(work, "java", "-jar", "BuildData/bin/SpecialSource-2.jar", "map", "-i", clMappedJar.getAbsolutePath(),
+                        "-m", "BuildData/mappings/" + versionInfo.getMemberMappings(), "-o", mMappedJar.getAbsolutePath());
 
-                ProcessRunner.runProcess(work, "java", "-jar", "BuildData/bin/SpecialSource.jar", "--kill-lvt", "-i", mMappedJar.getPath(), "--access-transformer", "BuildData/mappings/" + versionInfo.getAccessTransforms(),
-                        "-m", "BuildData/mappings/" + versionInfo.getPackageMappings(), "-o", finalMappedJar.getPath());
+                ProcessRunner.runProcess(work, "java", "-jar", "BuildData/bin/SpecialSource.jar", "--kill-lvt", "-i", mMappedJar.getAbsolutePath(), "--access-transformer", "BuildData/mappings/" + versionInfo.getAccessTransforms(),
+                        "-m", "BuildData/mappings/" + versionInfo.getPackageMappings(), "-o", finalMappedJar.getAbsolutePath());
 
                 ProcessRunner.runProcess(work, "sh", mvn, "install:install-file", "-Dfile=" + finalMappedJar, "-Dpackaging=jar", "-DgroupId=org.spigotmc",
                         "-DartifactId=minecraft-server", "-Dversion=" + versionInfo.getMinecraftVersion() + "-SNAPSHOT");
             } catch (Exception e) {
-                System.out.println("Exception: " + e.getClass().getCanonicalName());
-                System.out.println("Message: " + e.getMessage());
+                e.printStackTrace();
             }
         }
 

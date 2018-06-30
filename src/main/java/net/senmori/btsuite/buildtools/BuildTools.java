@@ -145,7 +145,7 @@ public final class BuildTools {
 
         BuildInfo buildInfo = new BuildInfo("Dev Build", "Development", 0, new BuildInfo.Refs("master", "master", "master", "master"));
 
-        if (! isDontUpdate()) // do update
+        if (!isDontUpdate()) // do update
         {
             String askedVersion = getVersion();
             System.out.println("Attempting to build version: '" + askedVersion + "' use --rev <version> to override");
@@ -190,7 +190,7 @@ public final class BuildTools {
         System.out.println("Attempting to build Minecraft with details: " + versionInfo);
 
         File vanillaJar = new File(Main.JAR_DIR, "minecraft_server." + versionInfo.getMinecraftVersion() + ".jar");
-        if (! vanillaJar.exists()) {
+        if (!vanillaJar.exists()) {
             if (versionInfo.getServerUrl() != null) {
                 FileDownloader fDown = new FileDownloader(versionInfo.getServerUrl(), vanillaJar);
                 fDown.setOnScheduled((event) -> {
@@ -255,7 +255,7 @@ public final class BuildTools {
         String mappingsVersion = mappingsHash.hash().toString().substring(24); // Last 8 chars
 
         File finalMappedJar = new File(work, "mapped." + mappingsVersion + ".jar");
-        if (! finalMappedJar.exists()) {
+        if (!finalMappedJar.exists()) {
             System.out.println("Final mapped jar: " + finalMappedJar + " does not exist, creating!");
 
             File clMappedJar = new File(finalMappedJar + "-cl");
@@ -279,9 +279,9 @@ public final class BuildTools {
 
         File decompileDir = new File(work, "decompile-" + mappingsVersion);
         if (! decompileDir.exists()) {
-            createDir(decompileDir);
+            decompileDir.mkdir();
             File clazzDir = new File(decompileDir, "classes");
-            createDir(clazzDir);
+            clazzDir.mkdir();
             try {
                 ZipUtil.unzip(finalMappedJar, clazzDir, ( input -> input.startsWith("net/minecraft/server") ));
             } catch (IOException e) {
@@ -461,7 +461,7 @@ public final class BuildTools {
     }
 
     private void createDir(File file) {
-        if (! FileUtil.isDirectory(file)) {
+        if (!FileUtil.isDirectory(file)) {
             file.mkdir();
         }
     }

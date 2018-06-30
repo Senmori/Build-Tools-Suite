@@ -29,7 +29,6 @@ public class GitUtil {
 
     public static void clone(String url, File target) throws GitAPIException, IOException {
         System.out.println("Starting clone of " + url + " to " + target);
-
         Git result = Git.cloneRepository().setURI(url).setDirectory(target).call();
 
         try {

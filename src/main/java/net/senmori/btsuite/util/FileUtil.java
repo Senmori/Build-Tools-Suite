@@ -28,11 +28,22 @@ public final class FileUtil {
     }
 
     public static boolean isNonEmptyDirectory(File dir) {
-        if (dir != null && dir.exists()) {
+        if (dir != null && dir.exists() && dir.isDirectory()) {
             File[] files = dir.listFiles();
             return files != null && files.length > 0;
         } else {
             return false;
         }
+    }
+
+    public static void deleteDirectory(File dir) {
+        for (File file : dir.listFiles()) {
+            if (file.isDirectory()) {
+                deleteDirectory(file);
+            } else {
+                file.delete();
+            }
+        }
+        dir.delete();
     }
 }

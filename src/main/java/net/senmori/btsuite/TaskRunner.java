@@ -45,6 +45,7 @@ public class TaskRunner {
     public ExecutorService newCachedThreadPool(int poolSize) {
         return new ThreadPoolExecutor(poolSize, poolSize * poolSize,
                          15L, TimeUnit.SECONDS,
-                                      new SynchronousQueue<Runnable>(true)); // FIFO
+                new SynchronousQueue<Runnable>(true), // FIFO
+                new ThreadPoolExecutor.DiscardPolicy());
     }
 }

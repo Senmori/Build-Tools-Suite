@@ -1,12 +1,6 @@
 package net.senmori.btsuite;
 
-import com.google.common.base.Strings;
-import com.google.common.io.Files;
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
-import com.sun.corba.se.impl.ior.WireObjectKeyTemplate;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
@@ -16,11 +10,9 @@ import net.senmori.btsuite.gui.Console;
 import net.senmori.btsuite.settings.Settings;
 import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.MavenInstaller;
+import net.senmori.btsuite.util.FileUtil;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URL;
 
 public class Main extends Application {
@@ -28,6 +20,8 @@ public class Main extends Application {
     public static final File WORK_DIR = new File("BTSuite/");
     public static final File SETTINGS_FILE = new File(WORK_DIR, "settings.json");
     public static final File TMP_DIR = new File(WORK_DIR, "tmp/");
+    public static final File JAR_DIR = new File(WORK_DIR, "jars/");
+    public static File MVN_DIR = new File(System.getenv("M2_HOME"));
     public static File PORTABLE_GIT_DIR = null;
 
     public static Stage WINDOW;
@@ -35,6 +29,7 @@ public class Main extends Application {
     public static final TaskRunner TASK_RUNNER = new TaskRunner(3);
 
     private static Console console = null;
+    private static TabPane tabPane;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -42,23 +37,31 @@ public class Main extends Application {
         initWindow(WINDOW);
         initSettings();
 
+        Main.TMP_DIR.deleteOnExit();
+
         Image icon = new Image(this.getClass().getClassLoader().getResourceAsStream("icon.png"));
         WINDOW.getIcons().add(icon);
 
         URL mainController = this.getClass().getClassLoader().getResource("fxml/mainController.fxml");
-        TabPane tabPane = FXMLLoader.load(mainController);
+        tabPane = FXMLLoader.load(mainController);
 
         Scene scene = new Scene(tabPane);
         Main.WINDOW.setScene(scene);
 
         WINDOW.setOnCloseRequest((request) -> {
-            TASK_RUNNER.getPool().shutdownNow();
+            stop();
         });
 
-        getTaskRunner().execute(new GitInstaller());
-        getTaskRunner().execute(new MavenInstaller());
+        getTaskRunner().submit(new GitInstaller());
+        getTaskRunner().submit(new MavenInstaller());
 
         primaryStage.show();
+    }
+
+    @Override
+    public void stop() {
+        TASK_RUNNER.getPool().shutdown();
+        FileUtil.deleteDirectory(Main.TMP_DIR);
     }
 
     public static Stage getWindow() {
@@ -98,6 +101,20 @@ public class Main extends Application {
         if(!Main.TMP_DIR.exists()) {
             Main.TMP_DIR.mkdir();
             PORTABLE_GIT_DIR = new File(Main.WORK_DIR, getSettings().getGitVersion());
+        }
+        if (! Main.JAR_DIR.exists()) {
+            Main.JAR_DIR.mkdir();
+        }
+    }
+
+    public static void setActiveTab(WindowTab tab) {
+        switch (tab) {
+            case CONSOLE:
+                tabPane.getSelectionModel().select(1);
+                break;
+            case BUILD:
+            default:
+                tabPane.getSelectionModel().select(0);
         }
     }
 

@@ -12,7 +12,7 @@ public final class HashChecker {
 
     public static boolean checkHash(File jar, VersionInfo info) throws IOException {
         String hash = Files.hash(jar, Hashing.md5()).toString();
-        if(info.getMinecraftHash() != null && !hash.equals(info.getMinecraftHash())) {
+        if (( info.getMinecraftHash() != null ) && ! hash.equals(info.getMinecraftHash())) {
             System.out.println("**** Warning, Minecraft jar has of \'" + hash + "\' does not match stored hash of " + info.getMinecraftHash());
             return false;
         } else {

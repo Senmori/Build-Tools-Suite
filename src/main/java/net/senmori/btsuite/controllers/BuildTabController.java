@@ -1,12 +1,5 @@
 package net.senmori.btsuite.controllers;
 
-import java.io.File;
-import java.net.URL;
-import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
-import java.util.concurrent.ExecutionException;
-
 import com.google.common.collect.Lists;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -26,6 +19,13 @@ import net.senmori.btsuite.settings.Settings;
 import net.senmori.btsuite.task.VersionImporter;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.version.Version;
+
+import java.io.File;
+import java.net.URL;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
 
 public class BuildTabController {
 
@@ -123,7 +123,22 @@ public class BuildTabController {
 
     @FXML
     void onRunBuildToolsClicked() {
-        buildTools.run();
+        if (! buildTools.isRunning()) {
+            if (choiceComboBox.getSelectionModel().getSelectedItem() == null) {
+                buildTools.setVersion("latest");
+            } else {
+                buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
+            }
+            Main.getTaskRunner().getPool().submit(new Runnable() {
+                @Override
+                public void run() {
+                    buildTools.run();
+                }
+            });
+            runBuildToolsBtn.setDisable(true);
+        } else {
+            runBuildToolsBtn.setDisable(false);
+        }
     }
 
     @FXML
@@ -145,7 +160,8 @@ public class BuildTabController {
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         choiceComboBox.setVisibleRowCount(10);
-        VersionImporter task = new VersionImporter(Main.getSettings().getGitVersion(), Main.getTaskRunner().getPool());
+        Settings settings = Main.getSettings();
+        VersionImporter task = new VersionImporter(settings.getVersionLink(), Main.getTaskRunner().getPool());
         task.setOnSucceeded((event) -> {
             try {
                 handleVersionMap(task.get());
@@ -153,7 +169,7 @@ public class BuildTabController {
                 e.printStackTrace();
             }
         });
-        Main.TASK_RUNNER.execute(task);
+        Main.TASK_RUNNER.getPool().submit(task); // use pool directly
     }
 
     private void handleVersionMap(Map<Version, BuildInfo> map) {

@@ -1,12 +1,13 @@
 package net.senmori.btsuite.util;
 
+import com.google.common.io.ByteStreams;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Enumeration;
-import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -16,7 +17,7 @@ public final class ZipUtil {
         unzip(zipFile, targetFolder, null);
     }
 
-    public static void unzip(File zipFile, File targetFolder, Predicate<String> filter) throws IOException {
+    public static void unzip(File zipFile, File targetFolder, com.google.common.base.Predicate<String> filter) throws IOException {
         targetFolder.mkdir();
         ZipFile zip = new ZipFile(zipFile);
 
@@ -25,12 +26,13 @@ public final class ZipUtil {
                 ZipEntry entry = entries.nextElement();
 
                 if(filter != null) {
-                    if(!filter.test(entry.getName())) {
+                    if (! filter.apply(entry.getName())) {
                         continue;
                     }
                 }
 
                 File outFile = new File(targetFolder, entry.getName());
+                System.out.println("Extracting " + outFile.getName());
 
                 if(entry.isDirectory()) {
                     outFile.mkdirs();
@@ -44,15 +46,7 @@ public final class ZipUtil {
                 InputStream is = zip.getInputStream(entry);
                 OutputStream out = new FileOutputStream(outFile);
                 try {
-                    is = zip.getInputStream(entry);
-                    out = new FileOutputStream(outFile);
-
-                    byte[] buffer = new byte[2048];
-                    int len;
-                    while ((len = is.read(buffer)) > 0) {
-                        out.write(buffer, 0, len);
-                    }
-
+                    ByteStreams.copy(is, out);
                 } finally {
                     is.close();
                     out.close();

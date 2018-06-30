@@ -35,7 +35,7 @@ All new tabs must have their own controller. See current fxml controllers for ex
 UI is built with SceneBuilder, use it to make things easier for everyone.
 
 
-## Future
+## TODO
 
 Externalize all strings so it's easier to update them in the future.
 (i.e. the s3 amazon link for downloading minecraft jars)

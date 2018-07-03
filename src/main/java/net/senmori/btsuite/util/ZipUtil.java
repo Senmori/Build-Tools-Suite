@@ -22,11 +22,11 @@ public final class ZipUtil {
         ZipFile zip = new ZipFile(zipFile);
 
         try {
-            for(Enumeration<? extends ZipEntry> entries = zip.entries(); entries.hasMoreElements(); ) {
+            for ( Enumeration<? extends ZipEntry> entries = zip.entries(); entries.hasMoreElements(); ) {
                 ZipEntry entry = entries.nextElement();
 
-                if(filter != null) {
-                    if (! filter.apply(entry.getName())) {
+                if ( filter != null ) {
+                    if ( ! filter.apply(entry.getName()) ) {
                         continue;
                     }
                 }
@@ -34,12 +34,12 @@ public final class ZipUtil {
                 File outFile = new File(targetFolder, entry.getName());
                 System.out.println("Extracting " + outFile.getName());
 
-                if(entry.isDirectory()) {
+                if ( entry.isDirectory() ) {
                     outFile.mkdirs();
                     continue;
                 }
 
-                if( outFile.getParentFile() != null) {
+                if ( outFile.getParentFile() != null ) {
                     outFile.getParentFile().mkdirs();
                 }
 

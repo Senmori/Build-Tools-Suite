@@ -13,6 +13,7 @@ public class FileDownloader extends Task<File> {
 
     private final String url;
     private final File target;
+
     public FileDownloader(String url, File target) {
         this.url = url;
         this.target = target;

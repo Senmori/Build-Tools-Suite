@@ -8,15 +8,29 @@ public final class Version implements Comparable<Version> {
     private int minor;
     private int revision;
     private String[] extra;
-    public Version(String versionString) {
+
+
+    private Version(String versionString) {
         this.versionString = versionString;
         parse(versionString);
         this.displayString = versionString;
     }
 
-    public Version(String versionString, String displayString) {
+    private Version(String versionString, String displayString) {
         this(versionString);
         this.displayString = displayString;
+    }
+
+    public static Version of(String versionString) {
+        return Version.of(versionString, versionString);
+    }
+
+    public static Version of(String versionString, String displayString) {
+        return new Version(versionString, displayString);
+    }
+
+    public static boolean isVersionNumber(String versionString) {
+        return "latest".equalsIgnoreCase(versionString) || ( versionString.split("\\.").length > 1 );
     }
 
     public String getDisplayName() {
@@ -44,67 +58,57 @@ public final class Version implements Comparable<Version> {
     }
 
     public void parse(String versionString) {
-        if(versionString.equalsIgnoreCase("latest")) {
+        if ( versionString.equalsIgnoreCase("latest") ) {
             return;
         }
         String[] arr = versionString.split("\\.");
 
         try {
-            if(arr.length == 1) {
+            if ( arr.length == 1 ) {
                 major = Integer.valueOf(arr[0]);
-            } else if(arr.length == 2) {
+            } else if ( arr.length == 2 ) {
                 major = Integer.valueOf(arr[0]);
                 minor = Integer.valueOf(arr[1]);
-            } else if(arr.length >= 3) {
+            } else if ( arr.length >= 3 ) {
                 major = Integer.valueOf(arr[0]);
                 minor = Integer.valueOf(arr[1]);
                 revision = Integer.valueOf(arr[2]);
 
-                if(arr.length > 3) {
+                if ( arr.length > 3 ) {
                     extra = new String[arr.length - 3];
                     System.arraycopy(arr, 3, extra, 0, arr.length);
                 }
             } else {
                 throw new IllegalArgumentException("Invalid version string (" + versionString + ")");
             }
-        } catch (NumberFormatException e) {
+        } catch ( NumberFormatException e ) {
             throw new IllegalArgumentException("Invalid version string (" + versionString + ")");
         }
     }
 
-    public String toString() {
-        return String.valueOf(major) + "." + String.valueOf(minor) + "." + String.valueOf(revision);
-    }
-
-
     @Override
     public int compareTo(Version other) {
-        if(this.versionString.equalsIgnoreCase("latest"))
+        if ( this.versionString.equalsIgnoreCase("latest") )
             return 1;
 
-        if(this.major != other.major)
+        if ( this.major != other.major )
             return Integer.compare(this.major, other.major);
 
-        if(this.minor != other.minor)
+        if ( this.minor != other.minor )
             return Integer.compare(this.minor, other.minor);
 
-        if(this.revision != other.revision)
+        if ( this.revision != other.revision )
             return Integer.compare(this.revision, other.revision);
 
         return 0;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if(o == null || !(o instanceof Version)) {
-            return false;
-        }
-        Version ver = (Version)o;
-        return this.compareTo(ver) == 0;
+    public boolean equals(Object obj) {
+        return obj instanceof Version && this.compareTo(( Version ) obj) == 0;
     }
 
-
-    public static boolean isVersionNumber(String versionString) {
-        return versionString.split("\\.").length > 1;
+    public String toString() {
+        return String.valueOf(major) + "." + String.valueOf(minor) + "." + String.valueOf(revision);
     }
 }

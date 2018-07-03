@@ -21,15 +21,52 @@ public class Main extends Application {
     public static final File SETTINGS_FILE = new File(WORK_DIR, "settings.json");
     public static final File TMP_DIR = new File(WORK_DIR, "tmp/");
     public static final File JAR_DIR = new File(WORK_DIR, "jars/");
+    public static final TaskRunner TASK_RUNNER = new TaskRunner(3);
     public static File MVN_DIR = new File(System.getenv("M2_HOME"));
     public static File PORTABLE_GIT_DIR = null;
-
     public static Stage WINDOW;
-    public static Settings SETTINGS = new Settings();
-    public static final TaskRunner TASK_RUNNER = new TaskRunner(3);
-
+    private static final Settings SETTINGS = new Settings();
     private static Console console = null;
     private static TabPane tabPane;
+
+    public static Stage getWindow() {
+        return Main.WINDOW;
+    }
+
+    public static Console getConsole() {
+        return console;
+    }
+
+    public static void setConsole(Console console) {
+        if ( console == null )
+            Main.console = console;
+    }
+
+    public static TaskRunner getTaskRunner() {
+        return TASK_RUNNER;
+    }
+
+    public static Settings getSettings() {
+        return SETTINGS;
+    }
+
+    public static void setActiveTab(WindowTab tab) {
+        switch ( tab ) {
+            case CONSOLE:
+                tabPane.getSelectionModel().select(1);
+                break;
+            case BUILD:
+            default:
+                tabPane.getSelectionModel().select(0);
+        }
+    }
+
+
+
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -64,57 +101,21 @@ public class Main extends Application {
         FileUtil.deleteDirectory(Main.TMP_DIR);
     }
 
-    public static Stage getWindow() {
-        return Main.WINDOW;
-    }
-
-    public static Console getConsole() {
-        return console;
-    }
-
-    public static void setConsole(Console console) {
-        if(console == null)
-            Main.console = console;
-    }
-
-    public static TaskRunner getTaskRunner() {
-        return TASK_RUNNER;
-    }
-
-    public static Settings getSettings() {
-        return SETTINGS;
-    }
-
     private void initWindow(Stage window) {
         window.setTitle("Build Tools");
         window.setResizable(true);
     }
 
-     public static void main(String[] args) {
-        launch(args);
-     }
-
     private void initSettings() {
-        if(!Main.WORK_DIR.exists()) {
+        if ( ! Main.WORK_DIR.exists() ) {
             Main.WORK_DIR.mkdir();
         }
-        if(!Main.TMP_DIR.exists()) {
+        if ( ! Main.TMP_DIR.exists() ) {
             Main.TMP_DIR.mkdir();
             PORTABLE_GIT_DIR = new File(Main.WORK_DIR, getSettings().getGitVersion());
         }
-        if (! Main.JAR_DIR.exists()) {
+        if ( ! Main.JAR_DIR.exists() ) {
             Main.JAR_DIR.mkdir();
-        }
-    }
-
-    public static void setActiveTab(WindowTab tab) {
-        switch (tab) {
-            case CONSOLE:
-                tabPane.getSelectionModel().select(1);
-                break;
-            case BUILD:
-            default:
-                tabPane.getSelectionModel().select(0);
         }
     }
 

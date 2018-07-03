@@ -1,7 +1,5 @@
 package net.senmori.btsuite.util;
 
-import java.io.File;
-
 public class SystemChecker {
 
     public static boolean isWindows() {
@@ -9,6 +7,6 @@ public class SystemChecker {
     }
 
     public static boolean isAutocrlf() {
-        return !"\n".equalsIgnoreCase(System.getProperty("line.separator"));
+        return ! "\n".equalsIgnoreCase(System.getProperty("line.separator"));
     }
 }

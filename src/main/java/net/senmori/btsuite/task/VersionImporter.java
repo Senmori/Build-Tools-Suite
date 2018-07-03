@@ -18,13 +18,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 
 public class VersionImporter extends Task<Map<Version, BuildInfo>> {
     private static final Gson GSON = new Gson();
     private static final long MAX_WAIT_TIME = 5L;
+    private static final Pattern JSON_PATTERN = Pattern.compile(".json");
 
     private final String url;
     private final ExecutorService threadPool;
+
     public VersionImporter(String url, ExecutorService pool) {
         this.url = url;
         this.threadPool = pool;
@@ -37,33 +40,29 @@ public class VersionImporter extends Task<Map<Version, BuildInfo>> {
         File versionDir = new File(work, "versions");
         createDir(versionDir);
         File versionFile = new File(versionDir, "versions.html");
-        if(!versionFile.exists()) {
+        if ( !versionFile.exists() ) {
             versionFile.createNewFile();
             Future<File> future = threadPool.submit(new FileDownloader(url, versionFile), versionFile);
-            do {
-                ;
-            } while (! future.isDone());
+            waitForFuture(future);
             versionFile = future.get();
         }
         Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
         Map<Version, BuildInfo> map = Maps.newHashMap();
-        for(Element element : links) {
-            if(element.wholeText().startsWith("..")) // ignore non-version links
+        for ( Element element : links ) {
+            if ( element.wholeText().startsWith("..") ) // ignore non-version links
                 continue;
             String text = element.wholeText(); // 1.12.2.json
-            String versionText = text.replaceAll(".json", ""); // 1.12.2
-            if (! Version.isVersionNumber(versionText)) {
+            String versionText = JSON_PATTERN.matcher(text).replaceAll(""); // 1.12.2
+            if ( !Version.isVersionNumber(versionText) ) {
                 continue;
             }
-            Version version = new Version(versionText);
+            Version version = Version.of(versionText);
             String versionUrl = url + text; // ../work/versions/1.12.2.json
             File verFile = new File(versionDir, text);
-            if(!verFile.exists()) {
+            if ( !verFile.exists() ) {
                 verFile.createNewFile();
                 Future<File> future = threadPool.submit(new FileDownloader(versionUrl, verFile), verFile);
-                do {
-                    ;
-                } while (! future.isDone());
+                waitForFuture(future);
                 verFile = future.get();
             }
             JsonReader reader = new JsonReader(new FileReader(verFile));
@@ -75,8 +74,14 @@ public class VersionImporter extends Task<Map<Version, BuildInfo>> {
     }
 
     private void createDir(File file) {
-        if (! FileUtil.isDirectory(file)) {
+        if ( ! FileUtil.isDirectory(file) ) {
             file.mkdir();
         }
+    }
+
+    private void waitForFuture(Future<?> future) {
+        do {
+            ;
+        } while ( ! future.isDone() );
     }
 }

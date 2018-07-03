@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import difflib.DiffUtils;
 import difflib.Patch;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import net.senmori.btsuite.Main;
 import net.senmori.btsuite.TaskRunner;
 import net.senmori.btsuite.WindowTab;
@@ -41,18 +42,19 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+@Slf4j
 @Data
 public final class BuildTools {
+    boolean running = false;
+    Settings settings = Main.getSettings();
+    TaskRunner runner = Main.getTaskRunner();
     private boolean disableCertificateCheck = false;
     private boolean dontUpdate = false;
     private boolean skipCompile = false;
     private boolean genSrc = false;
     private boolean genDoc = false;
-
     private String version = "latest";
-
     private List<String> outputDirectories = Lists.newArrayList();
-
     private Map<Version, BuildInfo> versionMap = Maps.newHashMap();
 
     public void setVersionMap(Map<Version, BuildInfo> newMap) {
@@ -66,27 +68,24 @@ public final class BuildTools {
     }
 
     public void addOutputDirectory(File directory) {
-        if(FileUtil.isDirectory(directory))
+        if ( FileUtil.isDirectory(directory) )
             outputDirectories.add(directory.getAbsolutePath());
     }
 
-    boolean running = false;
-    Settings settings = Main.getSettings();
-    TaskRunner runner = Main.getTaskRunner();
     public void run() {
         running = true;
         Main.setActiveTab(WindowTab.CONSOLE);
         String SHELL_PREFIX = "sh";
         File work = new File(Main.WORK_DIR, "work");
         createDir(work);
-        if (getOutputDirectories().isEmpty()) {
+        if ( getOutputDirectories().isEmpty() ) {
             getOutputDirectories().add(Main.WORK_DIR.getPath()); // always have the WORK dir as an output
         }
         printOptions(this);
 
         // clone bukkit
         File bukkit = new File(Main.WORK_DIR, "Bukkit");
-        if (! bukkit.exists()) {
+        if ( ! bukkit.exists() ) {
             String repo = settings.getStashRepoLink() + "bukkit.git";
             GitCloneTask bukkitCloneTask = new GitCloneTask(repo, bukkit, this);
             waitForFuture(runner.submit(bukkitCloneTask));
@@ -94,7 +93,7 @@ public final class BuildTools {
 
         // clone CB
         File craftBukkit = new File(Main.WORK_DIR, "CraftBukkit");
-        if (! craftBukkit.exists()) {
+        if ( ! craftBukkit.exists() ) {
             String repo = settings.getStashRepoLink() + "craftbukkit.git";
             GitCloneTask cbCloneTask = new GitCloneTask(repo, craftBukkit, this);
             waitForFuture(runner.submit(cbCloneTask));
@@ -102,7 +101,7 @@ public final class BuildTools {
 
         // clone Spigot
         File spigot = new File(Main.WORK_DIR, "Spigot");
-        if (! spigot.exists()) {
+        if ( ! spigot.exists() ) {
             String repo = settings.getStashRepoLink() + "spigot.git";
             GitCloneTask spigotCloneTask = new GitCloneTask(repo, spigot, this);
             waitForFuture(runner.submit(spigotCloneTask));
@@ -110,7 +109,7 @@ public final class BuildTools {
 
         // clone BuildData
         File buildData = new File(Main.WORK_DIR, "BuildData");
-        if (! buildData.exists()) {
+        if ( ! buildData.exists() ) {
             String repo = settings.getStashRepoLink() + "builddata.git";
             GitCloneTask buildDataCloneTask = new GitCloneTask(repo, buildData, this);
             waitForFuture(runner.submit(buildDataCloneTask));
@@ -118,12 +117,12 @@ public final class BuildTools {
 
         // verify maven is installed
         File maven = new File(System.getenv("M2_HOME"));
-        if (! maven.exists()) {
+        if ( ! maven.exists() ) {
             Future<File> task = Main.TASK_RUNNER.submit(new MavenInstaller()); // this should NEVER happen.
             waitForFuture(task);
             try {
                 maven = task.get();
-            } catch (InterruptedException | ExecutionException e) {
+            } catch ( InterruptedException | ExecutionException e ) {
                 e.printStackTrace();
             }
         }
@@ -139,13 +138,13 @@ public final class BuildTools {
             craftBukkitGit = Git.open(craftBukkit);
             spigotGit = Git.open(spigot);
             buildGit = Git.open(buildData);
-        } catch (IOException e) {
+        } catch ( IOException e ) {
             e.printStackTrace();
         }
 
         BuildInfo buildInfo = new BuildInfo("Dev Build", "Development", 0, new BuildInfo.Refs("master", "master", "master", "master"));
 
-        if (!isDontUpdate()) // do update
+        if ( ! isDontUpdate() ) // do update
         {
             String askedVersion = getVersion();
             System.out.println("Attempting to build version: '" + askedVersion + "' use --rev <version> to override");
@@ -153,7 +152,7 @@ public final class BuildTools {
             String text = askedVersion + ".json";
             File versionDir = new File(work, "versions");
             File verInfo = new File(versionDir, text);
-            if (! verInfo.exists()) {
+            if ( ! verInfo.exists() ) {
                 // download file
                 String url = settings.getVersionLink() + askedVersion + ".json";
                 FileDownloader fDown = new FileDownloader(url, verInfo);
@@ -162,7 +161,7 @@ public final class BuildTools {
             try {
                 buildInfo = new Gson().fromJson(new FileReader(verInfo), BuildInfo.class);
                 System.out.println("Found version " + buildInfo);
-            } catch (FileNotFoundException e) {
+            } catch ( FileNotFoundException e ) {
                 e.printStackTrace();
             }
 
@@ -171,7 +170,7 @@ public final class BuildTools {
                 GitUtil.pull(bukkitGit, buildInfo.getRefs().getBukkit());
                 GitUtil.pull(craftBukkitGit, buildInfo.getRefs().getCraftBukkit());
                 GitUtil.pull(spigotGit, buildInfo.getRefs().getSpigot());
-            } catch (Exception e) {
+            } catch ( Exception e ) {
                 e.printStackTrace();
             }
         } // end isDontUpdate if
@@ -180,18 +179,18 @@ public final class BuildTools {
         try {
             File buildDataDir = new File(Main.WORK_DIR, "BuildData");
             versionInfo = new Gson().fromJson(new FileReader(new File(buildDataDir, "info.json")), VersionInfo.class);
-        } catch (FileNotFoundException e) {
+        } catch ( FileNotFoundException e ) {
             e.printStackTrace();
         }
         // Default to 1.12.2 builds.
-        if (versionInfo == null) {
-            versionInfo = new VersionInfo("1.12.2", "bukkit-1.12.2.at", "bukkit-1.12.2-cl.csrg", "bukkit-1.12.2-members.csrg", "package.srg", null);
+        if ( versionInfo == null ) {
+            versionInfo = settings.getDefaultVersionInfo();
         }
         System.out.println("Attempting to build Minecraft with details: " + versionInfo);
 
         File vanillaJar = new File(Main.JAR_DIR, "minecraft_server." + versionInfo.getMinecraftVersion() + ".jar");
-        if (!vanillaJar.exists()) {
-            if (versionInfo.getServerUrl() != null) {
+        if ( ! vanillaJar.exists() ) {
+            if ( versionInfo.getServerUrl() != null ) {
                 FileDownloader fDown = new FileDownloader(versionInfo.getServerUrl(), vanillaJar);
                 fDown.setOnScheduled((event) -> {
                     System.out.println("Downloading Minecraft Server jar version " + version);
@@ -200,11 +199,11 @@ public final class BuildTools {
                 waitForFuture(future);
                 try {
                     vanillaJar = fDown.get();
-                } catch (InterruptedException | ExecutionException e) {
+                } catch ( InterruptedException | ExecutionException e ) {
                     System.out.println("*** Could not download " + versionInfo.getMinecraftVersion() + " jar. Giving up.");
                 }
             } else {
-                String s3URL = String.format(settings.getGetFallbackServerUrl(), versionInfo.getMinecraftVersion());
+                String s3URL = String.format(settings.getFallbackServerUrl(), versionInfo.getMinecraftVersion());
                 FileDownloader fDown = new FileDownloader(s3URL, vanillaJar);
                 fDown.setOnScheduled((event) -> {
                     System.out.println("Downloading Minecraft Server jar version " + version);
@@ -212,14 +211,14 @@ public final class BuildTools {
                 waitForFuture(runner.submit(fDown));
                 try {
                     vanillaJar = fDown.get();
-                } catch (InterruptedException | ExecutionException e) {
+                } catch ( InterruptedException | ExecutionException e ) {
                     System.out.println("*** Could not download " + versionInfo.getMinecraftVersion() + " jar");
                     return;
                 }
 
                 // Legacy versions can also specify a specific shell to build with which has to be bash-compatible
                 SHELL_PREFIX = System.getenv().get("SHELL");
-                if (SHELL_PREFIX == null || SHELL_PREFIX.trim().isEmpty()) {
+                if ( SHELL_PREFIX == null || SHELL_PREFIX.trim().isEmpty() ) {
                     SHELL_PREFIX = "bash";
                 }
             }
@@ -227,10 +226,10 @@ public final class BuildTools {
         boolean validHash = false;
         try {
             validHash = HashChecker.checkHash(vanillaJar, versionInfo);
-        } catch (IOException e) {
+        } catch ( IOException e ) {
             validHash = false;
         }
-        if (! validHash) {
+        if ( ! validHash ) {
             System.err.println("**** Could not download clean Minecraft jar, giving up.");
             return;
         }
@@ -243,19 +242,19 @@ public final class BuildTools {
                                .addPath("mappings/" + versionInfo.getMemberMappings())
                                .addPath("mappings/" + versionInfo.getPackageMappings())
                                .setMaxCount(1).call();
-        } catch (GitAPIException e) {
+        } catch ( GitAPIException e ) {
             e.printStackTrace();
         }
 
         Hasher mappingsHash = Hashing.md5().newHasher();
-        for (RevCommit rev : mappings) {
+        for ( RevCommit rev : mappings ) {
             mappingsHash.putString(rev.getName(), Charsets.UTF_8);
         }
 
         String mappingsVersion = mappingsHash.hash().toString().substring(24); // Last 8 chars
 
         File finalMappedJar = new File(work, "mapped." + mappingsVersion + ".jar");
-        if (!finalMappedJar.exists()) {
+        if ( ! finalMappedJar.exists() ) {
             System.out.println("Final mapped jar: " + finalMappedJar + " does not exist, creating!");
 
             File clMappedJar = new File(finalMappedJar + "-cl");
@@ -272,47 +271,47 @@ public final class BuildTools {
 
                 ProcessRunner.runProcess(work, "sh", mvn, "install:install-file", "-Dfile=" + finalMappedJar, "-Dpackaging=jar", "-DgroupId=org.spigotmc",
                         "-DartifactId=minecraft-server", "-Dversion=" + versionInfo.getMinecraftVersion() + "-SNAPSHOT");
-            } catch (Exception e) {
+            } catch ( Exception e ) {
                 e.printStackTrace();
             }
         }
 
         File decompileDir = new File(work, "decompile-" + mappingsVersion);
-        if (! decompileDir.exists()) {
+        if ( ! decompileDir.exists() ) {
             decompileDir.mkdir();
             File clazzDir = new File(decompileDir, "classes");
             clazzDir.mkdir();
             try {
                 ZipUtil.unzip(finalMappedJar, clazzDir, ( input -> input.startsWith("net/minecraft/server") ));
-            } catch (IOException e) {
+            } catch ( IOException e ) {
                 e.printStackTrace();
             }
-            if (versionInfo.getDecompileCommand() == null) {
+            if ( versionInfo.getDecompileCommand() == null ) {
                 versionInfo.setDecompileCommand("java -jar BuildData/bin/fernflower.jar -dgs=1 -hdc=0 -rbr=0 -asc=1 -udv=0 {0} {1}");
             }
 
             try {
                 ProcessRunner.runProcess(Main.WORK_DIR, MessageFormat.format(versionInfo.getDecompileCommand(), clazzDir.getPath(), decompileDir.getPath()).split(" "));
-            } catch (Exception e) {
+            } catch ( Exception e ) {
                 e.printStackTrace();
             }
         }
 
         System.out.println("Applying CraftBukkit Patches");
         File nmsDir = new File(craftBukkit, "src/main/java/net");
-        if (nmsDir.exists()) {
+        if ( nmsDir.exists() ) {
             System.out.println("Backing up NMS dir");
             try {
                 FileUtils.moveDirectory(nmsDir, new File(work, "nms.old." + System.currentTimeMillis()));
-            } catch (IOException e) {
+            } catch ( IOException e ) {
                 e.printStackTrace();
             }
         }
 
         // Do patches
         File patchDir = new File(craftBukkit, "nms-patches");
-        for (File file : patchDir.listFiles()) {
-            if (! file.getName().endsWith(".patch")) {
+        for ( File file : patchDir.listFiles() ) {
+            if ( ! file.getName().endsWith(".patch") ) {
                 continue;
             }
 
@@ -327,19 +326,19 @@ public final class BuildTools {
             List<String> readFile = null;
             try {
                 readFile = Files.readLines(file, Charsets.UTF_8);
-            } catch (IOException e) {
+            } catch ( IOException e ) {
                 e.printStackTrace();
             }
 
             // Manually append prelude if it is not found in the first few lines.
             boolean preludeFound = false;
-            for (int i = 0; i < Math.min(3, readFile.size()); i++) {
-                if (readFile.get(i).startsWith("+++")) {
+            for ( int i = 0; i < Math.min(3, readFile.size()); i++ ) {
+                if ( readFile.get(i).startsWith("+++") ) {
                     preludeFound = true;
                     break;
                 }
             }
-            if (! preludeFound) {
+            if ( ! preludeFound ) {
                 readFile.add(0, "+++");
             }
 
@@ -348,12 +347,12 @@ public final class BuildTools {
                 List<?> modifiedLines = DiffUtils.patch(Files.readLines(clean, Charsets.UTF_8), parsedPatch);
 
                 BufferedWriter bw = new BufferedWriter(new FileWriter(t));
-                for (String line : (List<String>) modifiedLines) {
+                for ( String line : ( List<String> ) modifiedLines ) {
                     bw.write(line);
                     bw.newLine();
                 }
                 bw.close();
-            } catch (Exception e) {
+            } catch ( Exception e ) {
                 e.printStackTrace();
             }
         } // end patch for
@@ -361,7 +360,7 @@ public final class BuildTools {
         File tmpNms = new File(craftBukkit, "tmp-nms");
         try {
             FileUtils.copyDirectory(nmsDir, tmpNms);
-        } catch (IOException e) {
+        } catch ( IOException e ) {
             e.printStackTrace();
         }
 
@@ -371,24 +370,24 @@ public final class BuildTools {
             craftBukkitGit.add().addFilepattern("src/main/java/net/").call();
             craftBukkitGit.commit().setMessage("CraftBukkit $ " + new Date()).call();
             craftBukkitGit.checkout().setName(buildInfo.getRefs().getCraftBukkit()).call();
-        } catch (GitAPIException e) {
+        } catch ( GitAPIException e ) {
             e.printStackTrace();
         }
 
         try {
             FileUtils.moveDirectory(tmpNms, nmsDir);
-        } catch (IOException e) {
+        } catch ( IOException e ) {
             e.printStackTrace();
         }
 
         File spigotApi = new File(spigot, "Bukkit");
-        if (! spigotApi.exists()) {
+        if ( ! spigotApi.exists() ) {
             String url = "file://" + bukkit.getAbsolutePath();
             GitCloneTask task = new GitCloneTask(url, spigotApi, this);
             runner.submit(task);
         }
         File spigotServer = new File(spigot, "CraftBukkit");
-        if (! spigotServer.exists()) {
+        if ( ! spigotServer.exists() ) {
             String url = "file://" + craftBukkit.getAbsolutePath();
             GitCloneTask task = new GitCloneTask(url, spigotServer, this);
             runner.submit(task);
@@ -396,20 +395,20 @@ public final class BuildTools {
 
         // Git spigotApiGit = Git.open( spigotApi );
         // Git spigotServerGit = Git.open( spigotServer );
-        if (! isSkipCompile()) {
+        if ( ! isSkipCompile() ) {
             try {
                 System.out.println("Compiling Bukkit");
                 ProcessRunner.runProcess(bukkit, "sh", mvn, "install");
-                if (isGenDoc()) {
+                if ( isGenDoc() ) {
                     ProcessRunner.runProcess(bukkit, "sh", mvn, "javadoc:jar");
                 }
-                if (isGenSrc()) {
+                if ( isGenSrc() ) {
                     ProcessRunner.runProcess(bukkit, "sh", mvn, "source:jar");
                 }
 
                 System.out.println("Compiling CraftBukkit");
                 ProcessRunner.runProcess(craftBukkit, "sh", mvn, "install");
-            } catch (Exception e) {
+            } catch ( Exception e ) {
                 e.printStackTrace();
             }
         }
@@ -418,29 +417,29 @@ public final class BuildTools {
             ProcessRunner.runProcess(spigot, SHELL_PREFIX, "applyPatches.sh");
             System.out.println("*** Spigot patches applied!");
 
-            if (! isSkipCompile()) {
+            if ( ! isSkipCompile() ) {
                 System.out.println("Compiling Spigot & Spigot-API");
                 ProcessRunner.runProcess(spigot, "sh", mvn, "clean", "install");
             }
-        } catch (Exception ex) {
+        } catch ( Exception ex ) {
             System.err.println("Error compiling Spigot. Please check the wiki for FAQs.");
             System.err.println("If this does not resolve your issue then please pastebin the entire BuildTools.log.txt file when seeking support.");
             ex.printStackTrace();
             return;
         }
 
-        for (int i = 0; i < 15; i++) {
+        for ( int i = 0; i < 15; i++ ) {
             System.out.println(" ");
         }
 
-        if (! isSkipCompile()) {
+        if ( ! isSkipCompile() ) {
             try {
                 System.out.println("Success! Everything compiled successfully. Copying final .jar files now.");
-                for (String outputDir : getOutputDirectories()) {
+                for ( String outputDir : getOutputDirectories() ) {
                     FileUtil.copyJar("CraftBukkit/target", "craftbukkit", new File(outputDir, "craftbukkit-" + versionInfo.getMinecraftVersion() + ".jar"));
                     FileUtil.copyJar("Spigot/Spigot-Server/target", "spigot", new File(outputDir, "spigot-" + versionInfo.getMinecraftVersion() + ".jar"));
                 }
-            } catch (Exception e) {
+            } catch ( Exception e ) {
                 e.printStackTrace();
             }
         }
@@ -449,19 +448,19 @@ public final class BuildTools {
 
     private void printOptions(BuildTools options) {
         System.out.println("BuildTool Options: ");
-        System.out.println("Disable Certificate Check: " + options.isDisableCertificateCheck());
-        System.out.println("Don't Update: " + options.isDontUpdate());
-        System.out.println("Skip Compile: " + options.isSkipCompile());
-        System.out.println("Generate Sources: " + options.isGenSrc());
-        System.out.println("Generate Docs: " + options.isGenDoc());
-        System.out.println("Version: " + options.getVersion());
-        for (String dir : options.getOutputDirectories()) {
+        System.out.println("Disable Certificate Check: " + options.disableCertificateCheck);
+        System.out.println("Don't Update: " + options.dontUpdate);
+        System.out.println("Skip Compile: " + options.skipCompile);
+        System.out.println("Generate Sources: " + options.genSrc);
+        System.out.println("Generate Docs: " + options.genDoc);
+        System.out.println("Version: " + options.version);
+        for ( String dir : options.outputDirectories ) {
             System.out.println("Output Dir: " + dir);
         }
     }
 
     private void createDir(File file) {
-        if (!FileUtil.isDirectory(file)) {
+        if ( ! FileUtil.isDirectory(file) ) {
             file.mkdir();
         }
     }
@@ -469,6 +468,6 @@ public final class BuildTools {
     private void waitForFuture(Future<?> future) {
         do {
             ;
-        } while (! future.isDone());
+        } while ( ! future.isDone() );
     }
 }

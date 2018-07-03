@@ -25,7 +25,7 @@ public class GitCloneTask extends Task<GitCloneTask.Response> {
 
     @Override
     protected GitCloneTask.Response call() throws Exception {
-        if (isRepo(target)) {
+        if ( isRepo(target) ) {
             System.out.println("Cannot clone to a non-empty directory.");
             return Response.FAILURE;
         }
@@ -37,7 +37,7 @@ public class GitCloneTask extends Task<GitCloneTask.Response> {
             config.save();
             System.out.println("Successfully cloned " + result.getRepository().getDirectory());
             return Response.SUCCESS;
-        } catch (IOException e) {
+        } catch ( IOException e ) {
             return Response.FAILURE;
         } finally {
             result.close();

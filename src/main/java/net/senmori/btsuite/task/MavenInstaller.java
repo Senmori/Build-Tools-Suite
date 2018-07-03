@@ -10,7 +10,7 @@ import java.io.IOException;
 public class MavenInstaller extends Task<File> {
     @Override
     protected File call() throws Exception {
-        if(isInstalled()) {
+        if ( isInstalled() ) {
             System.out.println("Maven is installed at " + System.getenv("M2_HOME"));
             Main.MVN_DIR = new File(System.getenv("M2_HOME"));
             return Main.MVN_DIR;
@@ -18,7 +18,7 @@ public class MavenInstaller extends Task<File> {
 
         File maven = new File("apache-maven-3.5.0");
 
-        if(!maven.exists()) {
+        if ( ! maven.exists() ) {
             System.out.println("Maven does not exist, downloading. Please wait.");
 
             File mvnTemp = new File("mvn.zip");
@@ -28,7 +28,7 @@ public class MavenInstaller extends Task<File> {
                 Main.TASK_RUNNER.execute(new FileDownloader(Main.getSettings().getMvnInstallerLink(), mvnTemp));
                 ZipUtil.unzip(mvnTemp, new File("."));
                 System.out.println(maven.getName() + " installed to " + mvnTemp.getPath());
-            } catch(IOException e) {
+            } catch ( IOException e ) {
                 e.printStackTrace();
                 return null;
             }

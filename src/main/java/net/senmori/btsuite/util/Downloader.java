@@ -3,8 +3,6 @@ package net.senmori.btsuite.util;
 import com.google.common.io.CharStreams;
 import javafx.concurrent.Task;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,22 +12,21 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Downloader {
 
     public static String get(String url) throws IOException {
-        URLConnection con = new URL( url ).openConnection();
-        con.setConnectTimeout( 5000 );
-        con.setReadTimeout( 5000 );
+        URLConnection con = new URL(url).openConnection();
+        con.setConnectTimeout(5000);
+        con.setReadTimeout(5000);
 
         InputStreamReader r = null;
         try {
-            r = new InputStreamReader( con.getInputStream() );
+            r = new InputStreamReader(con.getInputStream());
 
-            return CharStreams.toString( r );
+            return CharStreams.toString(r);
         } finally {
             if ( r != null ) {
                 r.close();
@@ -37,8 +34,7 @@ public class Downloader {
         }
     }
 
-    public static File download(String url, File target) throws IOException
-    {
+    public static File download(String url, File target) throws IOException {
         URL con = new URL(url);
         InputStream stream = con.openStream();
         ReadableByteChannel bis = Channels.newChannel(stream);

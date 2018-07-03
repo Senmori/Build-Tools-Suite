@@ -104,7 +104,7 @@ public class BuildTabController {
         dirChooser.setInitialDirectory(Main.WORK_DIR);
         dirChooser.setTitle("Add output directory");
         File output = dirChooser.showDialog(Main.getWindow());
-        if(FileUtil.isDirectory(output)) {
+        if ( FileUtil.isDirectory(output) ) {
             this.outputDirListView.getItems().add(output.getAbsolutePath());
             this.delOutputBtn.setDisable(false);
         }
@@ -116,16 +116,16 @@ public class BuildTabController {
         ObservableList<String> all = this.outputDirListView.getItems();
         all.removeAll(selected);
         this.outputDirListView.setItems(all);
-        if(this.outputDirListView.getItems().isEmpty()) {
+        if ( this.outputDirListView.getItems().isEmpty() ) {
             this.delOutputBtn.setDisable(true);
         }
     }
 
     @FXML
     void onRunBuildToolsClicked() {
-        if (! buildTools.isRunning()) {
-            if (choiceComboBox.getSelectionModel().getSelectedItem() == null) {
-                buildTools.setVersion("latest");
+        if ( ! buildTools.isRunning() ) {
+            if ( choiceComboBox.getSelectionModel().getSelectedItem() == null ) {
+                buildTools.setVersion(Main.getSettings().getDefaultVersion());
             } else {
                 buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
             }
@@ -165,7 +165,7 @@ public class BuildTabController {
         task.setOnSucceeded((event) -> {
             try {
                 handleVersionMap(task.get());
-            } catch (InterruptedException | ExecutionException e) {
+            } catch ( InterruptedException | ExecutionException e ) {
                 e.printStackTrace();
             }
         });
@@ -176,10 +176,9 @@ public class BuildTabController {
         List<Version> versions = Lists.newArrayList(map.keySet());
         versions.sort(Version::compareTo);
         versions = Lists.reverse(versions);
-        for(Version ver : versions) {
+        for ( Version ver : versions ) {
             this.choiceComboBox.getItems().add(ver.getVersionString());
         }
-        this.choiceComboBox.getItems().add(0, "Latest");
         this.buildTools.setVersionMap(map);
     }
 }

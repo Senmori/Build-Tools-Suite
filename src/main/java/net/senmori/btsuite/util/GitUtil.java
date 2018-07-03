@@ -20,8 +20,8 @@ public class GitUtil {
 
         System.out.println("Successfully fetched updates!");
 
-        repo.reset().setRef( ref ).setMode(ResetCommand.ResetType.HARD).call();
-        if(ref.equals("master")) {
+        repo.reset().setRef(ref).setMode(ResetCommand.ResetType.HARD).call();
+        if ( ref.equals("master") ) {
             repo.reset().setRef("origin/master").setMode(ResetCommand.ResetType.HARD).call();
         }
         System.out.println("Checked out: " + ref);
@@ -36,7 +36,7 @@ public class GitUtil {
             config.setBoolean("core", null, "autocrlf", SystemChecker.isAutocrlf());
             config.save();
 
-            System.out.println("Cloned git repository " + url + " to " + target.getAbsolutePath() + ". Current HEAD: " + commitHash( result ));
+            System.out.println("Cloned git repository " + url + " to " + target.getAbsolutePath() + ". Current HEAD: " + commitHash(result));
         } finally {
             result.close();
         }
@@ -49,15 +49,15 @@ public class GitUtil {
     private static String getOnlyElement(Iterable<RevCommit> iter) {
         Iterator<RevCommit> iterator = iter.iterator();
         RevCommit first = iterator.next();
-        if(!iterator.hasNext()) {
+        if ( ! iterator.hasNext() ) {
             return first.getName();
         }
         StringBuilder sb = new StringBuilder();
         sb.append("expected one element but was: <" + first);
-        for (int i = 0; i < 4 && iterator.hasNext(); i++) {
+        for ( int i = 0; i < 4 && iterator.hasNext(); i++ ) {
             sb.append(", " + iterator.next());
         }
-        if (iterator.hasNext()) {
+        if ( iterator.hasNext() ) {
             sb.append(", ...");
         }
         sb.append('>');

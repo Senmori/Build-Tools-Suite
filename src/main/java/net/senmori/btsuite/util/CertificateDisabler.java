@@ -16,40 +16,38 @@ public final class CertificateDisabler {
     public static void disableHttpsCertificateCheck() {
         // This globally disables certificate checking
         // http://stackoverflow.com/questions/19723415/java-overriding-function-to-disable-ssl-certificate-check
-        try
-        {
+        try {
             TrustManager[] trustAllCerts = new TrustManager[]
-           {
-                new X509TrustManager() {
-                    @Override
-                    public void checkClientTrusted(X509Certificate[] certificates, String s) throws CertificateException {
+                                                   {
+                                                           new X509TrustManager() {
+                                                               @Override
+                                                               public void checkClientTrusted(X509Certificate[] certificates, String s) throws CertificateException {
 
-                    }
+                                                               }
 
-                    @Override
-                    public void checkServerTrusted(X509Certificate[] certificates, String s) throws CertificateException {
+                                                               @Override
+                                                               public void checkServerTrusted(X509Certificate[] certificates, String s) throws CertificateException {
 
-                    }
+                                                               }
 
-                    @Override
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-                }
-           };
+                                                               @Override
+                                                               public X509Certificate[] getAcceptedIssuers() {
+                                                                   return null;
+                                                               }
+                                                           }
+                                                   };
 
             // Trust SSL certs
-            SSLContext sc = SSLContext.getInstance( "SSL" );
-            sc.init( null, trustAllCerts, new SecureRandom() );
-            HttpsURLConnection.setDefaultSSLSocketFactory( sc.getSocketFactory() );
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
             // Trust host names
             HostnameVerifier allHostsValid = (hostname, session) -> true;
-            HttpsURLConnection.setDefaultHostnameVerifier( allHostsValid );
-        } catch ( NoSuchAlgorithmException | KeyManagementException ex )
-        {
-            System.out.println( "Failed to disable https certificate check" );
-            ex.printStackTrace( System.err );
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+        } catch ( NoSuchAlgorithmException | KeyManagementException ex ) {
+            System.out.println("Failed to disable https certificate check");
+            ex.printStackTrace(System.err);
         }
     }
 }

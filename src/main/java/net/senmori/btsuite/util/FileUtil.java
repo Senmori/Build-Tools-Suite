@@ -9,16 +9,16 @@ public final class FileUtil {
     public static void copyJar(String path, final String jarPrefix, File outJar) throws Exception {
         File[] files = new File(path).listFiles((dir, name) -> name.startsWith(jarPrefix) && name.endsWith(".jar"));
 
-        if(!outJar.getParentFile().isDirectory())
-            if(!outJar.getParentFile().mkdir())
+        if ( ! outJar.getParentFile().isDirectory() )
+            if ( ! outJar.getParentFile().mkdir() )
                 return; // access denied
 
-        if(files == null || files.length == 0)
+        if ( files == null || files.length == 0 )
             return;
 
-        for(File file : files) {
-            System.out.println("Copying " + file.getName() + " to " +  outJar.getAbsolutePath());
-            Files.copy(file.toPath(),  outJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        for ( File file : files ) {
+            System.out.println("Copying " + file.getName() + " to " + outJar.getAbsolutePath());
+            Files.copy(file.toPath(), outJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
             System.out.println("  - Saved as " + outJar);
         }
     }
@@ -28,7 +28,7 @@ public final class FileUtil {
     }
 
     public static boolean isNonEmptyDirectory(File dir) {
-        if (dir != null && dir.exists() && dir.isDirectory()) {
+        if ( dir != null && dir.exists() && dir.isDirectory() ) {
             File[] files = dir.listFiles();
             return files != null && files.length > 0;
         } else {
@@ -37,8 +37,8 @@ public final class FileUtil {
     }
 
     public static void deleteDirectory(File dir) {
-        for (File file : dir.listFiles()) {
-            if (file.isDirectory()) {
+        for ( File file : dir.listFiles() ) {
+            if ( file.isDirectory() ) {
                 deleteDirectory(file);
             } else {
                 file.delete();

@@ -5,8 +5,10 @@ import javafx.scene.control.Tab;
 
 public class MainController {
 
-    @FXML Tab buildTab;
-    @FXML Tab consoleTab;
+    @FXML
+    Tab buildTab;
+    @FXML
+    Tab consoleTab;
 
     @FXML
     private void initialize() {

@@ -9,7 +9,7 @@ public class BuildInfo {
 
     private String name;
     private String description;
-    private int toolsVersion = -1;
+    private int toolsVersion = - 1;
     private Refs refs;
 
     @Data

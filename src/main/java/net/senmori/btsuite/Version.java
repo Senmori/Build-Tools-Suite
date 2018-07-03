@@ -1,4 +1,4 @@
-package net.senmori.btsuite.version;
+package net.senmori.btsuite;
 
 public final class Version implements Comparable<Version> {
 

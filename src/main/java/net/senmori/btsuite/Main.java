@@ -1,6 +1,7 @@
 package net.senmori.btsuite;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
@@ -86,7 +87,7 @@ public class Main extends Application {
         Main.WINDOW.setScene(scene);
 
         WINDOW.setOnCloseRequest((request) -> {
-            stop();
+            Platform.exit();
         });
 
         getTaskRunner().submit(new GitInstaller());
@@ -106,6 +107,7 @@ public class Main extends Application {
         window.setResizable(true);
     }
 
+    //TODO: Should be in Settings.class
     private void initSettings() {
         if ( ! Main.WORK_DIR.exists() ) {
             Main.WORK_DIR.mkdir();

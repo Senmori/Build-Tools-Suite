@@ -7,7 +7,7 @@ import javafx.concurrent.Task;
 import net.senmori.btsuite.Main;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.util.FileUtil;
-import net.senmori.btsuite.version.Version;
+import net.senmori.btsuite.Version;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;

@@ -23,7 +23,7 @@ import net.senmori.btsuite.util.GitUtil;
 import net.senmori.btsuite.util.HashChecker;
 import net.senmori.btsuite.util.ProcessRunner;
 import net.senmori.btsuite.util.ZipUtil;
-import net.senmori.btsuite.version.Version;
+import net.senmori.btsuite.Version;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;

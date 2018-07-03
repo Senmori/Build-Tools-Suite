@@ -18,7 +18,7 @@ import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.settings.Settings;
 import net.senmori.btsuite.task.VersionImporter;
 import net.senmori.btsuite.util.FileUtil;
-import net.senmori.btsuite.version.Version;
+import net.senmori.btsuite.Version;
 
 import java.io.File;
 import java.net.URL;

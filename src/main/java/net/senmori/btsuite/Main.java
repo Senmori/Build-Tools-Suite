@@ -14,7 +14,6 @@ import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.task.SpigotVersionImporter;
 import net.senmori.btsuite.util.LogHandler;
-import sun.rmi.runtime.Log;
 
 import java.net.URL;
 import java.util.Map;
@@ -23,8 +22,7 @@ public class Main extends Application {
 
     private static Stage WINDOW;
     private static final Settings SETTINGS = new Settings();
-    private static TaskChainFactory taskChainFactory = BuildToolsTaskChainFactory.create();
-
+    private static final TaskChainFactory CHAIN_FACTORY = BuildToolsTaskChainFactory.create();
 
     private static Console console = null;
     private static TabPane tabPane;
@@ -88,11 +86,11 @@ public class Main extends Application {
     }
 
     public static <T> TaskChain<T> newChain() {
-        return taskChainFactory.newChain();
+        return CHAIN_FACTORY.newChain();
     }
 
     public static <T> TaskChain<T> newSharedChain(String name) {
-        return taskChainFactory.newSharedChain(name);
+        return CHAIN_FACTORY.newSharedChain(name);
     }
 
     public static boolean isDebugEnabled() {

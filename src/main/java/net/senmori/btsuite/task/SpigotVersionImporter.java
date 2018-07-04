@@ -23,7 +23,6 @@ import java.util.regex.Pattern;
 
 public class SpigotVersionImporter  {
     private static final Gson GSON = new Gson();
-    private static final long MAX_WAIT_TIME = 5L;
     private static final Pattern JSON_PATTERN = Pattern.compile(".json");
 
     public static Map<VersionString, BuildInfo> getVersions(String url) throws Exception {

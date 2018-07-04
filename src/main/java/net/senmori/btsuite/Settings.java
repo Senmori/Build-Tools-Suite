@@ -121,14 +121,14 @@ public final class Settings {
         private final File jarDir = new File(workingDir, "jars/");
 
         /**
-         * The location all version files will be downloaded to for caching.
-         */
-        private final File versionsDir = new File(workingDir, "versions/");
-
-        /**
          * The location where most valueOf the work done by BuildToolsSuite is performed.
          */
         private final File workDir = new File(workingDir, "work/");
+
+        /**
+         * The location all version files will be downloaded to for caching.
+         */
+        private final File versionsDir = new File(workDir, "versions/");
 
         @Setter
         /**
@@ -143,6 +143,10 @@ public final class Settings {
         private File portableGitDir = new File(workingDir, gitVersion);
 
         public Directories() {
+            init();
+        }
+
+        public void init() {
             workingDir.mkdir();
             tmpDir.mkdir();
             tmpDir.deleteOnExit();

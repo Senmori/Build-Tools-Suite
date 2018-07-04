@@ -12,24 +12,15 @@
         <build.number>unknown</build.number>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <taskChain.version>3.7.1</taskChain.version>
         <main.Class>net.senmori.btsuite.Main</main.Class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>aikar</id>
-            <url>https://repo.aikar.co/content/groups/aikar/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <dependency>
-            <groupId>co.aikar</groupId>
-            <artifactId>taskchain-core</artifactId>
-            <version>${taskChain.version}</version>
-            <scope>compile</scope>
+            <groupId>org.apache.maven.shared</groupId>
+            <artifactId>maven-invoker</artifactId>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.custardsource.dybdob</groupId>
@@ -56,12 +47,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
-            <version>1.7.25</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.0</version>
@@ -84,6 +69,16 @@
             <artifactId>jsoup</artifactId>
             <version>1.11.3</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.11.0</version>
         </dependency>
     </dependencies>
 
@@ -115,7 +110,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Main-Class>org.spigotmc.builder.Bootstrap</Main-Class>
+                            <Main-Class>net.senmori.btsuite.Main</Main-Class>
                             <Implementation-Title>BuildTools</Implementation-Title>
                             <Implementation-Version>${describe}</Implementation-Version>
                         </manifestEntries>

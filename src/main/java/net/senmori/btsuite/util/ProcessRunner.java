@@ -22,6 +22,10 @@ public class ProcessRunner {
         return runProcess0(workDir, windowsShim(command));
     }
 
+    public static int exec(String... command) throws Exception {
+        return new ProcessBuilder(command).start().waitFor();
+    }
+
     private static int runProcess0(File workDir, String... command) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(workDir);

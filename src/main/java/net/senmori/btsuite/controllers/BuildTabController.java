@@ -18,6 +18,7 @@ import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.Settings;
+import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.task.SpigotVersionImporter;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.JavaFxUtils;
@@ -28,6 +29,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class BuildTabController {
@@ -133,7 +136,7 @@ public class BuildTabController {
             } else {
                 buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
             }
-            Main.newChain().async(() -> buildTools.run());
+            TaskPools.submit(() -> buildTools.run());
             runBuildToolsBtn.setDisable(true);
         } else {
             runBuildToolsBtn.setDisable(false);
@@ -146,17 +149,18 @@ public class BuildTabController {
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         choiceComboBox.setVisibleRowCount(10);
-        val chain = Main.<Map<VersionString, BuildInfo>>newChain()
-            .asyncFirst(() -> {
-                try {
-                    return SpigotVersionImporter.getVersions(settings.getVersionLink());
-                } catch (Exception e) {
-                    return null;
-                }
-            })
-            .abortIfNull()
-            .storeAsData("map");
-        Map<VersionString, BuildInfo> versionMap = chain.getTaskData("map");
+        SpigotVersionImporter importer = new SpigotVersionImporter(settings.getVersionLink());
+        Future<Map<VersionString, BuildInfo>> future = TaskPools.submit(importer);
+        Map<VersionString, BuildInfo> versionMap = null;
+        try {
+            versionMap = future.get();
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        } catch ( ExecutionException e ) {
+            e.printStackTrace();
+        }
+
+
         if(versionMap != null) {
             handleVersionMap(versionMap);
         } else {

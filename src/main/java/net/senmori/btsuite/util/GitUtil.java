@@ -60,7 +60,7 @@ public class GitUtil {
         }
     }
 
-    private static String commitHash(Git repo) throws GitAPIException {
+    public static String commitHash(Git repo) throws GitAPIException {
         return getOnlyElement(repo.log().setMaxCount(1).call());
     }
 

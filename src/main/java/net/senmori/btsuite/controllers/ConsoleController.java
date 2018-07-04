@@ -4,6 +4,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import net.senmori.btsuite.Main;
 import net.senmori.btsuite.gui.Console;
+import net.senmori.btsuite.gui.LoggerStream;
+import net.senmori.btsuite.gui.TextAreaAppender;
 import net.senmori.btsuite.util.LogHandler;
 
 import java.net.URL;
@@ -22,6 +24,9 @@ public class ConsoleController {
 
     @FXML
     void initialize() {
-        Main.setConsole(new Console(consoleTextArea));
+        assert consoleTextArea != null;
+        TextAreaAppender.setTextArea(consoleTextArea);
+        LoggerStream.setOutAndErrToLog();
+        //Main.setConsole(new Console(consoleTextArea));
     }
 }

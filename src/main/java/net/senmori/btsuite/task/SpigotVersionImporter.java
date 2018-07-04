@@ -7,8 +7,7 @@ import net.senmori.btsuite.Main;
 import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
-import net.senmori.btsuite.util.FileDownloader;
-import net.senmori.btsuite.util.FileUtil;
+import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.util.LogHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
@@ -18,19 +17,27 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.Future;
+import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
-public class SpigotVersionImporter  {
+public class SpigotVersionImporter implements Callable<Map<VersionString, BuildInfo>> {
     private static final Gson GSON = new Gson();
     private static final Pattern JSON_PATTERN = Pattern.compile(".json");
+    private static final Settings SETTINGS = Main.getSettings();
+    private static final Settings.Directories DIRS = SETTINGS.getDirectories();
 
-    public static Map<VersionString, BuildInfo> getVersions(String url) throws Exception {
-        final Settings.Directories dirs = Main.getSettings().getDirectories();
-        File versionFile = new File(dirs.getVersionsDir(), "versions.html");
+    private final String url;
+
+    public SpigotVersionImporter(String url) {
+        this.url = url;
+    }
+
+    @Override
+    public Map<VersionString, BuildInfo> call() throws Exception {
+        File versionFile = new File(DIRS.getVersionsDir(), "versions.html");
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
-            versionFile = FileDownloader.downloadWrapped(url, versionFile);
+            versionFile = TaskPools.submit(new FileDownloader(url, versionFile)).get(); // block
             LogHandler.debug(" Downloaded " + versionFile);
         }
         Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
@@ -45,10 +52,10 @@ public class SpigotVersionImporter  {
             }
             VersionString version = VersionString.valueOf(versionText);
             String versionUrl = url + text; // ../work/versions/1.12.2.json
-            File verFile = new File(dirs.getVersionsDir(), text);
+            File verFile = new File(DIRS.getVersionsDir(), text);
             if ( !verFile.exists() ) {
                 verFile.createNewFile();
-                verFile = FileDownloader.downloadWrapped(versionUrl, verFile);
+                verFile = TaskPools.submit(new FileDownloader(versionUrl, verFile)).get(); // block
             }
             JsonReader reader = new JsonReader(new FileReader(verFile));
             BuildInfo buildInfo = GSON.fromJson(reader, BuildInfo.class);
@@ -56,17 +63,5 @@ public class SpigotVersionImporter  {
         }
         LogHandler.info("Loaded " + map.keySet().size() + " Spigot versions.");
         return map;
-    }
-
-    private void createDir(File file) {
-        if ( ! FileUtil.isDirectory(file) ) {
-            file.mkdir();
-        }
-    }
-
-    private void waitForFuture(Future<?> future) {
-        do {
-            ;
-        } while ( ! future.isDone() );
     }
 }

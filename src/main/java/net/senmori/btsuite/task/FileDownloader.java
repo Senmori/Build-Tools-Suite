@@ -1,21 +1,27 @@
-package net.senmori.btsuite.util;
+package net.senmori.btsuite.task;
 
 import lombok.Cleanup;
-import lombok.extern.apachecommons.CommonsLog;
+import net.senmori.btsuite.util.LogHandler;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.concurrent.Callable;
 
-public class FileDownloader {
+public class FileDownloader implements Callable<File> {
+    private final String url;
+    private final File target;
 
-    public static File download(String url, File target) throws IOException {
+    public FileDownloader(String url, File target) {
+        this.url = url;
+        this.target = target;
+    }
+
+    @Override
+    public File call() throws Exception {
         URL con = new URL(url);
         @Cleanup InputStream stream = con.openStream();
         @Cleanup FileOutputStream fos = new FileOutputStream(target);
@@ -25,16 +31,7 @@ public class FileDownloader {
         return target;
     }
 
-    public static File downloadWrapped(String url, File target) {
-        try {
-            return download(url, target);
-        } catch ( IOException e ) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private static String humanReadableBytes(long bytes, boolean si) {
+    public static String humanReadableBytes(long bytes, boolean si) {
         int unit = si ? 1000 : 1024;
         if (bytes < unit) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(unit));

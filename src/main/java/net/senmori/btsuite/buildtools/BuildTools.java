@@ -7,12 +7,15 @@ import net.senmori.btsuite.Main;
 import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.WindowTab;
+import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 @Data
 public final class BuildTools implements Runnable {
@@ -46,18 +49,16 @@ public final class BuildTools implements Runnable {
     public void run() {
         running = true;
         Main.setActiveTab(WindowTab.CONSOLE);
-        BuildToolsTask task = new BuildToolsTask(this, settings);
-        Main.newChain()
-            .async(() -> {
-                try {
-                    task.build();
-                } catch ( Exception e ) {
-                    e.printStackTrace();
-                }
-            })
-            .syncLast((obj) -> {
-                LogHandler.info("BuildTools has completed!");
-                running = false;
-            });
+        LogHandler.debug("Starting BuildTools");
+        BuildToolsProject task = new BuildToolsProject(this, settings);
+        try {
+            task.call();
+        } catch ( Exception e ) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setFinished() {
+        running = false;
     }
 }

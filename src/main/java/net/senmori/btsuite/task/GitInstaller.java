@@ -11,11 +11,17 @@ import net.senmori.btsuite.util.TaskUtil;
 
 import java.io.File;
 
-public class GitInstaller  {
+public class GitInstaller  implements Runnable {
 
-    public static void install() {
-        final Settings settings = Main.getSettings();
-        final Settings.Directories dirs = settings.getDirectories();
+    private final Settings settings = Main.getSettings();
+    private final Settings.Directories dirs = settings.getDirectories();
+
+    public GitInstaller() {
+
+    }
+
+    @Override
+    public void run() {
         // check for normall git installation
         try {
             LogHandler.debug("Checking for Git install location.");
@@ -26,12 +32,10 @@ public class GitInstaller  {
         }
     }
 
-    private static void doInstall() {
-        final Settings settings = Main.getSettings();
-        final Settings.Directories dirs = settings.getDirectories();
+    private void doInstall() {
         try {
             if ( SystemChecker.isWindows() ) {
-                File gitExe = new File(dirs.getPortableGitDir(), Main.getSettings().getGitName());
+                File gitExe = new File(dirs.getPortableGitDir(), settings.getGitName());
                 File portableGitInstall = new File(dirs.getPortableGitDir(), "PortableGit");
 
                 if ( portableGitInstall.exists() && portableGitInstall.isDirectory() ) {
@@ -43,7 +47,7 @@ public class GitInstaller  {
                 if ( !gitExe.exists() ) {
                     gitExe.mkdirs();
                     LogHandler.warn("*** Could not find PortableGit executable, downloading. ***");
-                    gitExe = TaskUtil.asyncDownloadFile(Main.newChain(), settings.getGitInstallerLink(), gitExe);
+                    gitExe = TaskUtil.asyncDownloadFile(settings.getGitInstallerLink(), gitExe);
                 }
                 if ( !FileUtil.isDirectory(portableGitInstall) ) {
                     portableGitInstall.mkdirs();

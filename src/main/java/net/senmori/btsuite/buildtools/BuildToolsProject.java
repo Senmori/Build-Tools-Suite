@@ -1,6 +1,5 @@
 package net.senmori.btsuite.buildtools;
 
-import co.aikar.taskchain.TaskChain;
 import com.google.common.base.Charsets;
 import com.google.common.base.Predicate;
 import com.google.common.hash.Hasher;
@@ -11,42 +10,61 @@ import difflib.DiffUtils;
 import difflib.Patch;
 import net.senmori.btsuite.Main;
 import net.senmori.btsuite.Settings;
+import net.senmori.btsuite.pool.TaskPool;
+import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.task.FileDownloader;
+import net.senmori.btsuite.task.GitCloneTask;
+import net.senmori.btsuite.task.GitPullTask;
 import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.GitUtil;
 import net.senmori.btsuite.util.HashChecker;
 import net.senmori.btsuite.util.LogHandler;
+import net.senmori.btsuite.util.MavenCommandBuilder;
 import net.senmori.btsuite.util.ProcessRunner;
 import net.senmori.btsuite.util.TaskUtil;
 import net.senmori.btsuite.util.ZipUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.maven.shared.invoker.DefaultInvocationRequest;
+import org.apache.maven.shared.invoker.DefaultInvoker;
+import org.apache.maven.shared.invoker.InvocationRequest;
+import org.apache.maven.shared.invoker.InvocationResult;
+import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.MavenCommandLineBuilder;
+import org.apache.maven.shared.utils.cli.Commandline;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.revwalk.RevCommit;
+import sun.tools.jar.CommandLine;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
-public class BuildToolsTask {
+public class BuildToolsProject implements Callable<Boolean> {
+    private static final Gson GSON = new Gson();
 
     private final BuildTools options;
     private final Settings settings;
     private final Settings.Directories dirs;
 
-    private final TaskChain<?> chain = Main.newChain();
-    private final TaskChain<File> fileChain = Main.<File>newSharedChain("fileChain");
+    private final TaskPool projectPool = TaskPools.createSingleTaskPool();
 
-    public BuildToolsTask(BuildTools options, Settings settings) {
+    public BuildToolsProject(BuildTools options, Settings settings) {
         this.options = options;
         this.settings = settings;
         this.dirs = settings.getDirectories();
     }
 
-    public void build() throws Exception {
+    @Override
+    public Boolean call() throws Exception {
         String SHELL_PREFIX = "sh";
         File work = dirs.getWorkDir();
         if ( options.getOutputDirectories().isEmpty() ) {
@@ -55,35 +73,41 @@ public class BuildToolsTask {
         printOptions(options);
 
         File bukkit = new File(dirs.getWorkingDir(), "Bukkit");
+        LogHandler.debug(bukkit.getName() + " Git Cloning");
         if ( ! bukkit.exists() ) {
             String repo = settings.getStashRepoLink() + "bukkit.git";
-            TaskUtil.asyncCloneRepo(chain, repo, bukkit);
+            GitCloneTask task = GitCloneTask.clone(repo, bukkit);
+            bukkit = projectPool.submit(task).get();
         }
 
         File craftBukkit = new File(dirs.getWorkingDir(), "CraftBukkit");
+        LogHandler.debug(craftBukkit.getName() + " Git Cloning");
         if ( ! craftBukkit.exists() ) {
             String repo = settings.getStashRepoLink() + "craftbukkit.git";
-            TaskUtil.asyncCloneRepo(chain, repo, craftBukkit);
+            GitCloneTask task = GitCloneTask.clone(repo, craftBukkit);
+            craftBukkit = projectPool.submit(task).get();
         }
 
         File spigot = new File(dirs.getWorkingDir(), "Spigot");
+        LogHandler.debug(spigot.getName() + " Git Cloning");
         if ( ! spigot.exists() ) {
             String repo = settings.getStashRepoLink() + "spigot.git";
-            TaskUtil.asyncCloneRepo(chain, repo, spigot);
+            GitCloneTask task = GitCloneTask.clone(repo, spigot);
+            spigot = projectPool.submit(task).get();
         }
 
         File buildData = new File(dirs.getWorkingDir(), "BuildData");
+        LogHandler.debug(buildData.getName() + " Git Cloning");
         if ( ! buildData.exists() ) {
             String repo = settings.getStashRepoLink() + "builddata.git";
-            TaskUtil.asyncCloneRepo(chain, repo, buildData);
+            GitCloneTask task = GitCloneTask.clone(repo, buildData);
+            buildData = projectPool.submit(task).get();
         }
 
         File maven = dirs.getMvnDir();
         if ( !maven.exists() ) {
-            chain.async(() -> MavenInstaller.install() )
-                 .execute(() -> LogHandler.debug("Finished downloading Maven to " + dirs.getMvnDir()));
-            maven = dirs.getMvnDir();
-            chain.removeTaskData("chain");
+            MavenInstaller mvn = new MavenInstaller();
+            buildData = projectPool.submit(mvn).get();
         }
         String mvn = maven.getAbsolutePath() + "/bin/mvn";
 
@@ -103,19 +127,20 @@ public class BuildToolsTask {
             if ( !verInfo.exists() ) {
                 // download file
                 String url = settings.getVersionLink() + askedVersion + ".json";
-                verInfo = TaskUtil.asyncDownloadFile(fileChain, url, verInfo);
+                verInfo = projectPool.submit(new FileDownloader(url, verInfo)).get();
             }
             LogHandler.debug("Found version " + askedVersion);
-            buildInfo = new Gson().fromJson(new FileReader(verInfo), BuildInfo.class);
+            buildInfo = GSON.fromJson(new FileReader(verInfo), BuildInfo.class);
 
-            final BuildInfo fBuildInfo = buildInfo;
-            chain.async(() -> GitUtil.pullWrapped(buildGit, fBuildInfo.getRefs().getBuildData()))
-                 .async(() -> GitUtil.pullWrapped(bukkitGit, fBuildInfo.getRefs().getBukkit()))
-                 .async(() -> GitUtil.pullWrapped(craftBukkitGit, fBuildInfo.getRefs().getCraftBukkit()))
-                 .async(() -> GitUtil.pullWrapped(spigotGit, fBuildInfo.getRefs().getSpigot()));
+            projectPool.submit(GitPullTask.pull(buildGit, buildInfo.getRefs().getBuildData())).get();
+            projectPool.submit(GitPullTask.pull(bukkitGit, buildInfo.getRefs().getBukkit())).get();
+            projectPool.submit(GitPullTask.pull(craftBukkitGit, buildInfo.getRefs().getCraftBukkit())).get();
+            projectPool.submit(GitPullTask.pull(spigotGit, buildInfo.getRefs().getSpigot())).get();
         }
 
-        VersionInfo versionInfo = new Gson().fromJson(new FileReader(new File("BuildData/info.json")), VersionInfo.class);
+        File infoFile = new File(dirs.getWorkingDir(), "BuildData/info.json");
+        infoFile.mkdirs();
+        VersionInfo versionInfo = GSON.fromJson(new FileReader(infoFile), VersionInfo.class);
         // Default to 1.12.2 builds.
         if ( versionInfo == null ) {
             LogHandler.debug("Could not generate version. Using default ( " + settings.getDefaultVersion() + " ).");
@@ -125,12 +150,16 @@ public class BuildToolsTask {
 
         String jarName = "minecraft_server." + versionInfo.getMinecraftVersion() + ".jar";
         File vanillaJar = new File(dirs.getJarDir(), jarName);
+
         if ( ! vanillaJar.exists() || ! HashChecker.checkHash(vanillaJar, versionInfo) ) {
+
             if ( versionInfo.getServerUrl() != null ) {
-                vanillaJar = TaskUtil.asyncDownloadFile(fileChain, versionInfo.getServerUrl(), vanillaJar);
-            } else {
+
+                vanillaJar = projectPool.submit(new FileDownloader(versionInfo.getServerUrl(), vanillaJar)).get();
+            }
+            else {
                 final String downloadLink = String.format(settings.getFallbackServerUrl(), versionInfo.getMinecraftVersion());
-                vanillaJar = TaskUtil.asyncDownloadFile(fileChain, downloadLink, vanillaJar);
+                vanillaJar = projectPool.submit(new FileDownloader(downloadLink, vanillaJar)).get();
 
                 // Legacy versions can also specify a specific shell to build with which has to be bash-compatible
                 SHELL_PREFIX = System.getenv().get("SHELL");
@@ -141,7 +170,7 @@ public class BuildToolsTask {
         }
         if ( !HashChecker.checkHash(vanillaJar, versionInfo) ) {
             LogHandler.error("**** Could not download clean Minecraft jar, giving up.");
-            return;
+            return false;
         }
 
         Iterable<RevCommit> mappings = buildGit.log()
@@ -164,35 +193,64 @@ public class BuildToolsTask {
             File clMappedJar = new File(finalMappedJar + "-cl");
             File mMappedJar = new File(finalMappedJar + "-m");
 
-            ProcessRunner.runProcess(dirs.getJarDir(), "java", "-jar", "BuildData/bin/SpecialSource-2.jar", "map", "-i", vanillaJar.getPath(), "-m", "BuildData/mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getPath());
+            LogHandler.debug("Applying first SpecialSource-2");
+            ProcessRunner.runProcess(buildData, "java", "-jar", "bin/SpecialSource-2.jar", "map", "-i", vanillaJar.getAbsolutePath(), "-m", "mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getAbsolutePath());
 
-            ProcessRunner.runProcess(dirs.getJarDir(), "java", "-jar", "BuildData/bin/SpecialSource-2.jar", "map", "-i", clMappedJar.getPath(),
-                    "-m", "BuildData/mappings/" + versionInfo.getMemberMappings(), "-o", mMappedJar.getPath());
+            LogHandler.debug("Applying second SpecialSource-2");
+            ProcessRunner.runProcess(buildData, "java", "-jar", "bin/SpecialSource-2.jar", "map", "-i", clMappedJar.getAbsolutePath(),
+                    "-m", "mappings/" + versionInfo.getMemberMappings(), "-o", mMappedJar.getAbsolutePath());
 
-            ProcessRunner.runProcess(dirs.getJarDir(), "java", "-jar", "BuildData/bin/SpecialSource.jar", "--kill-lvt", "-i", mMappedJar.getPath(), "--access-transformer", "BuildData/mappings/" + versionInfo.getAccessTransforms(),
-                    "-m", "BuildData/mappings/" + versionInfo.getPackageMappings(), "-o", finalMappedJar.getPath());
+            LogHandler.debug("Applying third SpecialSource-2");
+            ProcessRunner.runProcess(buildData, "java", "-jar", "bin/SpecialSource.jar", "--kill-lvt", "-i", mMappedJar.getAbsolutePath(), "--access-transformer", "mappings/" + versionInfo.getAccessTransforms(),
+                    "-m", "mappings/" + versionInfo.getPackageMappings(), "-o", finalMappedJar.getAbsolutePath());
         }
 
-        ProcessRunner.runProcess(dirs.getJarDir(), "sh", mvn, "install:install-file", "-Dfile=" + finalMappedJar, "-Dpackaging=jar", "-DgroupId=org.spigotmc",
-                "-DartifactId=minecraft-server", "-Dversion=" + versionInfo.getMinecraftVersion() + "-SNAPSHOT");
+        LogHandler.debug("Installing '" + finalMappedJar.getName() + "' to local repository");
+        File mvnExecutable = new File(dirs.getMvnDir(), "bin/mvn");
 
+        MavenCommandBuilder builder = MavenCommandBuilder.builder();
+        String[] goals = new String[] {
+                "install:install-file",
+                "-Dfile=" + finalMappedJar.getAbsolutePath(),
+                "-Dpackaging=jar",
+                "-DgroupId=org.spigotmc",
+                "-DartifactId=minecraft-server",
+                "-Dversion=" + versionInfo.getMinecraftVersion() + "-SNAPSHOT"
+        };
+        builder.setMavenOpts("-Xmx1024M")
+               .setInteractiveMode(true)
+               .setBaseDirectory(dirs.getJarDir())
+               .setGoals( Arrays.asList(goals) );
+        InvocationResult result = builder.execute();
+        if(result.getExitCode() != 0) {
+            LogHandler.error(result.getExecutionException().getMessage());
+            return false;
+        }
+
+        LogHandler.debug("Decompiling:");
         File decompileDir = new File(dirs.getWorkDir(), "decompile-" + mappingsVersion);
         if ( !decompileDir.exists() ) {
             decompileDir.mkdir();
 
             File clazzDir = new File(decompileDir, "classes");
             clazzDir.mkdir();
-            ZipUtil.unzip(finalMappedJar, clazzDir, new Predicate<String>() {
-                @Override
-                public boolean apply(String input) {
-                    return input.startsWith("net/minecraft/server");
+            LogHandler.debug("Unzipping " + finalMappedJar.getName() + " into " + clazzDir);
+            boolean unzipped = projectPool.<Boolean>submit(() -> {
+                try {
+                    ZipUtil.unzip(finalMappedJar, clazzDir, (str) -> str.startsWith("net/minecraft/server/"));
+                    return true;
+                } catch ( IOException e ) {
+                    e.printStackTrace();
                 }
-            });
+                return false;
+            }).get();
             if ( versionInfo.getDecompileCommand() == null ) {
+                LogHandler.debug("Set decompile command for VersionInfo ( " + versionInfo.getMinecraftVersion() + " )");
                 versionInfo.setDecompileCommand("java -jar BuildData/bin/fernflower.jar -dgs=1 -hdc=0 -rbr=0 -asc=1 -udv=0 {0} {1}");
             }
 
-            ProcessRunner.runProcess(dirs.getWorkingDir(), MessageFormat.format(versionInfo.getDecompileCommand(), clazzDir.getPath(), decompileDir.getPath()).split(" "));
+            LogHandler.debug("Running decompile command");
+            ProcessRunner.runProcess(dirs.getWorkingDir(), MessageFormat.format(versionInfo.getDecompileCommand(), clazzDir.getAbsolutePath(), decompileDir.getAbsolutePath()).split(" "));
         }
 
         LogHandler.info("Applying CraftBukkit Patches");
@@ -200,7 +258,7 @@ public class BuildToolsTask {
         nmsDir.mkdirs();
         if ( nmsDir.exists() ) {
             LogHandler.info("Backing up NMS dir");
-            FileUtils.moveDirectory(nmsDir, new File(dirs.getWorkDir(), "nms.old." + System.currentTimeMillis()));
+            FileUtils.moveDirectory(nmsDir, new File(dirs.getTmpDir(), "nms.old." + System.currentTimeMillis()));
         }
         File patchDir = new File(craftBukkit, "nms-patches");
         for ( File file : patchDir.listFiles() ) {
@@ -240,6 +298,7 @@ public class BuildToolsTask {
             }
             bw.close();
         }
+        LogHandler.info("Patching complete!");
         File tmpNms = new File(craftBukkit, "tmp-nms");
         FileUtils.copyDirectory(nmsDir, tmpNms);
 
@@ -249,33 +308,40 @@ public class BuildToolsTask {
         craftBukkitGit.commit().setMessage("CraftBukkit $ " + new Date()).call();
         craftBukkitGit.checkout().setName(buildInfo.getRefs().getCraftBukkit()).call();
 
+        LogHandler.info("Moving " + tmpNms.getName() + " to " + nmsDir.getName());
         FileUtils.moveDirectory(tmpNms, nmsDir);
 
+        LogHandler.debug("Compiling SpigotAPI");
         File spigotApi = new File(spigot, "Bukkit");
         if ( !spigotApi.exists() ) {
             String url = "file://" + bukkit.getAbsolutePath();
-            TaskUtil.asyncCloneRepo(chain, url, spigotApi);
+            spigotApi = projectPool.submit(GitCloneTask.clone(url, spigotApi)).get();
         }
+        LogHandler.debug("Compiling SpigotServer");
         File spigotServer = new File(spigot, "CraftBukkit");
         if ( !spigotServer.exists() ) {
             String url = "file://" + craftBukkit.getAbsolutePath();
-            TaskUtil.asyncCloneRepo(chain, url, spigotServer);
+            spigotServer = projectPool.submit(GitCloneTask.clone(url, spigotServer)).get();
         }
 
         // Git spigotApiGit = Git.open( spigotApi );
         // Git spigotServerGit = Git.open( spigotServer );
         if ( !options.isSkipCompile() ) {
+            MavenCommandBuilder root = MavenCommandBuilder.builder()
+                                                          .setInteractiveMode(false)
+                                                          .setBaseDirectory(bukkit);
             LogHandler.info("Compiling Bukkit");
-            ProcessRunner.runProcess(bukkit, "sh", mvn, "install");
+            root.setGoals( Arrays.asList("install") ).execute();
             if ( options.isGenDoc() ) {
-                ProcessRunner.runProcess(bukkit, "sh", mvn, "javadoc:jar");
+                builder.setGoals( Arrays.asList( "javadoc:jar" ) ).execute();
             }
             if ( options.isGenSrc() ) {
-                ProcessRunner.runProcess(bukkit, "sh", mvn, "source:jar");
+                builder.setGoals( Arrays.asList( "source:jar" ) ).execute();
             }
             LogHandler.info("Compiling CraftBukkit");
-            ProcessRunner.runProcess(craftBukkit, "sh", mvn, "install");
+            root.setBaseDirectory(craftBukkit).setGoals( Arrays.asList( "install" ) ).execute();
         }
+        LogHandler.info("All jars have been compiled!");
 
         for ( int i = 0; i < 15; i++ ) {
             System.out.println(" ");
@@ -283,11 +349,16 @@ public class BuildToolsTask {
 
         if ( !options.isSkipCompile() ) {
             LogHandler.info("Success! Everything compiled successfully. Copying final .jar files now.");
+            String version = versionInfo.getMinecraftVersion();
             for ( String outputDir : options.getOutputDirectories() ) {
-                FileUtil.copyJar("CraftBukkit/target", "craftbukkit", new File(outputDir, "craftbukkit-" + versionInfo.getMinecraftVersion() + ".jar"));
-                FileUtil.copyJar("Spigot/Spigot-Server/target", "spigot", new File(outputDir, "spigot-" + versionInfo.getMinecraftVersion() + ".jar"));
+                FileUtil.copyJar("CraftBukkit/target", "craftbukkit", new File(outputDir, "craftbukkit-" + version + ".jar"));
+                FileUtil.copyJar("Spigot/Spigot-Server/target", "spigot", new File(outputDir, "spigot-" + version + ".jar"));
             }
         }
+        LogHandler.info("BuildTools has finished!");
+        projectPool.getService().shutdown();
+        options.setFinished();
+        return true;
     }
 
     private void printOptions(BuildTools options) {

@@ -8,18 +8,25 @@ import net.senmori.btsuite.util.ZipUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
-public class MavenInstaller {
-    public static void install() {
-        final Settings settings = Main.getSettings();
-        final Settings.Directories dirs = settings.getDirectories();
+public class MavenInstaller implements Callable<File> {
 
+    private final Settings settings = Main.getSettings();
+    private final Settings.Directories dirs = settings.getDirectories();
+
+    public MavenInstaller() {
+
+    }
+
+    @Override
+    public File call() {
         LogHandler.debug("Checking for Maven install location.");
         if ( isInstalled() ) {
             File mvn = new File(System.getenv("M2_HOME"));
             LogHandler.info("Maven is installed at " + mvn);
             dirs.setMvnDir(mvn);
-            return;
+            return dirs.getMvnDir();
         }
 
         File maven = new File("apache-maven-3.5.0");
@@ -32,17 +39,19 @@ public class MavenInstaller {
 
             try {
                 String url = settings.getMvnInstallerLink();
-                mvnTemp = TaskUtil.asyncDownloadFile(Main.newChain(), url, mvnTemp);
+                mvnTemp = TaskUtil.asyncDownloadFile(url, mvnTemp);
                 ZipUtil.unzip(mvnTemp, new File("."));
                 LogHandler.info(maven.getName() + " installed to " + mvnTemp.getPath());
                 dirs.setMvnDir(mvnTemp);
             } catch ( IOException e ) {
                 e.printStackTrace();
+                return null;
             }
         }
+        return dirs.getMvnDir();
     }
 
-    private static boolean isInstalled() {
+    private boolean isInstalled() {
         String m2Home = System.getenv("M2_HOME");
         return m2Home != null && new File(m2Home).exists();
     }

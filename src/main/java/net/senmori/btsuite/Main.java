@@ -1,34 +1,48 @@
 package net.senmori.btsuite;
 
-import co.aikar.taskchain.TaskChain;
-import co.aikar.taskchain.TaskChainFactory;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import net.senmori.btsuite.buildtools.BuildInfo;
+import net.senmori.btsuite.controllers.ConsoleController;
 import net.senmori.btsuite.gui.Console;
+import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.MavenInstaller;
-import net.senmori.btsuite.task.SpigotVersionImporter;
+import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
+import org.apache.maven.shared.invoker.DefaultInvoker;
+import org.apache.maven.shared.invoker.Invoker;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.URL;
-import java.util.Map;
 
 public class Main extends Application {
 
     private static Stage WINDOW;
     private static final Settings SETTINGS = new Settings();
-    private static final TaskChainFactory CHAIN_FACTORY = BuildToolsTaskChainFactory.create();
+    private static final Invoker MAVEN_INVOKER = new DefaultInvoker();
 
     private static Console console = null;
     private static TabPane tabPane;
 
     public static void main(String[] args) {
         launch(args);
+        System.setOut(new PrintStream(new OutputStream() {
+            public void write(int b) {
+
+            }
+        }));
+        System.setErr(new PrintStream(new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+
+            }
+        }));
     }
 
     @Override
@@ -36,11 +50,18 @@ public class Main extends Application {
         Main.WINDOW = primaryStage;
         initWindow(WINDOW);
 
+        if(SETTINGS.getDirectories().getTmpDir() != null && SETTINGS.getDirectories().getTmpDir().exists()) {
+            FileUtil.deleteDirectory(SETTINGS.getDirectories().getTmpDir()); // prevent any conflicts
+            SETTINGS.getDirectories().init();
+        }
+
         Image icon = new Image(this.getClass().getClassLoader().getResourceAsStream("icon.png"));
         WINDOW.getIcons().add(icon);
 
         URL mainController = this.getClass().getClassLoader().getResource("fxml/mainController.fxml");
         tabPane = FXMLLoader.load(mainController);
+
+        ConsoleController consoleController;
 
         Scene scene = new Scene(tabPane);
         Main.WINDOW.setScene(scene);
@@ -48,12 +69,24 @@ public class Main extends Application {
         primaryStage.show();
         setActiveTab(WindowTab.BUILD);
 
-        Map<VersionString, BuildInfo> test = SpigotVersionImporter.getVersions(SETTINGS.getVersionLink());
-        Main.newChain()
-            .async(() -> GitInstaller.install())
-            .async(() -> MavenInstaller.install() );
+        getWindow().setOnCloseRequest((event) -> {
+            TaskPools.shutdownNow();
+            FileUtil.deleteDirectory(SETTINGS.getDirectories().getTmpDir());
+        });
+
+
+        TaskPools.async(() -> new GitInstaller())
+                 .async(() -> new MavenInstaller() );
 
         LogHandler.debug("Debug mode enabled.");
+    }
+
+    @Override
+    public void stop() {
+        if(!TaskPools.getService().isShutdown()) {
+            TaskPools.shutdownNow();
+        }
+        FileUtil.deleteDirectory(SETTINGS.getDirectories().getTmpDir());
     }
 
     private void initWindow(Stage window) {
@@ -74,6 +107,10 @@ public class Main extends Application {
         return SETTINGS;
     }
 
+    public static DefaultInvoker getInvoker() {
+        return (DefaultInvoker)MAVEN_INVOKER;
+    }
+
     public static void setActiveTab(WindowTab tab) {
         switch ( tab ) {
             case CONSOLE:
@@ -83,14 +120,6 @@ public class Main extends Application {
             default:
                 tabPane.getSelectionModel().select(1);
         }
-    }
-
-    public static <T> TaskChain<T> newChain() {
-        return CHAIN_FACTORY.newChain();
-    }
-
-    public static <T> TaskChain<T> newSharedChain(String name) {
-        return CHAIN_FACTORY.newSharedChain(name);
     }
 
     public static boolean isDebugEnabled() {

@@ -20,7 +20,8 @@ public final class ZipUtil {
     public static void unzip(File zipFile, File targetFolder, com.google.common.base.Predicate<String> filter) throws IOException {
         targetFolder.mkdir();
         ZipFile zip = new ZipFile(zipFile);
-        LogHandler.info("Unzipping " + zip.getName());
+        InputStream is = null;
+        OutputStream out = null;
         try {
             for ( Enumeration<? extends ZipEntry> entries = zip.entries(); entries.hasMoreElements(); ) {
                 ZipEntry entry = entries.nextElement();
@@ -32,7 +33,6 @@ public final class ZipUtil {
                 }
 
                 File outFile = new File(targetFolder, entry.getName());
-                LogHandler.debug("Extracting " + outFile.getName());
 
                 if ( entry.isDirectory() ) {
                     outFile.mkdirs();
@@ -43,17 +43,16 @@ public final class ZipUtil {
                     outFile.getParentFile().mkdirs();
                 }
 
-                InputStream is = zip.getInputStream(entry);
-                OutputStream out = new FileOutputStream(outFile);
+                is = zip.getInputStream(entry);
+                out = new FileOutputStream(outFile);
                 try {
                     ByteStreams.copy(is, out);
                 } finally {
                     is.close();
                     out.close();
                 }
-                LogHandler.debug("Extracted: " + outFile);
+                LogHandler.info("Extracted: " + outFile);
             }
-            LogHandler.info("Finished unzipping " + zip.getName());
         } finally {
             zip.close();
         }

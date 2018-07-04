@@ -13,22 +13,30 @@ import java.util.Iterator;
 public class GitUtil {
 
     public static void pull(Git repo, String ref) throws Exception {
-        System.out.println("Pulling updates for " + repo.getRepository().getDirectory());
+        LogHandler.info("Pulling updates for " + repo.getRepository().getDirectory());
 
         repo.reset().setRef("origin/master").setMode(ResetCommand.ResetType.HARD).call();
         repo.fetch().call();
 
-        System.out.println("Successfully fetched updates!");
+        LogHandler.info("Successfully fetched updates!");
 
         repo.reset().setRef(ref).setMode(ResetCommand.ResetType.HARD).call();
         if ( ref.equals("master") ) {
             repo.reset().setRef("origin/master").setMode(ResetCommand.ResetType.HARD).call();
         }
-        System.out.println("Checked out: " + ref);
+        LogHandler.info("Checked out: " + ref);
+    }
+
+    public static void pullWrapped(Git repo, String ref) {
+        try {
+            GitUtil.pull(repo, ref);
+        } catch ( Exception e ) {
+            e.printStackTrace();
+        }
     }
 
     public static void clone(String url, File target) throws GitAPIException, IOException {
-        System.out.println("Starting clone of " + url + " to " + target);
+        LogHandler.info("Starting clone valueOf " + url + " to " + target);
         Git result = Git.cloneRepository().setURI(url).setDirectory(target).call();
 
         try {
@@ -36,9 +44,19 @@ public class GitUtil {
             config.setBoolean("core", null, "autocrlf", SystemChecker.isAutocrlf());
             config.save();
 
-            System.out.println("Cloned git repository " + url + " to " + target.getAbsolutePath() + ". Current HEAD: " + commitHash(result));
+            LogHandler.info("Cloned git repository " + url + " to " + target.getAbsolutePath() + ". Current HEAD: " + commitHash(result));
         } finally {
             result.close();
+        }
+    }
+
+    public static void cloneWrapped(String url, File target) {
+        try {
+            GitUtil.clone(url, target);
+        } catch ( GitAPIException e ) {
+            e.printStackTrace();
+        } catch ( IOException e ) {
+            e.printStackTrace();
         }
     }
 
@@ -63,5 +81,10 @@ public class GitUtil {
         sb.append('>');
 
         throw new IllegalArgumentException(sb.toString());
+    }
+
+
+    public static void installGit() {
+
     }
 }

@@ -12,29 +12,33 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+import lombok.val;
 import net.senmori.btsuite.Main;
+import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
-import net.senmori.btsuite.settings.Settings;
-import net.senmori.btsuite.task.VersionImporter;
+import net.senmori.btsuite.Settings;
+import net.senmori.btsuite.task.SpigotVersionImporter;
 import net.senmori.btsuite.util.FileUtil;
-import net.senmori.btsuite.Version;
+import net.senmori.btsuite.util.JavaFxUtils;
+import net.senmori.btsuite.util.LogHandler;
 
 import java.io.File;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class BuildTabController {
 
+    private Settings settings = Main.getSettings();
     private BuildTools buildTools;
 
     @FXML // ResourceBundle that was given to the FXMLLoader
     private ResourceBundle resources;
 
-    @FXML // URL location of the FXML file that was given to the FXMLLoader
+    @FXML // URL location valueOf the FXML file that was given to the FXMLLoader
     private URL location;
 
     @FXML // fx:id="flagBox"
@@ -101,7 +105,7 @@ public class BuildTabController {
     @FXML
     void onAddOutputDirClicked(ActionEvent event) {
         DirectoryChooser dirChooser = new DirectoryChooser();
-        dirChooser.setInitialDirectory(Main.WORK_DIR);
+        dirChooser.setInitialDirectory(settings.getDirectories().getWorkingDir());
         dirChooser.setTitle("Add output directory");
         File output = dirChooser.showDialog(Main.getWindow());
         if ( FileUtil.isDirectory(output) ) {
@@ -123,18 +127,13 @@ public class BuildTabController {
 
     @FXML
     void onRunBuildToolsClicked() {
-        if ( ! buildTools.isRunning() ) {
+        if ( !buildTools.isRunning() ) {
             if ( choiceComboBox.getSelectionModel().getSelectedItem() == null ) {
                 buildTools.setVersion(Main.getSettings().getDefaultVersion());
             } else {
                 buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
             }
-            Main.getTaskRunner().getPool().submit(new Runnable() {
-                @Override
-                public void run() {
-                    buildTools.run();
-                }
-            });
+            Main.newChain().async(() -> buildTools.run());
             runBuildToolsBtn.setDisable(true);
         } else {
             runBuildToolsBtn.setDisable(false);
@@ -143,42 +142,36 @@ public class BuildTabController {
 
     @FXML
     void initialize() {
-        assert flagBox != null : "fx:id=\"flagBox\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert certCheck != null : "fx:id=\"certCheck\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert dontUpdate != null : "fx:id=\"dontUpdate\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert skipCompile != null : "fx:id=\"skipCompile\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert genSrc != null : "fx:id=\"genSrc\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert genDoc != null : "fx:id=\"genDoc\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert runBuildToolsBtn != null : "fx:id=\"runBuildToolsBtn\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert outputAnchorPane != null : "fx:id=\"outputAnchorPane\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert addOutputDirBtn != null : "fx:id=\"addOutputDirBtn\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert delOutputBtn != null : "fx:id=\"delOutputBtn\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert outputDirListView != null : "fx:id=\"outputDirListView\" was not injected: check your FXML file 'buildTab.fxml'.";
-        assert choiceComboBox != null : "fx:id=\"choiceComboBox\" was not injected: check your FXML file 'buildTab.fxml'.";
-
         buildTools = new BuildTools();
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         choiceComboBox.setVisibleRowCount(10);
-        Settings settings = Main.getSettings();
-        VersionImporter task = new VersionImporter(settings.getVersionLink(), Main.getTaskRunner().getPool());
-        task.setOnSucceeded((event) -> {
-            try {
-                handleVersionMap(task.get());
-            } catch ( InterruptedException | ExecutionException e ) {
-                e.printStackTrace();
-            }
-        });
-        Main.TASK_RUNNER.getPool().submit(task); // use pool directly
+        val chain = Main.<Map<VersionString, BuildInfo>>newChain()
+            .asyncFirst(() -> {
+                try {
+                    return SpigotVersionImporter.getVersions(settings.getVersionLink());
+                } catch (Exception e) {
+                    return null;
+                }
+            })
+            .abortIfNull()
+            .storeAsData("map");
+        Map<VersionString, BuildInfo> versionMap = chain.getTaskData("map");
+        if(versionMap != null) {
+            handleVersionMap(versionMap);
+        } else {
+            LogHandler.warn("Error importing version map.");
+        }
     }
 
-    private void handleVersionMap(Map<Version, BuildInfo> map) {
-        List<Version> versions = Lists.newArrayList(map.keySet());
-        versions.sort(Version::compareTo);
+    private void handleVersionMap(Map<VersionString, BuildInfo> map) {
+        List<VersionString> versions = Lists.newArrayList(map.keySet());
+        versions.sort(VersionString::compareTo);
         versions = Lists.reverse(versions);
-        for ( Version ver : versions ) {
+        for ( VersionString ver : versions ) {
             this.choiceComboBox.getItems().add(ver.getVersionString());
         }
         this.buildTools.setVersionMap(map);
+        ObservableList<String> items = choiceComboBox.getItems();
     }
 }

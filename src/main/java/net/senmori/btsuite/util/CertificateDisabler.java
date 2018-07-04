@@ -17,25 +17,7 @@ public final class CertificateDisabler {
         // This globally disables certificate checking
         // http://stackoverflow.com/questions/19723415/java-overriding-function-to-disable-ssl-certificate-check
         try {
-            TrustManager[] trustAllCerts = new TrustManager[]
-                                                   {
-                                                           new X509TrustManager() {
-                                                               @Override
-                                                               public void checkClientTrusted(X509Certificate[] certificates, String s) throws CertificateException {
-
-                                                               }
-
-                                                               @Override
-                                                               public void checkServerTrusted(X509Certificate[] certificates, String s) throws CertificateException {
-
-                                                               }
-
-                                                               @Override
-                                                               public X509Certificate[] getAcceptedIssuers() {
-                                                                   return null;
-                                                               }
-                                                           }
-                                                   };
+            TrustManager[] trustAllCerts = { new MyX509TrustManager() };
 
             // Trust SSL certs
             SSLContext sc = SSLContext.getInstance("SSL");
@@ -46,8 +28,25 @@ public final class CertificateDisabler {
             HostnameVerifier allHostsValid = (hostname, session) -> true;
             HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
         } catch ( NoSuchAlgorithmException | KeyManagementException ex ) {
-            System.out.println("Failed to disable https certificate check");
+            LogHandler.error("Failed to disable https certificate check");
             ex.printStackTrace(System.err);
+        }
+    }
+
+    private static class MyX509TrustManager implements X509TrustManager {
+        @Override
+        public void checkClientTrusted(X509Certificate[] certificates, String s) throws CertificateException {
+
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] certificates, String s) throws CertificateException {
+
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
         }
     }
 }

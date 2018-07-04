@@ -9,17 +9,17 @@ public final class FileUtil {
     public static void copyJar(String path, final String jarPrefix, File outJar) throws Exception {
         File[] files = new File(path).listFiles((dir, name) -> name.startsWith(jarPrefix) && name.endsWith(".jar"));
 
-        if ( ! outJar.getParentFile().isDirectory() )
-            if ( ! outJar.getParentFile().mkdir() )
+        if ( !outJar.getParentFile().isDirectory() )
+            if ( !outJar.getParentFile().mkdir() )
                 return; // access denied
 
         if ( files == null || files.length == 0 )
             return;
 
         for ( File file : files ) {
-            System.out.println("Copying " + file.getName() + " to " + outJar.getAbsolutePath());
+            LogHandler.info("Copying " + file.getName() + " to " + outJar.getAbsolutePath());
             Files.copy(file.toPath(), outJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("  - Saved as " + outJar);
+            LogHandler.info("  - Saved as " + outJar);
         }
     }
 

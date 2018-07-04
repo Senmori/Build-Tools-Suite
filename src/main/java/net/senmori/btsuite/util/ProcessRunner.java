@@ -2,14 +2,17 @@ package net.senmori.btsuite.util;
 
 import com.google.common.collect.ObjectArrays;
 import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Settings;
 
 import java.io.File;
 import java.util.Arrays;
 
 public class ProcessRunner {
 
+    private static final Settings.Directories dirs = Main.getSettings().getDirectories();
+
     public static int runProcess(String... command) throws Exception {
-        return runProcess(Main.WORK_DIR, command);
+        return runProcess(dirs.getWorkingDir(), command);
     }
 
     public static int runProcess(File workDir, String... command) throws Exception {
@@ -26,7 +29,7 @@ public class ProcessRunner {
         if ( ! pb.environment().containsKey("MAVEN_OPTS") ) {
             pb.environment().put("MAVEN_OPTS", "-Xmx1024M");
         }
-        if ( Main.PORTABLE_GIT_DIR != null ) {
+        if ( dirs.getPortableGitDir() != null ) {
             String pathEnv = pb.environment().get("path");
             if ( pathEnv == null ) {
                 //try 'Path'
@@ -37,8 +40,8 @@ public class ProcessRunner {
             }
 
             String path = pb.environment().get(pathEnv);
-            path += ';' + Main.PORTABLE_GIT_DIR.getAbsolutePath();
-            path += ';' + new File(Main.PORTABLE_GIT_DIR, "bin").getAbsolutePath();
+            path += ';' + dirs.getPortableGitDir().getAbsolutePath();
+            path += ';' + new File(dirs.getPortableGitDir(), "bin").getAbsolutePath();
             pb.environment().put(pathEnv, path);
         }
         final Process ps = pb.start();

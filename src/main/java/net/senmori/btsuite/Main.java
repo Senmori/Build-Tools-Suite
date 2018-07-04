@@ -1,69 +1,33 @@
 package net.senmori.btsuite;
 
+import co.aikar.taskchain.TaskChain;
+import co.aikar.taskchain.TaskChainFactory;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.gui.Console;
-import net.senmori.btsuite.settings.Settings;
 import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.MavenInstaller;
-import net.senmori.btsuite.util.FileUtil;
+import net.senmori.btsuite.task.SpigotVersionImporter;
+import net.senmori.btsuite.util.LogHandler;
+import sun.rmi.runtime.Log;
 
-import java.io.File;
 import java.net.URL;
+import java.util.Map;
 
 public class Main extends Application {
 
-    public static final File WORK_DIR = new File("BTSuite/");
-    public static final File SETTINGS_FILE = new File(WORK_DIR, "settings.json");
-    public static final File TMP_DIR = new File(WORK_DIR, "tmp/");
-    public static final File JAR_DIR = new File(WORK_DIR, "jars/");
-    public static final TaskRunner TASK_RUNNER = new TaskRunner(3);
-    public static File MVN_DIR = new File(System.getenv("M2_HOME"));
-    public static File PORTABLE_GIT_DIR = null;
-    public static Stage WINDOW;
+    private static Stage WINDOW;
     private static final Settings SETTINGS = new Settings();
+    private static TaskChainFactory taskChainFactory = BuildToolsTaskChainFactory.create();
+
+
     private static Console console = null;
     private static TabPane tabPane;
-
-    public static Stage getWindow() {
-        return Main.WINDOW;
-    }
-
-    public static Console getConsole() {
-        return console;
-    }
-
-    public static void setConsole(Console console) {
-        if ( console == null )
-            Main.console = console;
-    }
-
-    public static TaskRunner getTaskRunner() {
-        return TASK_RUNNER;
-    }
-
-    public static Settings getSettings() {
-        return SETTINGS;
-    }
-
-    public static void setActiveTab(WindowTab tab) {
-        switch ( tab ) {
-            case CONSOLE:
-                tabPane.getSelectionModel().select(1);
-                break;
-            case BUILD:
-            default:
-                tabPane.getSelectionModel().select(0);
-        }
-    }
-
-
-
 
     public static void main(String[] args) {
         launch(args);
@@ -73,9 +37,6 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception {
         Main.WINDOW = primaryStage;
         initWindow(WINDOW);
-        initSettings();
-
-        Main.TMP_DIR.deleteOnExit();
 
         Image icon = new Image(this.getClass().getClassLoader().getResourceAsStream("icon.png"));
         WINDOW.getIcons().add(icon);
@@ -86,20 +47,15 @@ public class Main extends Application {
         Scene scene = new Scene(tabPane);
         Main.WINDOW.setScene(scene);
 
-        WINDOW.setOnCloseRequest((request) -> {
-            Platform.exit();
-        });
-
-        getTaskRunner().submit(new GitInstaller());
-        getTaskRunner().submit(new MavenInstaller());
-
         primaryStage.show();
-    }
+        setActiveTab(WindowTab.BUILD);
 
-    @Override
-    public void stop() {
-        TASK_RUNNER.getPool().shutdown();
-        FileUtil.deleteDirectory(Main.TMP_DIR);
+        Map<VersionString, BuildInfo> test = SpigotVersionImporter.getVersions(SETTINGS.getVersionLink());
+        Main.newChain()
+            .async(() -> GitInstaller.install())
+            .async(() -> MavenInstaller.install() );
+
+        LogHandler.debug("Debug mode enabled.");
     }
 
     private void initWindow(Stage window) {
@@ -107,18 +63,39 @@ public class Main extends Application {
         window.setResizable(true);
     }
 
-    //TODO: Should be in Settings.class
-    private void initSettings() {
-        if ( ! Main.WORK_DIR.exists() ) {
-            Main.WORK_DIR.mkdir();
-        }
-        if ( ! Main.TMP_DIR.exists() ) {
-            Main.TMP_DIR.mkdir();
-            PORTABLE_GIT_DIR = new File(Main.WORK_DIR, getSettings().getGitVersion());
-        }
-        if ( ! Main.JAR_DIR.exists() ) {
-            Main.JAR_DIR.mkdir();
+    public static Stage getWindow() {
+        return Main.WINDOW;
+    }
+
+    public static void setConsole(Console console) {
+        if ( console == null )
+            Main.console = console;
+    }
+
+    public static Settings getSettings() {
+        return SETTINGS;
+    }
+
+    public static void setActiveTab(WindowTab tab) {
+        switch ( tab ) {
+            case CONSOLE:
+                tabPane.getSelectionModel().select(0);
+                break;
+            case BUILD:
+            default:
+                tabPane.getSelectionModel().select(1);
         }
     }
 
+    public static <T> TaskChain<T> newChain() {
+        return taskChainFactory.newChain();
+    }
+
+    public static <T> TaskChain<T> newSharedChain(String name) {
+        return taskChainFactory.newSharedChain(name);
+    }
+
+    public static boolean isDebugEnabled() {
+        return Boolean.getBoolean("debugBuildTools");
+    }
 }

@@ -9,9 +9,4 @@ public class MainController {
     Tab buildTab;
     @FXML
     Tab consoleTab;
-
-    @FXML
-    private void initialize() {
-
-    }
 }

@@ -20,4 +20,10 @@ public class BuildInfo {
         private String CraftBukkit;
         private String Spigot;
     }
+
+
+
+    public static BuildInfo getDefaultImpl() {
+        return new BuildInfo("Dev Build", "Development", 0, new BuildInfo.Refs("master", "master", "master", "master"));
+    }
 }

@@ -1,6 +1,6 @@
 package net.senmori.btsuite;
 
-public final class Version implements Comparable<Version> {
+public final class VersionString implements Comparable<VersionString> {
 
     private final String versionString;
     private String displayString;
@@ -10,30 +10,30 @@ public final class Version implements Comparable<Version> {
     private String[] extra;
 
 
-    private Version(String versionString) {
+    private VersionString(String versionString) {
         this.versionString = versionString;
         parse(versionString);
         this.displayString = versionString;
     }
 
-    private Version(String versionString, String displayString) {
+    private VersionString(String versionString, String displayString) {
         this(versionString);
         this.displayString = displayString;
     }
 
-    public static Version of(String versionString) {
-        return Version.of(versionString, versionString);
+    public static VersionString valueOf(String versionString) {
+        return VersionString.valueOf(versionString, versionString);
     }
 
-    public static Version of(String versionString, String displayString) {
-        return new Version(versionString, displayString);
+    public static VersionString valueOf(String versionString, String displayString) {
+        return new VersionString(versionString, displayString);
     }
 
     public static boolean isVersionNumber(String versionString) {
         return "latest".equalsIgnoreCase(versionString) || ( versionString.split("\\.").length > 1 );
     }
 
-    public String getDisplayName() {
+    public String getAlias() {
         return displayString;
     }
 
@@ -87,7 +87,7 @@ public final class Version implements Comparable<Version> {
     }
 
     @Override
-    public int compareTo(Version other) {
+    public int compareTo(VersionString other) {
         if ( this.versionString.equalsIgnoreCase("latest") )
             return 1;
 
@@ -105,7 +105,7 @@ public final class Version implements Comparable<Version> {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof Version && this.compareTo(( Version ) obj) == 0;
+        return obj instanceof VersionString && this.compareTo(( VersionString ) obj) == 0;
     }
 
     public String toString() {

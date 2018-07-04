@@ -1,76 +1,69 @@
 package net.senmori.btsuite.task;
 
-import javafx.concurrent.Task;
+import javafx.application.Platform;
 import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.util.FileUtil;
+import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.ProcessRunner;
 import net.senmori.btsuite.util.SystemChecker;
+import net.senmori.btsuite.util.TaskUtil;
 
 import java.io.File;
-import java.util.concurrent.Future;
 
-public class GitInstaller extends Task<GitInstaller.Response> {
+public class GitInstaller  {
 
-    @Override
-    protected GitInstaller.Response call() throws Exception {
+    public static void install() {
+        final Settings settings = Main.getSettings();
+        final Settings.Directories dirs = settings.getDirectories();
         // check for normall git installation
         try {
-            ProcessRunner.runProcess(Main.WORK_DIR, "git", "--version");
-            return Response.ALREADY_INSTALLED;
+            LogHandler.debug("Checking for Git install location.");
+            ProcessRunner.runProcess(dirs.getWorkingDir(), "git", "--version");
         } catch ( Exception e ) {
+            LogHandler.debug("Git not found. Trying to install PortableGit");
+            doInstall();
         }
-        return doInstall();
     }
 
-    private Response doInstall() {
+    private static void doInstall() {
+        final Settings settings = Main.getSettings();
+        final Settings.Directories dirs = settings.getDirectories();
         try {
             if ( SystemChecker.isWindows() ) {
-                File gitExe = new File(Main.PORTABLE_GIT_DIR, Main.getSettings().getGitName());
-                File portableGitInstall = new File(Main.PORTABLE_GIT_DIR, "PortableGit");
+                File gitExe = new File(dirs.getPortableGitDir(), Main.getSettings().getGitName());
+                File portableGitInstall = new File(dirs.getPortableGitDir(), "PortableGit");
 
                 if ( portableGitInstall.exists() && portableGitInstall.isDirectory() ) {
-                    Main.PORTABLE_GIT_DIR = portableGitInstall;
-                    System.out.println("Found PortableGit already installed at " + portableGitInstall);
-                    return Response.ALREADY_INSTALLED;
+                    dirs.setPortableGitDir(portableGitInstall);
+                    LogHandler.info("Found PortableGit already installed at " + portableGitInstall);
+                    return;
                 }
 
-                if ( ! gitExe.exists() ) {
+                if ( !gitExe.exists() ) {
                     gitExe.mkdirs();
-                    System.out.println("*** Could not find PortableGit executable, downloading. ***");
-                    try {
-                        Future<File> task = Main.TASK_RUNNER.submit(new FileDownloader(Main.getSettings().getGitInstallerLink(), gitExe));
-                        do {
-
-                        } while ( ! task.isDone() );
-                        gitExe = task.get();
-                    } catch ( Exception e ) {
-                        e.printStackTrace();
-                        return Response.INSTALLATION_FAILURE;
-                    }
+                    LogHandler.warn("*** Could not find PortableGit executable, downloading. ***");
+                    gitExe = TaskUtil.asyncDownloadFile(Main.newChain(), settings.getGitInstallerLink(), gitExe);
                 }
-                if ( ! FileUtil.isDirectory(portableGitInstall) ) {
+                if ( !FileUtil.isDirectory(portableGitInstall) ) {
                     portableGitInstall.mkdirs();
-                    // yes to all, silent, don't run.  Only -y seems to work
+                    // yes to all, silent, don't install.  Only -y seems to work
+                    // ProcessRunner appends information we don't need
                     Runtime.getRuntime().exec(gitExe.getPath(), new String[] {"-y", "-gm2", "-nr"}, gitExe.getParentFile());
 
-                    System.out.println("*** Please note this is a beta feature, so if it does not work please also try a manual install of git from https://git-for-windows.github.io/ ***");
-                    Main.PORTABLE_GIT_DIR = portableGitInstall;
-                    gitExe.delete();
-                    System.out.println("Successfully installed PortableGit to " + Main.PORTABLE_GIT_DIR);
+                    LogHandler.warn("*** Please note this is a beta feature, so if it does not work please also try a manual install valueOf git from https://git-for-windows.github.io/ ***");
+                    dirs.setPortableGitDir(portableGitInstall);
+                    LogHandler.info("Successfully installed PortableGit to " + dirs.getPortableGitDir());
                 }
             } else { // end if windows check
-                return GitInstaller.Response.INVALID_ARCHITECTURE;
-            }
-            return Response.INSTALLATION_SUCCESS;
+                LogHandler.error("Invalid Architecture!");
+                return; // Invalid Architecture
+            }            LogHandler.info("Git installations success!");
+            return;
         } catch ( Exception e ) {
-            return Response.INSTALLATION_FAILURE;
+            LogHandler.error("Failed to install git!");
+            Platform.exit();
+            return;
         }
-    }
-
-    public enum Response {
-        INVALID_ARCHITECTURE,
-        ALREADY_INSTALLED,
-        INSTALLATION_FAILURE,
-        INSTALLATION_SUCCESS;
     }
 }

@@ -4,18 +4,33 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>groupId</groupId>
+    <groupId>net.senmori</groupId>
     <artifactId>BuildToolsSuite</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.5.0</version>
 
     <properties>
         <build.number>unknown</build.number>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <taskChain.version>3.7.1</taskChain.version>
+        <main.Class>net.senmori.btsuite.Main</main.Class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>aikar</id>
+            <url>https://repo.aikar.co/content/groups/aikar/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
+        <dependency>
+            <groupId>co.aikar</groupId>
+            <artifactId>taskchain-core</artifactId>
+            <version>${taskChain.version}</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>com.custardsource.dybdob</groupId>
             <artifactId>java-diff-utils-copy</artifactId>
@@ -68,8 +83,12 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>1.11.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
+
+
+
     <build>
         <finalName>${project.name}</finalName>
         <plugins>
@@ -127,6 +146,15 @@
                         </filter>
                     </filters>
                     <minimizeJar>true</minimizeJar>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.zenjava</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>8.8.3</version>
+                <configuration>
+                    <vendor>BuildTools</vendor>
+                    <mainClass>${main.Class}</mainClass>
                 </configuration>
             </plugin>
         </plugins>

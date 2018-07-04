@@ -1,4 +1,4 @@
-package net.senmori.btsuite.gui;
+package net.senmori.btsuite.log;
 
 import javafx.application.Platform;
 import javafx.scene.control.TextArea;
@@ -12,16 +12,11 @@ import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-/**
- * TextAreaAppender for Log4j 2
- */
 @Plugin(
         name = "TextAreaAppender",
         category = "Core",
@@ -58,7 +53,7 @@ public final class TextAreaAppender extends AbstractAppender {
             Platform.runLater(() -> {
                 try {
                     if (textArea != null) {
-                        if (textArea.getText().length() == 0) {
+                        if ( textArea.getText().isEmpty() ) {
                             textArea.setText(message);
                         } else {
                             textArea.selectEnd();

@@ -109,11 +109,11 @@
                 <version>3.0.2</version>
                 <configuration>
                     <archive>
-                        <manifestEntries>
-                            <Main-Class>net.senmori.btsuite.Main</Main-Class>
-                            <Implementation-Title>BuildTools</Implementation-Title>
-                            <Implementation-Version>${describe}</Implementation-Version>
-                        </manifestEntries>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>${main.Class}</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
                     </archive>
                 </configuration>
             </plugin>
@@ -140,16 +140,6 @@
                             </excludes>
                         </filter>
                     </filters>
-                    <minimizeJar>true</minimizeJar>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.zenjava</groupId>
-                <artifactId>javafx-maven-plugin</artifactId>
-                <version>8.8.3</version>
-                <configuration>
-                    <vendor>BuildTools</vendor>
-                    <mainClass>${main.Class}</mainClass>
                 </configuration>
             </plugin>
         </plugins>

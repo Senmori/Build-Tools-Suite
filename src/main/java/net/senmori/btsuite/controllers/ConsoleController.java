@@ -2,11 +2,8 @@ package net.senmori.btsuite.controllers;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
-import net.senmori.btsuite.Main;
-import net.senmori.btsuite.gui.Console;
-import net.senmori.btsuite.gui.LoggerStream;
-import net.senmori.btsuite.gui.TextAreaAppender;
-import net.senmori.btsuite.util.LogHandler;
+import net.senmori.btsuite.log.LoggerStream;
+import net.senmori.btsuite.log.TextAreaAppender;
 
 import java.net.URL;
 import java.util.ResourceBundle;

@@ -8,17 +8,17 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import net.senmori.btsuite.controllers.ConsoleController;
 import net.senmori.btsuite.gui.Console;
+import net.senmori.btsuite.log.BuildToolsLog4jConfigFactory;
+import net.senmori.btsuite.log.LoggerStream;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.maven.shared.invoker.DefaultInvoker;
 import org.apache.maven.shared.invoker.Invoker;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.URL;
 
 public class Main extends Application {
@@ -31,18 +31,9 @@ public class Main extends Application {
     private static TabPane tabPane;
 
     public static void main(String[] args) {
+        ConfigurationFactory.setConfigurationFactory(new BuildToolsLog4jConfigFactory());
+        LoggerStream.setOutAndErrToLog();
         launch(args);
-        System.setOut(new PrintStream(new OutputStream() {
-            public void write(int b) {
-
-            }
-        }));
-        System.setErr(new PrintStream(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-
-            }
-        }));
     }
 
     @Override

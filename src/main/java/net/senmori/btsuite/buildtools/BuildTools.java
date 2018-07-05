@@ -3,24 +3,28 @@ package net.senmori.btsuite.buildtools;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.Data;
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.WindowTab;
-import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.controllers.BuildTabController;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 @Data
 public final class BuildTools implements Runnable {
+    private static BuildTabController controller;
+
+    public static void setController(BuildTabController controller) {
+        BuildTools.controller = controller;
+    }
+
     boolean running = false;
-    Settings settings = Main.getSettings();
+    Settings settings = Builder.getSettings();
     private boolean disableCertificateCheck = false;
     private boolean dontUpdate = false;
     private boolean skipCompile = false;
@@ -48,7 +52,7 @@ public final class BuildTools implements Runnable {
     @Override
     public void run() {
         running = true;
-        Main.setActiveTab(WindowTab.CONSOLE);
+        Builder.setActiveTab(WindowTab.CONSOLE);
         LogHandler.debug("Starting BuildTools");
         BuildToolsProject task = new BuildToolsProject(this, settings);
         try {
@@ -60,5 +64,6 @@ public final class BuildTools implements Runnable {
 
     public void setFinished() {
         running = false;
+        controller.onBuildToolsFinished(this);
     }
 }

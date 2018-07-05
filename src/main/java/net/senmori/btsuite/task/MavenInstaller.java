@@ -1,6 +1,6 @@
 package net.senmori.btsuite.task;
 
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.TaskUtil;
@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 
 public class MavenInstaller implements Callable<File> {
 
-    private final Settings settings = Main.getSettings();
+    private final Settings settings = Builder.getSettings();
     private final Settings.Directories dirs = settings.getDirectories();
 
     public MavenInstaller() {

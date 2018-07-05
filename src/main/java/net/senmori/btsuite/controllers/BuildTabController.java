@@ -12,16 +12,16 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
-import lombok.val;
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.task.GitInstaller;
+import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.task.SpigotVersionImporter;
 import net.senmori.btsuite.util.FileUtil;
-import net.senmori.btsuite.util.JavaFxUtils;
 import net.senmori.btsuite.util.LogHandler;
 
 import java.io.File;
@@ -31,11 +31,10 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 public class BuildTabController {
 
-    private Settings settings = Main.getSettings();
+    private Settings settings = Builder.getSettings();
     private BuildTools buildTools;
 
     @FXML // ResourceBundle that was given to the FXMLLoader
@@ -110,7 +109,7 @@ public class BuildTabController {
         DirectoryChooser dirChooser = new DirectoryChooser();
         dirChooser.setInitialDirectory(settings.getDirectories().getWorkingDir());
         dirChooser.setTitle("Add output directory");
-        File output = dirChooser.showDialog(Main.getWindow());
+        File output = dirChooser.showDialog(Builder.getWindow());
         if ( FileUtil.isDirectory(output) ) {
             this.outputDirListView.getItems().add(output.getAbsolutePath());
             this.delOutputBtn.setDisable(false);
@@ -132,7 +131,7 @@ public class BuildTabController {
     void onRunBuildToolsClicked() {
         if ( !buildTools.isRunning() ) {
             if ( choiceComboBox.getSelectionModel().getSelectedItem() == null ) {
-                buildTools.setVersion(Main.getSettings().getDefaultVersion());
+                buildTools.setVersion(Builder.getSettings().getDefaultVersion());
             } else {
                 buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
             }
@@ -149,6 +148,10 @@ public class BuildTabController {
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         choiceComboBox.setVisibleRowCount(10);
+
+        TaskPools.async(() -> new GitInstaller() )
+                 .async(() -> new MavenInstaller() );
+
         SpigotVersionImporter importer = new SpigotVersionImporter(settings.getVersionLink());
         Future<Map<VersionString, BuildInfo>> future = TaskPools.submit(importer);
         Map<VersionString, BuildInfo> versionMap = null;
@@ -166,6 +169,12 @@ public class BuildTabController {
         } else {
             LogHandler.warn("Error importing version map.");
         }
+
+        BuildTools.setController(this);
+    }
+
+    public void onBuildToolsFinished(BuildTools tool) {
+        runBuildToolsBtn.setDisable(false);
     }
 
     private void handleVersionMap(Map<VersionString, BuildInfo> map) {

@@ -1,15 +1,14 @@
 package net.senmori.btsuite.log;
 
-import lombok.extern.log4j.Log4j2;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.Logger;
+import net.senmori.btsuite.util.LogHandler;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
-@Log4j2
 public class LoggerStream extends OutputStream {
     private final Level logLevel;
     private final OutputStream outputStream;
@@ -23,7 +22,7 @@ public class LoggerStream extends OutputStream {
     public void write(byte[] b) throws IOException {
         String string = new String(b);
         if (!string.trim().isEmpty()) {
-            log.log(logLevel, string);
+            LogHandler.log.log(logLevel, string);
         }
     }
 
@@ -31,7 +30,7 @@ public class LoggerStream extends OutputStream {
     public void write(byte[] b, int off, int len) throws IOException {
         String string = new String(b, off, len);
         if (!string.trim().isEmpty()) {
-            log.log(logLevel, string);
+            LogHandler.log.log(logLevel, string);
         }
 
     }
@@ -40,7 +39,7 @@ public class LoggerStream extends OutputStream {
     public void write(int b) throws IOException {
         String string = String.valueOf((char) b);
         if (!string.trim().isEmpty()) {
-            log.log(logLevel, string);
+            LogHandler.log.log(logLevel, string);
         }
     }
 
@@ -50,10 +49,10 @@ public class LoggerStream extends OutputStream {
     }
 
     public static void setOutToLog() {
-        System.setOut(new PrintStream(new LoggerStream(log, Level.INFO, System.out)));
+        System.setOut(new PrintStream(new LoggerStream(LogHandler.log, Level.INFO, System.out)));
     }
 
     public static void setErrToLog() {
-        System.setErr(new PrintStream(new LoggerStream(log, Level.ERROR, System.err)));
+        System.setErr(new PrintStream(new LoggerStream(LogHandler.log, Level.SEVERE, System.err)));
     }
 }

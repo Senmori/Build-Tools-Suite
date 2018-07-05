@@ -1,12 +1,13 @@
 package net.senmori.btsuite.util;
 
 import javafx.application.Platform;
-import lombok.extern.log4j.Log4j2;
-import net.senmori.btsuite.Main;
-import org.apache.logging.log4j.Level;
+import net.senmori.btsuite.Builder;
 
-@Log4j2
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class LogHandler {
+    public static final Logger log = Logger.getLogger(LogHandler.class.getName());
 
     private static void log(Level level, String message) {
         Platform.runLater(() -> log.log(level, message));
@@ -17,16 +18,16 @@ public class LogHandler {
     }
 
     public static void debug(String message) {
-        if( Main.isDebugEnabled() ) {
-            log(Level.DEBUG, message);
+        if( Builder.isDebugEnabled() ) {
+            log(Level.FINE, message);
         }
     }
 
     public static void warn(String message) {
-        log(Level.WARN, message);
+        log(Level.WARNING, message);
     }
 
     public static void error(String message) {
-        log(Level.ERROR, message);
+        log(Level.SEVERE, message);
     }
 }

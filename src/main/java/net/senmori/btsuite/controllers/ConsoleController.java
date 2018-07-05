@@ -3,10 +3,12 @@ package net.senmori.btsuite.controllers;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import net.senmori.btsuite.log.LoggerStream;
-import net.senmori.btsuite.log.TextAreaAppender;
+import net.senmori.btsuite.log.TextAreaLogHandler;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 public class ConsoleController {
 
@@ -22,8 +24,11 @@ public class ConsoleController {
     @FXML
     void initialize() {
         assert consoleTextArea != null;
-        TextAreaAppender.setTextArea(consoleTextArea);
+        LogManager.getLogManager().reset(); // remove all handlers
+        Logger rootLogger = LogManager.getLogManager().getLogger("");
+
+        rootLogger.addHandler(new TextAreaLogHandler());
+        TextAreaLogHandler.setTextArea(consoleTextArea);
         LoggerStream.setOutAndErrToLog();
-        //Main.setConsole(new Console(consoleTextArea));
     }
 }

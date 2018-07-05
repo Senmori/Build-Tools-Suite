@@ -1,7 +1,7 @@
 package net.senmori.btsuite.util;
 
 import com.google.common.collect.ObjectArrays;
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.Settings;
 
 import java.io.File;
@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class ProcessRunner {
 
-    private static final Settings.Directories dirs = Main.getSettings().getDirectories();
+    private static final Settings.Directories dirs = Builder.getSettings().getDirectories();
 
     public static int runProcess(String... command) throws Exception {
         return runProcess(dirs.getWorkingDir(), command);
@@ -20,6 +20,10 @@ public class ProcessRunner {
             command[0] = "git-bash";
         }
         return runProcess0(workDir, windowsShim(command));
+    }
+
+    public static int runProcessRaw(File workDir, String... command) throws Exception {
+        return runProcess0(workDir, command);
     }
 
     public static int exec(String... command) throws Exception {

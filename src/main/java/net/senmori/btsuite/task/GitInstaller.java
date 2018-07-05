@@ -1,7 +1,7 @@
 package net.senmori.btsuite.task;
 
 import javafx.application.Platform;
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
@@ -13,7 +13,7 @@ import java.io.File;
 
 public class GitInstaller  implements Runnable {
 
-    private final Settings settings = Main.getSettings();
+    private final Settings settings = Builder.getSettings();
     private final Settings.Directories dirs = settings.getDirectories();
 
     public GitInstaller() {

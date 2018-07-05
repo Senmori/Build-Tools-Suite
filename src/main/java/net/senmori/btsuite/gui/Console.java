@@ -1,7 +1,6 @@
 package net.senmori.btsuite.gui;
 
 import javafx.scene.control.TextArea;
-import lombok.extern.log4j.Log4j2;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -9,7 +8,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
-@Log4j2
 public class Console extends OutputStream {
 
     private final TextArea output;

@@ -1,8 +1,7 @@
 package net.senmori.btsuite.util;
 
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Builder;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
-import org.apache.maven.shared.invoker.InvocationOutputHandler;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
@@ -13,11 +12,11 @@ import java.util.List;
 
 public class MavenCommandBuilder {
 
-    Invoker invoker = Main.getInvoker();
+    Invoker invoker = Builder.getInvoker();
     InvocationRequest request = new DefaultInvocationRequest();
 
     private MavenCommandBuilder() {
-        invoker = Main.getInvoker();
+        invoker = Builder.getInvoker();
         request = new DefaultInvocationRequest();
 
         invoker.setOutputHandler((str) -> LogHandler.info(str));

@@ -59,7 +59,7 @@ public final class VersionString implements Comparable<VersionString> {
 
     public void parse(String versionString) {
         if ( versionString.equalsIgnoreCase("latest") ) {
-            parse(Main.getSettings().getDefaultVersion()); // parse default version
+            parse(Builder.getSettings().getDefaultVersion()); // parse default version
             return;
         }
         String[] arr = versionString.split("\\.");

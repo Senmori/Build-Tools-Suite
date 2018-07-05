@@ -3,7 +3,7 @@ package net.senmori.btsuite.task;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
-import net.senmori.btsuite.Main;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public class SpigotVersionImporter implements Callable<Map<VersionString, BuildInfo>> {
     private static final Gson GSON = new Gson();
     private static final Pattern JSON_PATTERN = Pattern.compile(".json");
-    private static final Settings SETTINGS = Main.getSettings();
+    private static final Settings SETTINGS = Builder.getSettings();
     private static final Settings.Directories DIRS = SETTINGS.getDirectories();
 
     private final String url;

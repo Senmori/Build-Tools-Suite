@@ -1,6 +1,5 @@
 package net.senmori.btsuite.util;
 
-import com.google.common.base.Throwables;
 import lombok.RequiredArgsConstructor;
 
 import java.io.BufferedReader;
@@ -24,7 +23,7 @@ public class StreamCapturer implements Runnable {
                 out.println(line);
             }
         } catch ( IOException ex ) {
-            throw Throwables.propagate(ex);
+            throw new RuntimeException( ex.getMessage() );
         }
     }
 }

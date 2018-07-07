@@ -3,6 +3,7 @@ package net.senmori.btsuite.task;
 import net.senmori.btsuite.util.GitUtil;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.SystemChecker;
+import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.StoredConfig;
@@ -32,7 +33,12 @@ public class GitCloneTask implements Callable<File> {
 
     private File call0(String url, File target) throws GitAPIException {
         LogHandler.info("Starting clone of " + url + " to " + target.getName());
-        Git result = Git.cloneRepository().setURI(url).setDirectory(target).call();
+        CloneCommand clone = new CloneCommand();
+        Git result = Git.cloneRepository()
+                        .setURI( url )
+                        .setDirectory( target )
+                        //.setProgressMonitor( new TextProgressMonitor( new PrintWriter( System.out ) ) )
+                        .call();
 
         try {
             StoredConfig config = result.getRepository().getConfig();

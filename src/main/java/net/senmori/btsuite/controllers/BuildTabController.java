@@ -13,13 +13,11 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
-import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.pool.TaskPools;
-import net.senmori.btsuite.task.GitInstaller;
-import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.task.SpigotVersionImporter;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
@@ -149,9 +147,6 @@ public class BuildTabController {
 
         choiceComboBox.setVisibleRowCount(10);
 
-        TaskPools.async(() -> new GitInstaller() )
-                 .async(() -> new MavenInstaller() );
-
         SpigotVersionImporter importer = new SpigotVersionImporter(settings.getVersionLink());
         Future<Map<VersionString, BuildInfo>> future = TaskPools.submit(importer);
         Map<VersionString, BuildInfo> versionMap = null;
@@ -169,6 +164,7 @@ public class BuildTabController {
         } else {
             LogHandler.warn("Error importing version map.");
         }
+        this.outputDirListView.getItems().add( settings.getDirectories().getWorkingDir().getAbsolutePath() );
 
         BuildTools.setController(this);
     }

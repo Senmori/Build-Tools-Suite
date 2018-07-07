@@ -82,9 +82,4 @@ public class GitUtil {
 
         throw new IllegalArgumentException(sb.toString());
     }
-
-
-    public static void installGit() {
-
-    }
 }

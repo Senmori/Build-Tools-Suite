@@ -1,6 +1,7 @@
-package net.senmori.btsuite.util;
+package net.senmori.btsuite.util.builders;
 
 import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.util.LogHandler;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
@@ -40,7 +41,7 @@ public class MavenCommandBuilder {
     }
 
     public MavenCommandBuilder setInteractiveMode(boolean interactive) {
-        request.setBatchMode(interactive);
+        request.setBatchMode( ! interactive );
         return this;
     }
 

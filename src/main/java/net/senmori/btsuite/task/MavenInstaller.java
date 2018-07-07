@@ -2,6 +2,7 @@ package net.senmori.btsuite.task;
 
 import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.Settings;
+import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.TaskUtil;
 import net.senmori.btsuite.util.ZipUtil;
@@ -9,6 +10,7 @@ import net.senmori.btsuite.util.ZipUtil;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 public class MavenInstaller implements Callable<File> {
 
@@ -17,6 +19,18 @@ public class MavenInstaller implements Callable<File> {
 
     public MavenInstaller() {
 
+    }
+
+    public static boolean install() {
+        try {
+            return TaskPools.submit( () -> new MavenInstaller().call() ).get() != null;
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+            return false;
+        } catch ( ExecutionException e ) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Override

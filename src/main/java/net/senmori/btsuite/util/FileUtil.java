@@ -1,26 +1,38 @@
 package net.senmori.btsuite.util;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.util.function.Predicate;
 
 public final class FileUtil {
 
-    public static void copyJar(String path, final String jarPrefix, File outJar) throws Exception {
-        File[] files = new File(path).listFiles((dir, name) -> name.startsWith(jarPrefix) && name.endsWith(".jar"));
-
-        if ( !outJar.getParentFile().isDirectory() )
-            if ( !outJar.getParentFile().mkdir() )
-                return; // access denied
-
-        if ( files == null || files.length == 0 )
+    public static void copyJar(File sourceDir, File outDir, String finalJarName, Predicate<String> predicate) throws IOException {
+        File[] files = sourceDir.listFiles( (file, name) -> predicate.test( name ) && ! name.contains( "-shaded" ) );
+        if ( ( files == null ) || ( files.length == 0 ) ) {
+            LogHandler.error( "No files found in " + sourceDir + " that matched the requirements." );
             return;
-
-        for ( File file : files ) {
-            LogHandler.info("Copying " + file.getName() + " to " + outJar.getAbsolutePath());
-            Files.copy(file.toPath(), outJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            LogHandler.info("  - Saved as " + outJar);
         }
+        LogHandler.debug( "FileUtil#copyJar found " + files.length + " in " + sourceDir.getPath() );
+
+        if ( ! outDir.isDirectory() ) {
+            outDir.mkdirs();
+        }
+
+        for ( File source : files ) {
+            FileInputStream inputStream = new FileInputStream( source );
+            FileOutputStream outputStream = new FileOutputStream( new File( outDir, finalJarName ) );
+
+            FileChannel sourceChannel = inputStream.getChannel();
+            FileChannel outChannel = outputStream.getChannel();
+
+            long size = sourceChannel.size();
+            sourceChannel.transferTo( 0L, size, outChannel );
+            LogHandler.info( "- Copied " + source.getName() + " into " + outDir.getPath() );
+        }
+
     }
 
     public static boolean isDirectory(File file) {

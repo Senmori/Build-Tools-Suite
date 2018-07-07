@@ -2,6 +2,9 @@ package net.senmori.btsuite.log;
 
 import javafx.application.Platform;
 import javafx.scene.control.TextArea;
+import javafx.scene.text.Text;
+import net.senmori.btsuite.gui.BuildToolsConsole;
+import net.senmori.btsuite.util.format.TextAreaFormatter;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -13,8 +16,8 @@ import java.util.logging.LogRecord;
 
 public final class TextAreaLogHandler extends Handler {
 
+    private static BuildToolsConsole console;
     private static TextArea textArea;
-
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -26,25 +29,22 @@ public final class TextAreaLogHandler extends Handler {
         Level level = event.getLevel();
         String message = event.getMessage() + "\n";
 
-        //TODO: Implement coloring for certain levels
+        TextAreaFormatter formatter = console.getFormatter( level );
+        Text text = formatter.format( level, message );
 
         // append log text to TextArea
         try {
             Platform.runLater(() -> {
                 try {
                     if (textArea != null) {
-                        if ( textArea.getText().isEmpty() ) {
-                            textArea.setText(message);
-                        } else {
-                            textArea.selectEnd();
-                            textArea.insertText(textArea.getText().length(), message);
-                        }
+                        textArea.appendText( message );
+                        textArea.selectEnd();
                     }
-                } catch (final Throwable t) {
-                    throw t;
+                } catch ( Throwable t ) {
+                    throw new IllegalStateException( "Error writing to console." );
                 }
             });
-        } catch (final IllegalStateException ex) {
+        } catch ( IllegalStateException ex ) {
             ex.printStackTrace();
 
         } finally {
@@ -52,8 +52,9 @@ public final class TextAreaLogHandler extends Handler {
         }
     }
 
-    public static void setTextArea(TextArea textArea) {
-        TextAreaLogHandler.textArea = textArea;
+    public static void setConsole(BuildToolsConsole console) {
+        TextAreaLogHandler.console = console;
+        TextAreaLogHandler.textArea = console.getConsole();
     }
 
     @Override

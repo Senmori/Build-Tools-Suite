@@ -7,6 +7,7 @@ import net.senmori.btsuite.Settings;
 import java.io.File;
 import java.util.Arrays;
 
+@Deprecated
 public class ProcessRunner {
 
     private static final Settings.Directories dirs = Builder.getSettings().getDirectories();
@@ -16,25 +17,25 @@ public class ProcessRunner {
     }
 
     public static int runProcess(File workDir, String... command) throws Exception {
-        if ( "bash".equalsIgnoreCase(command[0]) ) {
-            command[0] = "git-bash";
+        if ( dirs.getPortableGitDir() != null ) {
+            if ( "bash".equalsIgnoreCase( command[0] ) ) {
+                command[0] = "git-bash";
+            }
+            String[] shim = { "cmd.exe", "/C" };
+            command = ObjectArrays.concat( shim, command, String.class );
         }
-        return runProcess0(workDir, windowsShim(command));
+        return runProcess0( workDir, command );
     }
 
     public static int runProcessRaw(File workDir, String... command) throws Exception {
         return runProcess0(workDir, command);
     }
 
-    public static int exec(String... command) throws Exception {
-        return new ProcessBuilder(command).start().waitFor();
-    }
-
     private static int runProcess0(File workDir, String... command) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(workDir);
+        pb.directory( workDir );
         pb.environment().put("JAVA_HOME", System.getProperty("java.home"));
-        if ( ! pb.environment().containsKey("MAVEN_OPTS") ) {
+        if ( ! pb.environment().containsKey( "MAVEN_OPTS" ) ) {
             pb.environment().put("MAVEN_OPTS", "-Xmx1024M");
         }
         if ( dirs.getPortableGitDir() != null ) {
@@ -64,9 +65,5 @@ public class ProcessRunner {
         }
 
         return status;
-    }
-
-    private static String[] windowsShim(String[] command) {
-        return ObjectArrays.concat(new String[] {"cmd", "/c"}, command, String.class);
     }
 }

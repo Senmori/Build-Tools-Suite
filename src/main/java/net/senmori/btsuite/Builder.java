@@ -11,11 +11,13 @@ import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.storage.SettingsFactory;
+import net.senmori.btsuite.util.LogHandler;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
+import java.util.concurrent.ExecutionException;
 
 public class Builder extends Application {
     public static final Directory WORKING_DIR = new Directory( System.getProperty( "user.dir" ), "BTSuite" );
@@ -28,6 +30,12 @@ public class Builder extends Application {
     private static TabPane tabPane;
 
     public static void main(String[] args) {
+        float javaVersion = Float.parseFloat( System.getProperty( "java.class.version" ) );
+
+        if ( javaVersion < 52.0F ) {
+            LogHandler.error( "*** WARNING *** Outdated Java detected (" + javaVersion + "). Minecraft >= 1.12 requires at least Java 8." );
+            LogHandler.error( "*** WARNING *** You may use java -version to double check your Java version." );
+        }
         PrintStream empty = new PrintStream( new OutputStream() {
             @Override
             public void write(int b) throws IOException {
@@ -36,18 +44,22 @@ public class Builder extends Application {
         } );
         //System.setOut( empty );
         //System.setErr( empty );
-        Application.launch( args );
-    }
-
-    @Override
-    public void init() {
-        WORKING_DIR.getFile().mkdirs();
-
-        SETTINGS = SettingsFactory.loadSettings( SETTINGS_FILE.getFile() );
+        launch( args );
     }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        WORKING_DIR.getFile().mkdirs();
+
+        try {
+            SETTINGS = TaskPools.submit( () -> SettingsFactory.loadSettings( SETTINGS_FILE.getFile() ) ).get();
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        } catch ( ExecutionException e ) {
+            e.printStackTrace();
+        }
+
+
         Builder.WINDOW = primaryStage;
         WINDOW.setTitle( "Build Tools" );
         WINDOW.setResizable( true );
@@ -62,7 +74,7 @@ public class Builder extends Application {
         Scene scene = new Scene(tabPane);
         WINDOW.setScene( scene );
 
-        WINDOW.show();
+        primaryStage.show();
         primaryStage.setMinWidth( primaryStage.getWidth() );
         primaryStage.setMinHeight( primaryStage.getHeight() );
 

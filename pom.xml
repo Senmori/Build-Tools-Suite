@@ -6,13 +6,13 @@
 
     <groupId>net.senmori</groupId>
     <artifactId>BuildToolsSuite</artifactId>
-    <version>0.5.0</version>
+    <version>0.7.0</version>
 
     <properties>
         <build.number>unknown</build.number>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <main.Class>net.senmori.btsuite.Bootstrap</main.Class>
+        <main.Class>net.senmori.btsuite.Builder</main.Class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

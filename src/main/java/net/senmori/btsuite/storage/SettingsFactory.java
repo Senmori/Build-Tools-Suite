@@ -1,5 +1,7 @@
 package net.senmori.btsuite.storage;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.senmori.btsuite.Builder;
@@ -28,8 +30,14 @@ public class SettingsFactory {
     public static BuildToolsSettings loadSettings(File file) {
         try {
             file.mkdirs();
-            file.createNewFile();
-            return GSON.fromJson( new FileReader( file ), BuildToolsSettings.class );
+            if ( file.createNewFile() ) {
+                return BuildToolsSettings.create( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
+            }
+            BuildToolsSettings settings = GSON.fromJson( new FileReader( file ), BuildToolsSettings.class );
+            if ( settings == null ) {
+                return BuildToolsSettings.create( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
+            }
+            return settings;
         } catch ( FileNotFoundException e ) {
             e.printStackTrace();
         } catch ( IOException e ) {

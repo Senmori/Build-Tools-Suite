@@ -19,7 +19,8 @@ This program can output the final jar to several different directories.
 
 **Generate Documentation**: Generate javadoc jars.
 
-**Versions**: Select a version from the dropdown list. If not version is selected this defaults to 'latest'.
+**Versions**: Select a version from the dropdown list. If not version is selected this defaults to the default version
+as specifiied in the settings.
 
 **Add Output Directory**: Add an output directory for the final jars.
 If no directories are added, the working directory of BuildToolsSuite is used.
@@ -37,21 +38,18 @@ UI is built with SceneBuilder, use it to make things easier for everyone.
 
 ## TODO
 
-Actually implement a logging solution. Sysout is horrible.
-- Slf4j or Log4j. Either is compatible with Lombok.
-
-Externalize all strings so it's easier to update them in the future.
-(i.e. the s3 amazon link for downloading minecraft jars)
-- Have settings tab; make all settings configurable.
-- Save git/maven install locations so we don't have to keep trying to install them.
+Create Tab for settings.
+ - Edit/Save settings.
+ - Cannot Save while building a project.
+ - Input verification for certain fields (directories)
 
 Compile project specific jars, like CraftBukkit OR Spigot.
 
-Implement some kind of versioning system to talk with Spigot to tell when
-BuildTools is out of date. (Possibly self-updating?)
-- Idea: Notify when newer version is available if connected to internet. Otherwise no alert.
+Create Tab for downloading certain Minecraft Jars.
+ - Use new launchermeta link.
+ - Cache versions (up to what version?)
+     - Only cache what a user has downloaded?
+ - Choose between client/server?
 
-Redesign how tasks are submitted and called.  Ideally a builder-type method is called to schedule tasks.
-That class(?) should check if the running task is complete before running the next task.
-If a user wants to run concurrent tasks they can schedule that task on another thread via ExecutorService impl.
-- TaskChain like way of submitting tasks.
+Implement some kind of versioning system to talk with Spigot to tell when BuildToolSuite is out of date.
+- Notify when newer version is available *if* connected to internet. Otherwise no alert.

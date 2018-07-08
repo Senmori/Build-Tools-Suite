@@ -1,8 +1,7 @@
 package net.senmori.btsuite.util;
 
 import com.google.common.collect.ObjectArrays;
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Settings;
+import net.senmori.btsuite.storage.BuildToolsSettings;
 
 import java.io.File;
 import java.util.Arrays;
@@ -10,10 +9,10 @@ import java.util.Arrays;
 @Deprecated
 public class ProcessRunner {
 
-    private static final Settings.Directories dirs = Builder.getSettings().getDirectories();
+    private static final BuildToolsSettings.Directories dirs = BuildToolsSettings.getInstance().getDirectories();
 
     public static int runProcess(String... command) throws Exception {
-        return runProcess(dirs.getWorkingDir(), command);
+        return runProcess( dirs.getWorkingDir().getFile(), command );
     }
 
     public static int runProcess(File workDir, String... command) throws Exception {
@@ -49,8 +48,8 @@ public class ProcessRunner {
             }
 
             String path = pb.environment().get(pathEnv);
-            path += ';' + dirs.getPortableGitDir().getAbsolutePath();
-            path += ';' + new File(dirs.getPortableGitDir(), "bin").getAbsolutePath();
+            path += ';' + dirs.getPortableGitDir().getFile().getAbsolutePath();
+            path += ';' + new File( dirs.getPortableGitDir().getFile(), "bin" ).getAbsolutePath();
             pb.environment().put(pathEnv, path);
         }
         final Process ps = pb.start();

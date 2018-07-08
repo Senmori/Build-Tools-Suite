@@ -1,8 +1,8 @@
 package net.senmori.btsuite.task;
 
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.TaskUtil;
 import net.senmori.btsuite.util.ZipUtil;
@@ -14,8 +14,8 @@ import java.util.concurrent.ExecutionException;
 
 public class MavenInstaller implements Callable<File> {
 
-    private final Settings settings = Builder.getSettings();
-    private final Settings.Directories dirs = settings.getDirectories();
+    private final BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
+    private final BuildToolsSettings.Directories dirs = buildToolsSettings.getDirectories();
 
     public MavenInstaller() {
 
@@ -39,8 +39,8 @@ public class MavenInstaller implements Callable<File> {
         if ( isInstalled() ) {
             File mvn = new File(System.getenv("M2_HOME"));
             LogHandler.info("Maven is installed at " + mvn);
-            dirs.setMvnDir(mvn);
-            return dirs.getMvnDir();
+            dirs.setMvnDir( new Directory( mvn.getParent(), mvn.getName() ) );
+            return dirs.getMvnDir().getFile();
         }
 
         File maven = new File("apache-maven-3.5.0");
@@ -52,17 +52,17 @@ public class MavenInstaller implements Callable<File> {
             mvnTemp.deleteOnExit();
 
             try {
-                String url = settings.getMvnInstallerLink();
+                String url = buildToolsSettings.getMvnInstallerLink();
                 mvnTemp = TaskUtil.asyncDownloadFile(url, mvnTemp);
                 ZipUtil.unzip(mvnTemp, new File("."));
                 LogHandler.info(maven.getName() + " installed to " + mvnTemp.getPath());
-                dirs.setMvnDir(mvnTemp);
+                dirs.setMvnDir( new Directory( mvnTemp.getParent(), mvnTemp.getName() ) );
             } catch ( IOException e ) {
                 e.printStackTrace();
                 return null;
             }
         }
-        return dirs.getMvnDir();
+        return dirs.getMvnDir().getFile();
     }
 
     private boolean isInstalled() {

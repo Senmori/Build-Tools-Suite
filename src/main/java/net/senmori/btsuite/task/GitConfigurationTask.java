@@ -1,7 +1,6 @@
 package net.senmori.btsuite.task;
 
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Settings;
+import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.util.ProcessRunner;
 
 public class GitConfigurationTask implements Runnable {
@@ -13,29 +12,29 @@ public class GitConfigurationTask implements Runnable {
 
     @Override
     public void run() {
-        Settings.Directories dirs = Builder.getSettings().getDirectories();
+        BuildToolsSettings.Directories dirs = BuildToolsSettings.getInstance().getDirectories();
         try {
-            ProcessRunner.runProcess( dirs.getWorkingDir(), "git", "--version" );
+            ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "--version" );
         } catch ( Exception e ) {
             e.printStackTrace();
         }
 
         try {
-            ProcessRunner.runProcess( dirs.getWorkingDir(), "git", "config", "--global", "--includes", "user.name" );
+            ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "--includes", "user.name" );
         } catch ( Exception ex ) {
             System.out.println( "Git name not set, setting it to default value." );
             try {
-                ProcessRunner.runProcess( dirs.getWorkingDir(), "git", "config", "--global", "user.name", "BuildTools" );
+                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.name", "BuildTools" );
             } catch ( Exception e ) {
                 e.printStackTrace();
             }
         }
         try {
-            ProcessRunner.runProcess( dirs.getWorkingDir(), "git", "config", "--global", "--includes", "user.email" );
+            ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "--includes", "user.email" );
         } catch ( Exception ex ) {
             System.out.println( "Git email not set, setting it to default value." );
             try {
-                ProcessRunner.runProcess( dirs.getWorkingDir(), "git", "config", "--global", "user.email", "unconfigured@null.spigotmc.org" );
+                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.email", "unconfigured@null.spigotmc.org" );
             } catch ( Exception e ) {
                 e.printStackTrace();
             }

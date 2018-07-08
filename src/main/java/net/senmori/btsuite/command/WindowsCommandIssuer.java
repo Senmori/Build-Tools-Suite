@@ -1,8 +1,7 @@
 package net.senmori.btsuite.command;
 
 import com.google.common.collect.ObjectArrays;
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Settings;
+import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.util.StreamCapturer;
 
 import java.io.File;
@@ -10,7 +9,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class WindowsCommandIssuer implements ICommandIssuer {
-    private static final Settings.Directories dirs = Builder.getSettings().getDirectories();
+    private static final BuildToolsSettings.Directories dirs = BuildToolsSettings.getInstance().getDirectories();
 
     @Override
     public Process issue(File workDir, String... command) {
@@ -58,8 +57,8 @@ public class WindowsCommandIssuer implements ICommandIssuer {
             }
 
             String path = pb.environment().get( pathEnv );
-            path += ';' + dirs.getPortableGitDir().getAbsolutePath();
-            path += ';' + new File( dirs.getPortableGitDir(), "bin" ).getAbsolutePath();
+            path += ';' + dirs.getPortableGitDir().getFile().getAbsolutePath();
+            path += ';' + new File( dirs.getPortableGitDir().getFile(), "bin" ).getAbsolutePath();
             pb.environment().put( pathEnv, path );
         }
         try {

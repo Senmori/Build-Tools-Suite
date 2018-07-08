@@ -1,16 +1,16 @@
 package net.senmori.btsuite;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import net.senmori.btsuite.controllers.ConsoleController;
 import net.senmori.btsuite.pool.TaskPools;
-import net.senmori.btsuite.util.FileUtil;
-import org.apache.maven.shared.invoker.DefaultInvoker;
-import org.apache.maven.shared.invoker.Invoker;
+import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.storage.Directory;
+import net.senmori.btsuite.storage.SettingsFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -18,37 +18,40 @@ import java.io.PrintStream;
 import java.net.URL;
 
 public class Builder extends Application {
+    public static final Directory WORKING_DIR = new Directory( System.getProperty( "user.dir" ), "BTSuite" );
+    public static final Directory SETTINGS_FILE = new Directory( WORKING_DIR, "BTS_Settings.json" );
+
+
+    private static BuildToolsSettings SETTINGS;
     private static Stage WINDOW;
-    private static final Settings SETTINGS = new Settings();
-    private static final Invoker MAVEN_INVOKER = new DefaultInvoker();
 
     private static TabPane tabPane;
 
     public static void main(String[] args) {
-        launch(args);
-        System.setOut(new PrintStream(new OutputStream() {
+        PrintStream empty = new PrintStream( new OutputStream() {
             @Override
             public void write(int b) throws IOException {
 
             }
-        }));
-        System.setErr(new PrintStream(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
+        } );
+        //System.setOut( empty );
+        //System.setErr( empty );
+        Application.launch( args );
+    }
 
-            }
-        }));
+    @Override
+    public void init() {
+        WORKING_DIR.getFile().mkdirs();
+
+        SETTINGS = SettingsFactory.loadSettings( SETTINGS_FILE.getFile() );
     }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
         Builder.WINDOW = primaryStage;
-        initWindow(WINDOW);
+        WINDOW.setTitle( "Build Tools" );
+        WINDOW.setResizable( true );
 
-        if(SETTINGS.getDirectories().getTmpDir() != null && SETTINGS.getDirectories().getTmpDir().exists()) {
-            FileUtil.deleteDirectory(SETTINGS.getDirectories().getTmpDir()); // prevent any conflicts
-            SETTINGS.getDirectories().init();
-        }
 
         Image icon = new Image(this.getClass().getClassLoader().getResourceAsStream("icon.png"));
         WINDOW.getIcons().add(icon);
@@ -56,17 +59,18 @@ public class Builder extends Application {
         URL mainController = this.getClass().getClassLoader().getResource("fxml/mainController.fxml");
         tabPane = FXMLLoader.load(mainController);
 
-        ConsoleController consoleController;
-
         Scene scene = new Scene(tabPane);
-        Builder.WINDOW.setScene(scene);
+        WINDOW.setScene( scene );
 
-        primaryStage.show();
+        WINDOW.show();
+        primaryStage.setMinWidth( primaryStage.getWidth() );
+        primaryStage.setMinHeight( primaryStage.getHeight() );
+
         setActiveTab(WindowTab.BUILD);
 
         getWindow().setOnCloseRequest((event) -> {
             TaskPools.shutdownNow();
-            FileUtil.deleteDirectory(SETTINGS.getDirectories().getTmpDir());
+            Platform.exit();
         });
     }
 
@@ -75,24 +79,14 @@ public class Builder extends Application {
         if(!TaskPools.getService().isShutdown()) {
             TaskPools.shutdownNow();
         }
-        FileUtil.deleteDirectory(SETTINGS.getDirectories().getTmpDir());
-    }
-
-    private void initWindow(Stage window) {
-        window.setTitle("Build Tools");
-        window.setResizable(true);
     }
 
     public static Stage getWindow() {
         return Builder.WINDOW;
     }
 
-    public static Settings getSettings() {
-        return SETTINGS;
-    }
-
-    public static DefaultInvoker getInvoker() {
-        return (DefaultInvoker)MAVEN_INVOKER;
+    public TabPane getTabPane() {
+        return tabPane;
     }
 
     public static void setActiveTab(WindowTab tab) {
@@ -106,8 +100,8 @@ public class Builder extends Application {
         }
     }
 
-    private static final boolean DEBUG = true;
+    private static final Boolean DEBUG = Boolean.TRUE;
     public static boolean isDebugEnabled() {
-        return Boolean.getBoolean( "debugBuildTools" ) || DEBUG;
+        return DEBUG;
     }
 }

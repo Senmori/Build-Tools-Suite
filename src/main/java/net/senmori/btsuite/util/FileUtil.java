@@ -49,6 +49,7 @@ public final class FileUtil {
     }
 
     public static void deleteDirectory(File dir) {
+        if ( ! dir.exists() || ! dir.isDirectory() ) return;
         for ( File file : dir.listFiles() ) {
             if ( file.isDirectory() ) {
                 deleteDirectory(file);

@@ -1,5 +1,7 @@
 package net.senmori.btsuite;
 
+import net.senmori.btsuite.storage.BuildToolsSettings;
+
 public final class VersionString implements Comparable<VersionString> {
 
     private final String versionString;
@@ -59,7 +61,7 @@ public final class VersionString implements Comparable<VersionString> {
 
     public void parse(String versionString) {
         if ( versionString.equalsIgnoreCase("latest") ) {
-            parse(Builder.getSettings().getDefaultVersion()); // parse default version
+            parse( BuildToolsSettings.getInstance().getDefaultVersion() ); // parse default version
             return;
         }
         String[] arr = versionString.split("\\.");

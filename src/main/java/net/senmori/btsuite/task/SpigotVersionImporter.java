@@ -3,11 +3,11 @@ package net.senmori.btsuite.task;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.util.LogHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
@@ -23,8 +23,8 @@ import java.util.regex.Pattern;
 public class SpigotVersionImporter implements Callable<Map<VersionString, BuildInfo>> {
     private static final Gson GSON = new Gson();
     private static final Pattern JSON_PATTERN = Pattern.compile(".json");
-    private static final Settings SETTINGS = Builder.getSettings();
-    private static final Settings.Directories DIRS = SETTINGS.getDirectories();
+    private static final BuildToolsSettings BUILD_TOOLS_SETTINGS = BuildToolsSettings.getInstance();
+    private static final BuildToolsSettings.Directories DIRS = BUILD_TOOLS_SETTINGS.getDirectories();
 
     private final String url;
 
@@ -34,7 +34,7 @@ public class SpigotVersionImporter implements Callable<Map<VersionString, BuildI
 
     @Override
     public Map<VersionString, BuildInfo> call() throws Exception {
-        File versionFile = new File(DIRS.getVersionsDir(), "versions.html");
+        File versionFile = new File( DIRS.getVersionsDir().getFile(), "versions.html" );
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
             versionFile = TaskPools.submit(new FileDownloader(url, versionFile)).get(); // block
@@ -52,13 +52,13 @@ public class SpigotVersionImporter implements Callable<Map<VersionString, BuildI
             }
             VersionString version = VersionString.valueOf(versionText);
             String versionUrl = url + text; // ../work/versions/1.12.2.json
-            File verFile = new File(DIRS.getVersionsDir(), text);
+            File verFile = new File( DIRS.getVersionsDir().getFile(), text );
             if ( !verFile.exists() ) {
                 verFile.createNewFile();
                 verFile = TaskPools.submit(new FileDownloader(versionUrl, verFile)).get(); // block
             }
             JsonReader reader = new JsonReader(new FileReader(verFile));
-            BuildInfo buildInfo = GSON.fromJson(reader, BuildInfo.class);
+            BuildInfo buildInfo = SettingsFactory.getGson().fromJson( reader, BuildInfo.class );
             map.put(version, buildInfo);
         }
         LogHandler.info("Loaded " + map.keySet().size() + " Spigot versions.");

@@ -13,11 +13,11 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.task.SpigotVersionImporter;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
@@ -32,7 +32,7 @@ import java.util.concurrent.Future;
 
 public class BuildTabController {
 
-    private Settings settings = Builder.getSettings();
+    private BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
     private BuildTools buildTools;
 
     @FXML // ResourceBundle that was given to the FXMLLoader
@@ -105,12 +105,12 @@ public class BuildTabController {
     @FXML
     void onAddOutputDirClicked(ActionEvent event) {
         DirectoryChooser dirChooser = new DirectoryChooser();
-        dirChooser.setInitialDirectory(settings.getDirectories().getWorkingDir());
+        dirChooser.setInitialDirectory( buildToolsSettings.getDirectories().getWorkingDir().getFile() );
         dirChooser.setTitle("Add output directory");
         File output = dirChooser.showDialog(Builder.getWindow());
         if ( FileUtil.isDirectory(output) ) {
             this.outputDirListView.getItems().add(output.getAbsolutePath());
-            this.delOutputBtn.setDisable(false);
+            BuildToolsSettings.getInstance().getRecentOutputDirectories().add( output.getAbsolutePath() );
         }
     }
 
@@ -120,8 +120,11 @@ public class BuildTabController {
         ObservableList<String> all = this.outputDirListView.getItems();
         all.removeAll(selected);
         this.outputDirListView.setItems(all);
+        BuildToolsSettings.getInstance().getRecentOutputDirectories().clear();
+        BuildToolsSettings.getInstance().getRecentOutputDirectories().addAll( all );
         if ( this.outputDirListView.getItems().isEmpty() ) {
-            this.delOutputBtn.setDisable(true);
+            outputDirListView.getItems().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
+            BuildToolsSettings.getInstance().getRecentOutputDirectories().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
         }
     }
 
@@ -129,7 +132,7 @@ public class BuildTabController {
     void onRunBuildToolsClicked() {
         if ( !buildTools.isRunning() ) {
             if ( choiceComboBox.getSelectionModel().getSelectedItem() == null ) {
-                buildTools.setVersion(Builder.getSettings().getDefaultVersion());
+                buildTools.setVersion( buildToolsSettings.getDefaultVersion() );
             } else {
                 buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
             }
@@ -145,9 +148,15 @@ public class BuildTabController {
         buildTools = new BuildTools();
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
+        // populate directory list
+        outputDirListView.getItems().addAll( BuildToolsSettings.getInstance().getRecentOutputDirectories() );
+        if ( outputDirListView.getItems().isEmpty() ) {
+            outputDirListView.getItems().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
+        }
+
         choiceComboBox.setVisibleRowCount(10);
 
-        SpigotVersionImporter importer = new SpigotVersionImporter(settings.getVersionLink());
+        SpigotVersionImporter importer = new SpigotVersionImporter( buildToolsSettings.getVersionLink() );
         Future<Map<VersionString, BuildInfo>> future = TaskPools.submit(importer);
         Map<VersionString, BuildInfo> versionMap = null;
         try {
@@ -164,7 +173,6 @@ public class BuildTabController {
         } else {
             LogHandler.warn("Error importing version map.");
         }
-        this.outputDirListView.getItems().add( settings.getDirectories().getWorkingDir().getAbsolutePath() );
 
         BuildTools.setController(this);
     }

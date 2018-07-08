@@ -4,10 +4,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.Data;
 import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Settings;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.controllers.BuildTabController;
+import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
 
@@ -24,7 +24,7 @@ public final class BuildTools implements Runnable {
     }
 
     boolean running = false;
-    Settings settings = Builder.getSettings();
+    BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
     private boolean disableCertificateCheck = false;
     private boolean dontUpdate = false;
     private boolean skipCompile = false;
@@ -54,7 +54,7 @@ public final class BuildTools implements Runnable {
         running = true;
         Builder.setActiveTab(WindowTab.CONSOLE);
         LogHandler.debug("Starting BuildTools");
-        BuildToolsProject task = new BuildToolsProject(this, settings);
+        BuildToolsProject task = new BuildToolsProject( this, buildToolsSettings );
         try {
             task.call();
         } catch ( Exception e ) {

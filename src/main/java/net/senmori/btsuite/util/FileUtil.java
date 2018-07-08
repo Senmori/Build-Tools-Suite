@@ -1,16 +1,19 @@
 package net.senmori.btsuite.util;
 
+import com.google.common.collect.Lists;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.List;
 import java.util.function.Predicate;
 
 public final class FileUtil {
 
     public static void copyJar(File sourceDir, File outDir, String finalJarName, Predicate<String> predicate) throws IOException {
-        File[] files = sourceDir.listFiles( (file, name) -> predicate.test( name ) && ! name.contains( "-shaded" ) );
+        File[] files = sourceDir.listFiles( (file, name) -> predicate.test( name ) && ! name.contains( "-shaded" ) && ! name.contains( "-remapped" ) );
         if ( ( files == null ) || ( files.length == 0 ) ) {
             LogHandler.error( "No files found in " + sourceDir + " that matched the requirements." );
             return;
@@ -31,6 +34,9 @@ public final class FileUtil {
             long size = sourceChannel.size();
             sourceChannel.transferTo( 0L, size, outChannel );
             LogHandler.info( "- Copied " + source.getName() + " into " + outDir.getPath() );
+        }
+        for ( File f : files ) {
+            f.delete();
         }
 
     }
@@ -58,5 +64,15 @@ public final class FileUtil {
             }
         }
         dir.delete();
+    }
+
+    public static void deleteFilesInDirectory(File dir, Predicate<String> fileNamePredicate) {
+        List<File> toDelete = Lists.newArrayList();
+        for ( File file : dir.listFiles() ) {
+            if ( fileNamePredicate.test( file.getName() ) ) {
+                toDelete.add( file );
+            }
+        }
+        toDelete.forEach( File::delete );
     }
 }

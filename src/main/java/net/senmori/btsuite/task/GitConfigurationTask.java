@@ -24,7 +24,7 @@ public class GitConfigurationTask implements Runnable {
         } catch ( Exception ex ) {
             System.out.println( "Git name not set, setting it to default value." );
             try {
-                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.name", "BuildTools" );
+                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.name", "BuildToolsSuite" );
             } catch ( Exception e ) {
                 e.printStackTrace();
             }
@@ -34,7 +34,7 @@ public class GitConfigurationTask implements Runnable {
         } catch ( Exception ex ) {
             System.out.println( "Git email not set, setting it to default value." );
             try {
-                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.email", "unconfigured@null.spigotmc.org" );
+                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.email", "buildToolsSuite@null.spigotmc.org" );
             } catch ( Exception e ) {
                 e.printStackTrace();
             }

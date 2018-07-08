@@ -126,6 +126,13 @@ public class BuildTabController {
             outputDirListView.getItems().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
             BuildToolsSettings.getInstance().getRecentOutputDirectories().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
         }
+        if ( outputDirListView.getItems().size() == 1 ) {
+            if ( outputDirListView.getItems().get( 0 ).equalsIgnoreCase( Builder.WORKING_DIR.getFile().getAbsolutePath() ) ) {
+                delOutputBtn.setDisable( true );
+                return;
+            }
+        }
+        delOutputBtn.setDisable( false );
     }
 
     @FXML
@@ -136,6 +143,7 @@ public class BuildTabController {
             } else {
                 buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
             }
+            buildTools.setOutputDirectories( outputDirListView.getItems() );
             TaskPools.submit(() -> buildTools.run());
             runBuildToolsBtn.setDisable(true);
         } else {
@@ -145,7 +153,7 @@ public class BuildTabController {
 
     @FXML
     void initialize() {
-        buildTools = new BuildTools();
+        buildTools = new BuildTools( this );
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         // populate directory list
@@ -155,6 +163,7 @@ public class BuildTabController {
         }
 
         choiceComboBox.setVisibleRowCount(10);
+        runBuildToolsBtn.disableProperty().bind( buildTools.getRunningProperty() );
 
         SpigotVersionImporter importer = new SpigotVersionImporter( buildToolsSettings.getVersionLink() );
         Future<Map<VersionString, BuildInfo>> future = TaskPools.submit(importer);
@@ -173,8 +182,6 @@ public class BuildTabController {
         } else {
             LogHandler.warn("Error importing version map.");
         }
-
-        BuildTools.setController(this);
     }
 
     public void onBuildToolsFinished(BuildTools tool) {
@@ -182,13 +189,12 @@ public class BuildTabController {
     }
 
     private void handleVersionMap(Map<VersionString, BuildInfo> map) {
+        choiceComboBox.getItems().clear();
         List<VersionString> versions = Lists.newArrayList(map.keySet());
         versions.sort(VersionString::compareTo);
         versions = Lists.reverse(versions);
         for ( VersionString ver : versions ) {
             this.choiceComboBox.getItems().add(ver.getVersionString());
         }
-        this.buildTools.setVersionMap(map);
-        ObservableList<String> items = choiceComboBox.getItems();
     }
 }

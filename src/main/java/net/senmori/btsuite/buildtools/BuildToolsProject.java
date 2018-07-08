@@ -379,8 +379,8 @@ public class BuildToolsProject implements Callable<Boolean> {
                 final Predicate<String> jarPred = (str) -> str.endsWith( ".jar" );
                 for ( String outputDir : options.getOutputDirectories() ) {
                     try {
-                        FileUtil.copyJar( craftSourceDir, new File( outputDir ), "craftbukkit-" + version + ".jar", (str) -> str.startsWith( "craftbukkit" ) && jarPred.test( str ) );
-                        FileUtil.copyJar( spigotSourceDir, new File( outputDir ), "spigot-" + version + ".jar", (str) -> str.startsWith( "spigot" ) && jarPred.test( str ) );
+                        FileUtil.copyJar( craftSourceDir, new File( outputDir ), "craftbukkit-" + version + ".jar", (str) -> str.startsWith( "craftbukkit-" + version ) && jarPred.test( str ) );
+                        FileUtil.copyJar( spigotSourceDir, new File( outputDir ), "spigot-" + version + ".jar", (str) -> str.startsWith( "spigot-" + version ) && jarPred.test( str ) );
                     } catch ( IOException e ) {
                         e.printStackTrace();
                         break;
@@ -390,7 +390,7 @@ public class BuildToolsProject implements Callable<Boolean> {
             } ).get();
 
         }
-        LogHandler.info("BuildTools has finished!");
+        LogHandler.info( "BuildToolsSuite has finished!" );
         watch = watch.stop();
         long seconds = watch.elapsed( TimeUnit.SECONDS );
         String formatted = String.format( "%d:%02d", seconds / 60, seconds % 60 );
@@ -401,7 +401,7 @@ public class BuildToolsProject implements Callable<Boolean> {
     }
 
     private void printOptions(BuildTools options) {
-        LogHandler.info("BuildTool Options: ");
+        LogHandler.info( "BuildToolsSuite Options: " );
         LogHandler.info("Disable Certificate Check: " + options.isDisableCertificateCheck());
         LogHandler.info("Don't Update: " + options.isDontUpdate());
         LogHandler.info("Skip Compile: " + options.isSkipCompile());

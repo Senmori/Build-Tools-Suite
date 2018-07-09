@@ -50,8 +50,8 @@ import java.util.regex.Pattern;
 
 public class SpigotVersionImporter implements Callable<Map<VersionString, BuildInfo>> {
     private static final Pattern JSON_PATTERN = Pattern.compile(".json");
-    private static final BuildToolsSettings BUILD_TOOLS_SETTINGS = BuildToolsSettings.getInstance();
-    private static final BuildToolsSettings.Directories DIRS = BUILD_TOOLS_SETTINGS.getDirectories();
+    private static final BuildToolsSettings SETTINGS = BuildToolsSettings.getInstance();
+    private static final BuildToolsSettings.Directories DIRS = SETTINGS.getDirectories();
 
     private final String url;
 
@@ -61,7 +61,9 @@ public class SpigotVersionImporter implements Callable<Map<VersionString, BuildI
 
     @Override
     public Map<VersionString, BuildInfo> call() throws Exception {
-        File versionFile = new File( DIRS.getVersionsDir().getFile(), "versions.html" );
+        File spigotVersionsDir = new File( DIRS.getVersionsDir().getFile(), "spigot" );
+        spigotVersionsDir.mkdirs();
+        File versionFile = new File( spigotVersionsDir, "versions.html" );
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
             versionFile = TaskPools.submit( new FileDownloadTask( url, versionFile ) ).get(); // block
@@ -79,7 +81,7 @@ public class SpigotVersionImporter implements Callable<Map<VersionString, BuildI
             }
             VersionString version = VersionString.valueOf(versionText);
             String versionUrl = url + text; // ../work/versions/1.12.2.json
-            File verFile = new File( DIRS.getVersionsDir().getFile(), text );
+            File verFile = new File( spigotVersionsDir, text );
             if ( !verFile.exists() ) {
                 verFile.createNewFile();
                 verFile = TaskPools.submit( new FileDownloadTask( versionUrl, verFile ) ).get(); // block

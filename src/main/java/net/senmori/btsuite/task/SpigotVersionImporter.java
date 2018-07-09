@@ -30,7 +30,6 @@
 package net.senmori.btsuite.task;
 
 import com.google.common.collect.Maps;
-import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import net.senmori.btsuite.VersionString;
 import net.senmori.btsuite.buildtools.BuildInfo;
@@ -50,7 +49,6 @@ import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
 public class SpigotVersionImporter implements Callable<Map<VersionString, BuildInfo>> {
-    private static final Gson GSON = new Gson();
     private static final Pattern JSON_PATTERN = Pattern.compile(".json");
     private static final BuildToolsSettings BUILD_TOOLS_SETTINGS = BuildToolsSettings.getInstance();
     private static final BuildToolsSettings.Directories DIRS = BUILD_TOOLS_SETTINGS.getDirectories();

@@ -33,8 +33,8 @@ import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.util.LogHandler;
-import net.senmori.btsuite.util.TaskUtil;
 import net.senmori.btsuite.util.ZipUtil;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class MavenInstaller implements Callable<File> {
 
     public static boolean install() {
         try {
-            return TaskPools.submit( () -> new MavenInstaller().call() ).get() != null;
+            return TaskPools.submit( new MavenInstaller() ).get() != null;
         } catch ( InterruptedException e ) {
             e.printStackTrace();
             return false;
@@ -64,33 +64,48 @@ public class MavenInstaller implements Callable<File> {
 
     @Override
     public File call() {
-        LogHandler.debug("Checking for Maven install location.");
+        LogHandler.debug( "Checking for Maven install location." );
         if ( isInstalled() ) {
-            File mvn = new File(System.getenv("M2_HOME"));
-            LogHandler.info("Maven is installed at " + mvn);
+            File mvn = new File( System.getenv( "M2_HOME" ) );
             dirs.setMvnDir( new Directory( mvn.getParent(), mvn.getName() ) );
+            LogHandler.info( "Maven is installed at " + dirs.getMvnDir().getFile().getAbsolutePath() );
             return dirs.getMvnDir().getFile();
         }
 
-        File maven = new File("apache-maven-3.5.0");
-
+        File maven = dirs.getMvnDir().getFile();
         if ( !maven.exists() ) {
-            LogHandler.info("Maven does not exist, downloading. Please wait.");
+            maven.mkdirs();
+            LogHandler.info( "Maven does not exist, downloading. Please wait." );
 
-            File mvnTemp = new File("mvn.zip");
-            mvnTemp.deleteOnExit();
+            File mvnTemp = new File( dirs.getWorkingDir().getFile(), "mvn.zip" );
 
             try {
                 String url = buildToolsSettings.getMvnInstallerLink();
-                mvnTemp = TaskUtil.asyncDownloadFile(url, mvnTemp);
-                ZipUtil.unzip(mvnTemp, new File("."));
-                LogHandler.info(maven.getName() + " installed to " + mvnTemp.getPath());
-                dirs.setMvnDir( new Directory( mvnTemp.getParent(), mvnTemp.getName() ) );
-            } catch ( IOException e ) {
+                mvnTemp = TaskPools.submit( new FileDownloadTask( url, mvnTemp ) ).get();
+                ZipUtil.unzip( mvnTemp, dirs.getMvnDir().getFile() );
+                dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() ) );
+                mvnTemp.delete();
+            } catch ( IOException | InterruptedException | ExecutionException e ) {
                 e.printStackTrace();
                 return null;
             }
+        } else {
+            // get inner folder
+            maven = new File( dirs.getMvnDir().getFile(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() );
+            if ( ! maven.exists() ) {
+                LogHandler.info( "Maven directory was found, but no maven installation!" );
+                FileUtils.deleteQuietly( dirs.getMvnDir().getFile() ); // delete and ignore errors
+                try {
+                    return TaskPools.submit( new MavenInstaller() ).get();
+                } catch ( InterruptedException | ExecutionException e ) {
+                    e.printStackTrace();
+                }
+            } else { // apache-maven-<version> exists
+                LogHandler.info( "Local install of maven found!" );
+                dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() ) );
+            }
         }
+        LogHandler.info( "Maven is installed at " + dirs.getMvnDir().getFile() );
         return dirs.getMvnDir().getFile();
     }
 

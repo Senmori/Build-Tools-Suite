@@ -29,6 +29,7 @@
 
 package net.senmori.btsuite.util.builders;
 
+import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.util.LogHandler;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.DefaultInvoker;
@@ -44,10 +45,16 @@ public class MavenCommandBuilder {
 
     private Invoker invoker = new DefaultInvoker();
     private InvocationRequest request = new DefaultInvocationRequest();
+    private final BuildToolsSettings settings = BuildToolsSettings.getInstance();
+    private final BuildToolsSettings.Directories dirs = settings.getDirectories();
 
     private MavenCommandBuilder() {
-        invoker.setOutputHandler((str) -> LogHandler.info(str));
-        invoker.setErrorHandler((err) -> LogHandler.error(err));
+        invoker.setOutputHandler( (str) -> LogHandler.info( str ) );
+        invoker.setErrorHandler( (err) -> LogHandler.error( err ) );
+        request.setOutputHandler( (out) -> LogHandler.info( out ) );
+        request.setErrorHandler( (err) -> LogHandler.error( err ) );
+
+        invoker.setMavenHome( dirs.getMvnDir().getFile() ); // No need for setMvnExecutable since we have this
     }
 
     public static MavenCommandBuilder builder() {
@@ -58,6 +65,13 @@ public class MavenCommandBuilder {
         MavenCommandBuilder builder = new MavenCommandBuilder();
         builder.invoker = other.invoker;
         builder.request = other.request;
+
+        builder.invoker.setOutputHandler( (str) -> LogHandler.info( str ) );
+        builder.invoker.setErrorHandler( (err) -> LogHandler.error( err ) );
+        builder.request.setOutputHandler( (out) -> LogHandler.info( out ) );
+        builder.request.setErrorHandler( (err) -> LogHandler.error( err ) );
+
+        builder.invoker.setMavenHome( BuildToolsSettings.getInstance().getDirectories().getMvnDir().getFile() ); // No need for setMvnExecutable since we have this
         return builder;
     }
 

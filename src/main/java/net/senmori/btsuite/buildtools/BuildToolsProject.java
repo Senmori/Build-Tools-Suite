@@ -46,7 +46,6 @@ import net.senmori.btsuite.task.FileDownloadTask;
 import net.senmori.btsuite.task.GitCloneTask;
 import net.senmori.btsuite.task.GitPullTask;
 import net.senmori.btsuite.task.InvalidateCacheTask;
-import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.HashChecker;
 import net.senmori.btsuite.util.LogHandler;
@@ -96,7 +95,6 @@ public class BuildToolsProject implements Callable<Boolean> {
             boolean taskResult = task.call();
         }
 
-
         File bukkit = new File( dirs.getWorkingDir().getFile(), "Bukkit" );
         if ( ! bukkit.exists() ) {
             String repo = buildToolsSettings.getStashRepoLink() + "bukkit.git";
@@ -125,12 +123,8 @@ public class BuildToolsProject implements Callable<Boolean> {
             projectPool.submit( task ).get();
         }
 
-        File maven = dirs.getMvnDir().getFile();
-        if ( !maven.exists() ) {
-            MavenInstaller mvn = new MavenInstaller();
-            projectPool.submit( mvn ).get();
-        }
-        String mvn = maven.getAbsolutePath() + "/bin/mvn";
+
+        String mvn = new File( dirs.getMvnDir().getFile(), "/bin/mvn" ).getAbsolutePath();
 
         Git bukkitGit = Git.open(bukkit);
         Git craftBukkitGit = Git.open(craftBukkit);

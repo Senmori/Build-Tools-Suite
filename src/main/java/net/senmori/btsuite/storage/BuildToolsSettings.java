@@ -120,8 +120,8 @@ public final class BuildToolsSettings {
      */
     @Section( SectionKey.URL )
     @SerializedName( ConfigurationKey.Name.S3_DOWNLOAD_LINK )
-    @Deprecated
     @SerializedValue( ConfigurationKey.Value.DEFAULT_S3_DOWNLOAD_LINK )
+    @Deprecated
     private final String s3DownloadLink;
 
     /**

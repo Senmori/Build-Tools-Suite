@@ -52,7 +52,7 @@ public class GitInstaller implements Callable<Boolean> {
 
     public static boolean install() {
         try {
-            return TaskPools.submit( () -> new GitInstaller().call() ).get();
+            return TaskPools.submit( new GitInstaller() ).get();
         } catch ( InterruptedException e ) {
             e.printStackTrace();
             return false;

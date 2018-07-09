@@ -19,7 +19,6 @@ import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.HashChecker;
 import net.senmori.btsuite.util.LogHandler;
-import net.senmori.btsuite.util.ProcessRunner;
 import net.senmori.btsuite.util.ZipUtil;
 import net.senmori.btsuite.util.builders.MavenCommandBuilder;
 import org.apache.commons.io.FileUtils;
@@ -192,16 +191,16 @@ public class BuildToolsProject implements Callable<Boolean> {
             File specialSource_2 = new File(buildData, "bin/SpecialSource-2.jar");
 
             LogHandler.info( "Applying first mappings..." );
-            ProcessRunner.runProcess(buildData, "java", "-jar", specialSource_2.getAbsolutePath(), "map", "-i", vanillaJar.getAbsolutePath(), "-m", "mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getAbsolutePath());
+            CommandHandler.getCommandIssuer().executeCommand( buildData, "java", "-jar", specialSource_2.getAbsolutePath(), "map", "-i", vanillaJar.getAbsolutePath(), "-m", "mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getAbsolutePath() );
             LogHandler.info( clMappedJar.getName() + " created!" );
 
             LogHandler.info( "Applying second mappings..." );
-            ProcessRunner.runProcess(buildData, "java", "-jar", specialSource_2.getAbsolutePath(), "map", "-i", clMappedJar.getAbsolutePath(),
+            CommandHandler.getCommandIssuer().executeCommand( buildData, "java", "-jar", specialSource_2.getAbsolutePath(), "map", "-i", clMappedJar.getAbsolutePath(),
                     "-m", "mappings/" + versionInfo.getMemberMappings(), "-o", mMappedJar.getAbsolutePath());
             LogHandler.info( mMappedJar.getName() + " created!" );
 
             LogHandler.info( "Applying final mappings..." );
-            ProcessRunner.runProcess(buildData, "java", "-jar", specialSource.getAbsolutePath(), "--kill-lvt", "-i", mMappedJar.getAbsolutePath(), "--access-transformer", "mappings/" + versionInfo.getAccessTransforms(),
+            CommandHandler.getCommandIssuer().executeCommand( buildData, "java", "-jar", specialSource.getAbsolutePath(), "--kill-lvt", "-i", mMappedJar.getAbsolutePath(), "--access-transformer", "mappings/" + versionInfo.getAccessTransforms(),
                     "-m", "mappings/" + versionInfo.getPackageMappings(), "-o", finalMappedJar.getAbsolutePath());
         }
 
@@ -251,7 +250,7 @@ public class BuildToolsProject implements Callable<Boolean> {
 
             File fernJar = new File( dirs.getWorkingDir().getFile(), "BuildData/bin/fernflower.jar" );
             LogHandler.info( "Running decompile command" );
-            ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), MessageFormat.format( versionInfo.getDecompileCommand(), clazzDir.getAbsolutePath(), decompileDir.getAbsolutePath() ).split( " " ) );
+            CommandHandler.getCommandIssuer().executeCommand( dirs.getWorkingDir().getFile(), MessageFormat.format( versionInfo.getDecompileCommand(), clazzDir.getAbsolutePath(), decompileDir.getAbsolutePath() ).split( " " ) );
         }
 
         LogHandler.info("Applying CraftBukkit Patches");
@@ -386,6 +385,8 @@ public class BuildToolsProject implements Callable<Boolean> {
                         break;
                     }
                 }
+                FileUtil.deleteFilesInDirectory( craftSourceDir, (str) -> str.endsWith( ".jar" ) );
+                FileUtil.deleteFilesInDirectory( spigotSourceDir, (str) -> str.endsWith( ".jar" ) );
                 return true;
             } ).get();
 
@@ -397,7 +398,7 @@ public class BuildToolsProject implements Callable<Boolean> {
         LogHandler.info( "It took " + formatted + " to complete this build." );
         projectPool.getService().shutdown();
         options.setFinished();
-        return true;
+        return ! options.isRunning();
     }
 
     private void printOptions(BuildTools options) {

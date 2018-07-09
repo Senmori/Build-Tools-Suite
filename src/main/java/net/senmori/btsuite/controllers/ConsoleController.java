@@ -7,6 +7,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.gui.BuildToolsConsole;
 import net.senmori.btsuite.log.LoggerStream;
 import net.senmori.btsuite.log.TextAreaLogHandler;
@@ -19,6 +20,7 @@ import net.senmori.btsuite.util.PasteUtil;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -53,9 +55,13 @@ public class ConsoleController {
         assert consoleTextArea != null;
         LogManager.getLogManager().reset(); // remove all handlers
         Logger rootLogger = LogManager.getLogManager().getLogger("");
+        if ( Builder.isDebugEnabled() ) {
+            rootLogger.setLevel( Level.CONFIG );
+        }
 
-        TextAreaLogHandler.setConsole( new BuildToolsConsole( consoleTextArea ) );
-        rootLogger.addHandler(new TextAreaLogHandler());
+        BuildToolsConsole console = new BuildToolsConsole( consoleTextArea );
+        TextAreaLogHandler handler = new TextAreaLogHandler( console );
+        rootLogger.addHandler( handler );
         LoggerStream.setOutAndErrToLog();
 
         boolean git = GitInstaller.install();

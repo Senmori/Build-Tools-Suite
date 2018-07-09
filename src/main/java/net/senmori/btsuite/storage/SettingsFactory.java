@@ -1,7 +1,5 @@
 package net.senmori.btsuite.storage;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.senmori.btsuite.Builder;
@@ -13,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Writer;
 
 public class SettingsFactory {
@@ -29,13 +28,15 @@ public class SettingsFactory {
 
     public static BuildToolsSettings loadSettings(File file) {
         try {
-            file.mkdirs();
-            if ( file.createNewFile() ) {
-                return BuildToolsSettings.create( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
+            BuildToolsSettings settings = null;
+            if ( ! file.exists() ) {
+                file.createNewFile();
+                settings = GSON.fromJson( new InputStreamReader( Builder.class.getResourceAsStream( "BTS_Settings.json" ) ), BuildToolsSettings.class );
+            } else {
+                settings = GSON.fromJson( new FileReader( file ), BuildToolsSettings.class );
             }
-            BuildToolsSettings settings = GSON.fromJson( new FileReader( file ), BuildToolsSettings.class );
             if ( settings == null ) {
-                return BuildToolsSettings.create( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
+                return BuildToolsSettings.create();
             }
             return settings;
         } catch ( FileNotFoundException e ) {

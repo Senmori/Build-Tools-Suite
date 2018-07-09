@@ -1,6 +1,7 @@
 package net.senmori.btsuite.storage;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -29,6 +30,10 @@ public final class BuildToolsSettings {
             throw new IllegalStateException( "Cannot retrieve BuildToolsSettings before it has been created!" );
         }
         return INSTANCE;
+    }
+
+    public static BuildToolsSettings create() {
+        return create( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
     }
 
     public static BuildToolsSettings create(Map<String, String> map, Map<String, Directory> directories, List<String> recentOutputDirectories) {

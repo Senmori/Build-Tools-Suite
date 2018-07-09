@@ -1,7 +1,9 @@
 package net.senmori.btsuite.task;
 
+import net.senmori.btsuite.command.CommandHandler;
+import net.senmori.btsuite.command.ICommandIssuer;
 import net.senmori.btsuite.storage.BuildToolsSettings;
-import net.senmori.btsuite.util.ProcessRunner;
+import net.senmori.btsuite.util.LogHandler;
 
 public class GitConfigurationTask implements Runnable {
 
@@ -12,29 +14,30 @@ public class GitConfigurationTask implements Runnable {
 
     @Override
     public void run() {
+        ICommandIssuer commandHandler = CommandHandler.getCommandIssuer();
         BuildToolsSettings.Directories dirs = BuildToolsSettings.getInstance().getDirectories();
         try {
-            ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "--version" );
+            commandHandler.executeCommand( dirs.getWorkingDir().getFile(), "git", "--version" );
         } catch ( Exception e ) {
             e.printStackTrace();
         }
 
         try {
-            ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "--includes", "user.name" );
+            commandHandler.executeCommand( dirs.getWorkingDir().getFile(), "git", "config", "--global", "--includes", "user.name" );
         } catch ( Exception ex ) {
-            System.out.println( "Git name not set, setting it to default value." );
+            LogHandler.info( "Git name not set, setting it to default value." );
             try {
-                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.name", "BuildToolsSuite" );
+                commandHandler.executeCommand( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.name", "BuildToolsSuite" );
             } catch ( Exception e ) {
                 e.printStackTrace();
             }
         }
         try {
-            ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "--includes", "user.email" );
+            commandHandler.executeCommand( dirs.getWorkingDir().getFile(), "git", "config", "--global", "--includes", "user.email" );
         } catch ( Exception ex ) {
-            System.out.println( "Git email not set, setting it to default value." );
+            LogHandler.info( "Git email not set, setting it to default value." );
             try {
-                ProcessRunner.runProcess( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.email", "buildToolsSuite@null.spigotmc.org" );
+                commandHandler.executeCommand( dirs.getWorkingDir().getFile(), "git", "config", "--global", "user.email", "buildToolsSuite@null.spigotmc.org" );
             } catch ( Exception e ) {
                 e.printStackTrace();
             }

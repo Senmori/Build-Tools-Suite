@@ -35,10 +35,6 @@ public final class FileUtil {
             sourceChannel.transferTo( 0L, size, outChannel );
             LogHandler.info( "- Copied " + source.getName() + " into " + outDir.getPath() );
         }
-        for ( File f : files ) {
-            f.delete();
-        }
-
     }
 
     public static boolean isDirectory(File file) {
@@ -73,6 +69,9 @@ public final class FileUtil {
                 toDelete.add( file );
             }
         }
-        toDelete.forEach( File::delete );
+        toDelete.forEach( (file) -> {
+            LogHandler.debug( "Deleting " + file.getName() + " from " + file.getPath() );
+            file.delete();
+        } );
     }
 }

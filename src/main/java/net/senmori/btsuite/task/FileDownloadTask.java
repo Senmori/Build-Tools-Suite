@@ -27,29 +27,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite.command;
+package net.senmori.btsuite.task;
+
+import net.senmori.btsuite.download.FileDownloader;
 
 import java.io.File;
+import java.util.concurrent.Callable;
 
-public interface ICommandIssuer {
+public class FileDownloadTask implements Callable<File> {
+    private final String url;
+    private final File target;
 
-    /**
-     * Execute a command, returning a {@link Process}.
-     *
-     * @param workDir the directory to issue the command in
-     * @param command the command to run
-     *
-     * @return the {@link Process} the command started
-     */
-    Process issue(File workDir, String... command);
+    public FileDownloadTask(String url, File target) {
+        this.url = url;
+        this.target = target;
+    }
 
-    /**
-     * Execute a command.<br>
-     * On Windows systems, this will redirect the output of the command to System.out and System.err.
-     * If you want to capture the output, you will need to redirect those streams.
-     *
-     * @param workDir the directory to issue the command in
-     * @param command the command to run
-     */
-    void executeCommand(File workDir, String... command);
+    @Override
+    public File call() throws Exception {
+        return new FileDownloader().download( url, target, null );
+    }
 }

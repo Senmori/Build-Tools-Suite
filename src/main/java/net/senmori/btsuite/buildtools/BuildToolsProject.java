@@ -1,5 +1,5 @@
 /*
- * Copyright (c) $year, $user. BuildToolsSuite. All rights reserved.
+ * Copyright (c) 2018, Senmori. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -42,7 +42,7 @@ import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.SettingsFactory;
-import net.senmori.btsuite.task.FileDownloader;
+import net.senmori.btsuite.task.FileDownloadTask;
 import net.senmori.btsuite.task.GitCloneTask;
 import net.senmori.btsuite.task.GitPullTask;
 import net.senmori.btsuite.task.InvalidateCacheTask;
@@ -148,7 +148,7 @@ public class BuildToolsProject implements Callable<Boolean> {
             if ( !verInfo.exists() ) {
                 // download file
                 String url = buildToolsSettings.getVersionLink() + askedVersion + ".json";
-                verInfo = projectPool.submit(new FileDownloader(url, verInfo)).get();
+                verInfo = projectPool.submit( new FileDownloadTask( url, verInfo ) ).get();
             }
             LogHandler.debug("Found version " + askedVersion);
             buildInfo = SettingsFactory.getGson().fromJson( new FileReader( verInfo ), BuildInfo.class );
@@ -176,10 +176,10 @@ public class BuildToolsProject implements Callable<Boolean> {
 
             if ( versionInfo.getServerUrl() != null ) {
 
-                vanillaJar = projectPool.submit(new FileDownloader(versionInfo.getServerUrl(), vanillaJar)).get();
+                vanillaJar = projectPool.submit( new FileDownloadTask( versionInfo.getServerUrl(), vanillaJar ) ).get();
             } else {
                 final String downloadLink = String.format( buildToolsSettings.getS3DownloadLink(), versionInfo.getMinecraftVersion() );
-                vanillaJar = projectPool.submit(new FileDownloader(downloadLink, vanillaJar)).get();
+                vanillaJar = projectPool.submit( new FileDownloadTask( downloadLink, vanillaJar ) ).get();
 
                 String old = applyPatchesShell;
                 // Legacy versions can also specify a specific shell to build with which has to be bash-compatible

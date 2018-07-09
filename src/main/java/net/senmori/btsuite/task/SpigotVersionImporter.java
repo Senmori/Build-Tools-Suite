@@ -1,5 +1,5 @@
 /*
- * Copyright (c) $year, $user. BuildToolsSuite. All rights reserved.
+ * Copyright (c) 2018, Senmori. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -66,7 +66,7 @@ public class SpigotVersionImporter implements Callable<Map<VersionString, BuildI
         File versionFile = new File( DIRS.getVersionsDir().getFile(), "versions.html" );
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
-            versionFile = TaskPools.submit(new FileDownloader(url, versionFile)).get(); // block
+            versionFile = TaskPools.submit( new FileDownloadTask( url, versionFile ) ).get(); // block
             LogHandler.debug(" Downloaded " + versionFile);
         }
         Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
@@ -84,7 +84,7 @@ public class SpigotVersionImporter implements Callable<Map<VersionString, BuildI
             File verFile = new File( DIRS.getVersionsDir().getFile(), text );
             if ( !verFile.exists() ) {
                 verFile.createNewFile();
-                verFile = TaskPools.submit(new FileDownloader(versionUrl, verFile)).get(); // block
+                verFile = TaskPools.submit( new FileDownloadTask( versionUrl, verFile ) ).get(); // block
             }
             JsonReader reader = new JsonReader(new FileReader(verFile));
             BuildInfo buildInfo = SettingsFactory.getGson().fromJson( reader, BuildInfo.class );

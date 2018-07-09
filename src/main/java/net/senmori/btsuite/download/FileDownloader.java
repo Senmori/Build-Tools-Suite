@@ -27,29 +27,36 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite.command;
+package net.senmori.btsuite.download;
+
+import lombok.Cleanup;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 
-public interface ICommandIssuer {
-
-    /**
-     * Execute a command, returning a {@link Process}.
-     *
-     * @param workDir the directory to issue the command in
-     * @param command the command to run
-     *
-     * @return the {@link Process} the command started
-     */
-    Process issue(File workDir, String... command);
-
-    /**
-     * Execute a command.<br>
-     * On Windows systems, this will redirect the output of the command to System.out and System.err.
-     * If you want to capture the output, you will need to redirect those streams.
-     *
-     * @param workDir the directory to issue the command in
-     * @param command the command to run
-     */
-    void executeCommand(File workDir, String... command);
+public class FileDownloader implements IDownloader {
+    @Override
+    public File download(String url, File target, String finalName) {
+        try {
+            URL con = new URL( url );
+            @Cleanup InputStream stream = con.openStream();
+            @Cleanup FileOutputStream fos = new FileOutputStream( target );
+            @Cleanup ReadableByteChannel bis = Channels.newChannel( stream );
+            long bytes = fos.getChannel().transferFrom( bis, 0L, Long.MAX_VALUE );
+        } catch ( MalformedURLException e ) {
+            e.printStackTrace();
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
+        if ( finalName != null && ! finalName.trim().isEmpty() ) {
+            target.renameTo( new File( target.getParent(), finalName ) );
+        }
+        return target;
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) $year, $user. BuildToolsSuite. All rights reserved.
+ * Copyright (c) 2018, Senmori. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,7 +30,7 @@
 package net.senmori.btsuite.util;
 
 import net.senmori.btsuite.pool.TaskPools;
-import net.senmori.btsuite.task.FileDownloader;
+import net.senmori.btsuite.task.FileDownloadTask;
 import org.eclipse.jgit.api.Git;
 
 import java.io.File;
@@ -67,7 +67,7 @@ public class TaskUtil {
      */
     public static File asyncDownloadFile(String url, File target) {
         try {
-            return TaskPools.submit(new FileDownloader(url, target)).get();
+            return TaskPools.submit( new FileDownloadTask( url, target ) ).get();
         } catch ( InterruptedException e ) {
             e.printStackTrace();
         } catch ( ExecutionException e ) {

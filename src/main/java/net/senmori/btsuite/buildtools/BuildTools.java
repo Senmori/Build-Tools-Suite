@@ -23,6 +23,7 @@ public final class BuildTools implements Runnable {
     private boolean skipCompile = false;
     private boolean genSrc = false;
     private boolean genDoc = false;
+    private boolean invalidateCache = false;
     private String version = BuildToolsSettings.getInstance().getDefaultVersion();
     private List<String> outputDirectories = Lists.newArrayList();
 
@@ -58,6 +59,6 @@ public final class BuildTools implements Runnable {
     }
 
     public void setFinished() {
-        setRunning( true );
+        setRunning( false );
     }
 }

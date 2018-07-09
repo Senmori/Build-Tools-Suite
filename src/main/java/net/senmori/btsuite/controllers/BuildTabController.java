@@ -78,6 +78,14 @@ public class BuildTabController {
     private ComboBox<String> choiceComboBox;
 
     @FXML
+    private CheckBox buildInvalidateCache;
+
+    @FXML
+    void onInvalidateCacheBtn(ActionEvent event) {
+        buildTools.setInvalidateCache( this.buildInvalidateCache.isSelected() );
+    }
+
+    @FXML
     void onCertCheckClicked(ActionEvent event) {
         buildTools.setDisableCertificateCheck(this.certCheck.isSelected());
     }
@@ -145,9 +153,6 @@ public class BuildTabController {
             }
             buildTools.setOutputDirectories( outputDirListView.getItems() );
             TaskPools.submit(() -> buildTools.run());
-            runBuildToolsBtn.setDisable(true);
-        } else {
-            runBuildToolsBtn.setDisable(false);
         }
     }
 

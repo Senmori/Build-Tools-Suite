@@ -7,6 +7,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import difflib.DiffUtils;
 import difflib.Patch;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.command.CommandHandler;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
@@ -15,6 +16,7 @@ import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.task.FileDownloader;
 import net.senmori.btsuite.task.GitCloneTask;
 import net.senmori.btsuite.task.GitPullTask;
+import net.senmori.btsuite.task.InvalidateCacheTask;
 import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.HashChecker;
@@ -59,6 +61,12 @@ public class BuildToolsProject implements Callable<Boolean> {
         Stopwatch watch = Stopwatch.createStarted();
         File work = dirs.getWorkDir().getFile();
         printOptions(options);
+
+        if ( options.isInvalidateCache() ) {
+            InvalidateCacheTask task = new InvalidateCacheTask( Builder.WORKING_DIR.getFile() );
+            boolean taskResult = task.call();
+        }
+
 
         File bukkit = new File( dirs.getWorkingDir().getFile(), "Bukkit" );
         if ( ! bukkit.exists() ) {
@@ -373,13 +381,29 @@ public class BuildToolsProject implements Callable<Boolean> {
             projectPool.submit( () -> {
                 LogHandler.info( "Success! Everything compiled successfully. Copying final .jar files now." );
                 LogHandler.debug( "OutputDirectories: " + options.getOutputDirectories() );
+                final File bukkitSourceDir = new File( dirs.getWorkingDir().getFile(), "Bukkit/target" );
                 final File craftSourceDir = new File( dirs.getWorkingDir().getFile(), "CraftBukkit/target" );
                 final File spigotSourceDir = new File( dirs.getWorkingDir().getFile(), "Spigot/Spigot-Server/target" );
-                final Predicate<String> jarPred = (str) -> str.endsWith( ".jar" );
+                final Predicate<String> isValidJar = new Predicate<String>() {
+                    @Override
+                    public boolean test(String str) {
+                        return str.contains( version ) &&
+                                       ! str.startsWith( "original" ) &&
+                                       ! str.contains( "-shaded" ) &&
+                                       ! str.contains( "-remapped" ) &&
+                                       str.endsWith( ".jar" );
+                    }
+                };
                 for ( String outputDir : options.getOutputDirectories() ) {
                     try {
-                        FileUtil.copyJar( craftSourceDir, new File( outputDir ), "craftbukkit-" + version + ".jar", (str) -> str.startsWith( "craftbukkit-" + version ) && jarPred.test( str ) );
-                        FileUtil.copyJar( spigotSourceDir, new File( outputDir ), "spigot-" + version + ".jar", (str) -> str.startsWith( "spigot-" + version ) && jarPred.test( str ) );
+                        FileUtil.copyJar( craftSourceDir, new File( outputDir ), "craftbukkit-" + version + ".jar", isValidJar );
+                        FileUtil.copyJar( spigotSourceDir, new File( outputDir ), "spigot-" + version + ".jar", isValidJar );
+                        if ( options.isGenSrc() ) {
+                            FileUtil.copyJar( bukkitSourceDir, new File( outputDir ), "bukkit-" + version + "-sources.jar", (str) -> isValidJar.test( str ) && str.contains( "-sources" ) );
+                        }
+                        if ( options.isGenDoc() ) {
+                            FileUtil.copyJar( bukkitSourceDir, new File( outputDir ), "bukkit-" + version + "-javadoc.jar", (str) -> isValidJar.test( str ) && str.contains( "-javadoc" ) );
+                        }
                     } catch ( IOException e ) {
                         e.printStackTrace();
                         break;
@@ -387,6 +411,12 @@ public class BuildToolsProject implements Callable<Boolean> {
                 }
                 FileUtil.deleteFilesInDirectory( craftSourceDir, (str) -> str.endsWith( ".jar" ) );
                 FileUtil.deleteFilesInDirectory( spigotSourceDir, (str) -> str.endsWith( ".jar" ) );
+                if ( options.isGenSrc() ) {
+                    FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-sources" ) );
+                }
+                if ( options.isGenDoc() ) {
+                    FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-javadoc" ) );
+                }
                 return true;
             } ).get();
 

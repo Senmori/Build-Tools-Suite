@@ -38,6 +38,7 @@ import difflib.DiffUtils;
 import difflib.Patch;
 import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.command.CommandHandler;
+import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
@@ -170,9 +171,10 @@ public class BuildToolsProject implements Callable<Boolean> {
 
             if ( versionInfo.getServerUrl() != null ) {
 
-                vanillaJar = projectPool.submit( new FileDownloadTask( versionInfo.getServerUrl(), vanillaJar ) ).get();
+                String url = VersionManifest.getInstance().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
+                vanillaJar = projectPool.submit( new FileDownloadTask( url, vanillaJar ) ).get();
             } else {
-                final String downloadLink = String.format( buildToolsSettings.getS3DownloadLink(), versionInfo.getMinecraftVersion() );
+                final String downloadLink = VersionManifest.getInstance().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
                 vanillaJar = projectPool.submit( new FileDownloadTask( downloadLink, vanillaJar ) ).get();
 
                 String old = applyPatchesShell;

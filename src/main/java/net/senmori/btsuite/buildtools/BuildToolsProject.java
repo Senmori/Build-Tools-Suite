@@ -170,25 +170,8 @@ public class BuildToolsProject implements Callable<Boolean> {
         File vanillaJar = new File( dirs.getJarDir().getFile(), jarName );
 
         if ( ! vanillaJar.exists() || ! HashChecker.checkHash(vanillaJar, versionInfo) ) {
-
-            if ( versionInfo.getServerUrl() != null ) {
-
                 String url = VersionManifest.getInstance().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
                 vanillaJar = projectPool.submit( new FileDownloadTask( url, vanillaJar ) ).get();
-            } else {
-                final String downloadLink = VersionManifest.getInstance().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
-                vanillaJar = projectPool.submit( new FileDownloadTask( downloadLink, vanillaJar ) ).get();
-
-                // String old = applyPatchesShell;
-                // // Legacy versions can also specify a specific shell to build with which has to be bash-compatible
-                // applyPatchesShell = System.getenv().get( "SHELL" );
-                // if ( applyPatchesShell == null || applyPatchesShell.trim().isEmpty() ) {
-                //     LogHandler.debug( "applyPatchesShell changed!" );
-                //     applyPatchesShell = "bash";
-                // } else {
-                //     applyPatchesShell = old;
-                // }
-            }
         }
 
         if ( !HashChecker.checkHash(vanillaJar, versionInfo) ) {

@@ -36,11 +36,13 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import javafx.util.StringConverter;
 import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.minecraft.MinecraftVersion;
 import net.senmori.btsuite.minecraft.ReleaseType;
 import net.senmori.btsuite.minecraft.VersionManifest;
@@ -76,6 +78,12 @@ public class MinecraftTabController {
 
     @FXML
     private TextField SHA1TextField;
+
+    @FXML
+    private CheckBox updateMCVersionsCheckBox;
+
+    @FXML
+    private Button updateVersionsBtn;
 
     Map<ReleaseType, ObservableList<MinecraftVersion>> versionMap = new HashMap<>();
     SimpleObjectProperty<ReleaseType> currentReleaseTypeProperty = new SimpleObjectProperty<>( ReleaseType.RELEASE );
@@ -119,6 +127,26 @@ public class MinecraftTabController {
     }
 
     @FXML
+    void onUpdateVersionBtn(ActionEvent event) {
+        VersionManifest.getInstance().invalidateCache();
+        try {
+            Builder.setActiveTab( WindowTab.CONSOLE );
+            boolean init = VersionManifest.getInstance().init();
+        } catch ( ExecutionException e ) {
+            e.printStackTrace();
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
+        updateMCVersionsCheckBox.setSelected( false );
+        initSettings();
+    }
+
+    @FXML
+    void onUpdateVersions(ActionEvent event) {
+
+    }
+
+    @FXML
     void initialize() {
         try {
             boolean init = VersionManifest.getInstance().init();
@@ -127,6 +155,11 @@ public class MinecraftTabController {
         } catch ( InterruptedException e ) {
             e.printStackTrace();
         }
+
+        updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
+        updateVersionsBtn.setVisible( false );
+
+        updateVersionsBtn.visibleProperty().bind( updateMCVersionsCheckBox.selectedProperty() );
 
         downloadServerBtn.disableProperty().bind( Bindings.isNull( currentVersionProperty ) );
         for ( ReleaseType type : ReleaseType.values() ) {
@@ -184,6 +217,13 @@ public class MinecraftTabController {
             }
         } ) );
 
+        releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE );
+        versionComboBox.setItems( versionMap.get( ReleaseType.RELEASE ) );
+        versionComboBox.getSelectionModel().select( 0 );
+        currentVersionProperty.set( versionComboBox.getSelectionModel().getSelectedItem() );
+    }
+
+    private void initSettings() {
         releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE );
         versionComboBox.setItems( versionMap.get( ReleaseType.RELEASE ) );
         versionComboBox.getSelectionModel().select( 0 );

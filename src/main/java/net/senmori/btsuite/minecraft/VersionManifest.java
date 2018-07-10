@@ -44,6 +44,8 @@ import net.senmori.btsuite.util.TaskUtil;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -65,7 +67,7 @@ public class VersionManifest {
     }
 
     private final BooleanProperty initializedProperty = new SimpleBooleanProperty( false );
-    private static Collection<MinecraftVersion> availableVersions = Lists.newLinkedList();
+    private Collection<MinecraftVersion> availableVersions = Lists.newLinkedList();
     private String latestSnapshot;
     private String latestRelease;
 
@@ -84,6 +86,21 @@ public class VersionManifest {
 
     public Collection<MinecraftVersion> getByReleaseType(ReleaseType releaseType) {
         return availableVersions.stream().filter( (ver) -> ver.getReleaseType() == releaseType ).collect( Collectors.toList() );
+    }
+
+    public void invalidateCache() {
+        getInitializedProperty().set( false );
+        // delete versions_manifest file
+        availableVersions.clear();
+        File versionsDir = new File( DIRS.getVersionsDir().getFile(), "minecraft" );
+        versionsDir.mkdirs();
+        File manifestFile = new File( versionsDir, "version_manifest.json" );
+        try {
+            boolean del = Files.deleteIfExists( manifestFile.toPath() );
+            LogHandler.info( "Deleted version_manifest" );
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
     }
 
 

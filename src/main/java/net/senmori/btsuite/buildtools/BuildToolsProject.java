@@ -139,7 +139,9 @@ public class BuildToolsProject implements Callable<Boolean> {
             LogHandler.info("Attempting to build version: '" + askedVersion + "' use --rev <version> to override");
 
             String text = askedVersion + ".json";
-            File verInfo = new File( dirs.getVersionsDir().getFile(), text );
+            File versionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
+            versionsDir.mkdirs();
+            File verInfo = new File( versionsDir, text );
             if ( !verInfo.exists() ) {
                 // download file
                 String url = buildToolsSettings.getVersionLink() + askedVersion + ".json";

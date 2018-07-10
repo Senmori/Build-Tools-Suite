@@ -40,7 +40,6 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
-import javafx.util.StringConverter;
 import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.minecraft.MinecraftVersion;
@@ -52,9 +51,12 @@ import net.senmori.btsuite.task.FileDownloadTask;
 import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class MinecraftTabController {
 
@@ -68,10 +70,10 @@ public class MinecraftTabController {
     private Button downloadServerBtn;
 
     @FXML
-    private ComboBox<ReleaseType> releaseTypeComboBox;
+    private ComboBox<String> releaseTypeComboBox;
 
     @FXML
-    private ComboBox<MinecraftVersion> versionComboBox;
+    private ComboBox<String> versionComboBox;
 
     @FXML
     private TextField releaseDateTextField;
@@ -85,7 +87,7 @@ public class MinecraftTabController {
     @FXML
     private Button updateVersionsBtn;
 
-    Map<ReleaseType, ObservableList<MinecraftVersion>> versionMap = new HashMap<>();
+    Map<ReleaseType, ObservableList<String>> versionMap = new HashMap<>();
     SimpleObjectProperty<ReleaseType> currentReleaseTypeProperty = new SimpleObjectProperty<>( ReleaseType.RELEASE );
     SimpleObjectProperty<MinecraftVersion> currentVersionProperty = new SimpleObjectProperty<>( null );
 
@@ -109,12 +111,12 @@ public class MinecraftTabController {
 
     @FXML
     void onReleaseTypeCombo(ActionEvent event) {
-        currentReleaseTypeProperty.set( releaseTypeComboBox.getSelectionModel().getSelectedItem() );
+        currentReleaseTypeProperty.set( ReleaseType.getByFormattedName( releaseTypeComboBox.getSelectionModel().getSelectedItem() ) );
     }
 
     @FXML
     void onVersionComboBox(ActionEvent event) {
-        currentVersionProperty.set( versionComboBox.getSelectionModel().getSelectedItem() );
+        currentVersionProperty.set( VersionManifest.getInstance().getVersion( versionComboBox.getSelectionModel().getSelectedItem() ) );
         if ( currentVersionProperty.get() != null ) {
             releaseDateTextField.setText( currentVersionProperty.get().getReleaseDate().toString() );
             SHA1TextField.setText( currentVersionProperty.get().getSHA_1() );
@@ -163,70 +165,49 @@ public class MinecraftTabController {
 
         downloadServerBtn.disableProperty().bind( Bindings.isNull( currentVersionProperty ) );
         for ( ReleaseType type : ReleaseType.values() ) {
-            ObservableList<MinecraftVersion> list = FXCollections.observableArrayList( VersionManifest.getInstance().getByReleaseType( type ) );
+            ObservableList<String> list = FXCollections.observableArrayList( VersionManifest.getInstance().getByReleaseType( type ).stream().map( MinecraftVersion::getVersion ).collect( Collectors.toList() ) );
             versionMap.put( type, list );
         }
         // set initial values
 
-        releaseTypeComboBox.setItems( FXCollections.observableArrayList( ReleaseType.values() ) );
-        releaseTypeComboBox.setConverter( new StringConverter<ReleaseType>() {
-            @Override
-            public String toString(ReleaseType object) {
-                return object.getFormattedName();
-            }
-
-            @Override
-            public ReleaseType fromString(String string) {
-                return ReleaseType.getByFormattedName( string );
-            }
-        } );
+        List<String> list = Stream.of( ReleaseType.values() ).map( ReleaseType::getFormattedName ).collect( Collectors.toList() );
+        releaseTypeComboBox.setItems( FXCollections.observableArrayList( list ) );
         releaseTypeComboBox.getSelectionModel().selectedItemProperty().addListener( ( (observable, oldValue, newValue) -> {
             if ( newValue == null ) {
-                releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE );
+                releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE.getFormattedName() );
             } else {
-                currentReleaseTypeProperty.set( newValue );
+                currentReleaseTypeProperty.set( ReleaseType.getByFormattedName( newValue ) );
             }
-            versionComboBox.setItems( versionMap.get( newValue ) );
+            versionComboBox.setItems( versionMap.get( ReleaseType.getByFormattedName( newValue ) ) );
             versionComboBox.getSelectionModel().select( 0 );
-            currentVersionProperty.set( versionComboBox.getSelectionModel().getSelectedItem() );
+            currentVersionProperty.set( VersionManifest.getInstance().getVersion( versionComboBox.getSelectionModel().getSelectedItem() ) );
         } ) );
-
-        versionComboBox.setConverter( new StringConverter<MinecraftVersion>() {
-            @Override
-            public String toString(MinecraftVersion object) {
-                return object.getVersion();
-            }
-
-            @Override
-            public MinecraftVersion fromString(String string) {
-                return VersionManifest.getInstance().getVersion( string );
-            }
-        } );
 
         versionComboBox.getSelectionModel().selectedItemProperty().addListener( ( (observable, oldValue, newValue) -> {
             if ( oldValue != null && newValue == null ) { // removing the value
                 releaseDateTextField.clear();
                 SHA1TextField.clear();
-                currentVersionProperty.set( newValue );
+                currentVersionProperty.set( null );
             }
             if ( oldValue != null && newValue != null || ( oldValue == null && newValue != null ) ) { // setting the value
                 // i.e. Tue, 3 Jun 2008 11:05:30 GMT
-                currentVersionProperty.set( newValue );
-                releaseDateTextField.setText( newValue.getReleaseDate().toString() );
-                SHA1TextField.setText( newValue.getSHA_1() );
+                MinecraftVersion version = VersionManifest.getInstance().getVersion( newValue );
+                currentVersionProperty.set( version );
+                releaseDateTextField.setText( version.getReleaseDate().toString() );
+                SHA1TextField.setText( version.getSHA_1() );
             }
         } ) );
 
-        releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE );
+        releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE.getFormattedName() );
         versionComboBox.setItems( versionMap.get( ReleaseType.RELEASE ) );
         versionComboBox.getSelectionModel().select( 0 );
-        currentVersionProperty.set( versionComboBox.getSelectionModel().getSelectedItem() );
+        currentVersionProperty.set( VersionManifest.getInstance().getVersion( versionComboBox.getSelectionModel().getSelectedItem() ) );
     }
 
     private void initSettings() {
-        releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE );
+        releaseTypeComboBox.getSelectionModel().select( ReleaseType.RELEASE.getFormattedName() );
         versionComboBox.setItems( versionMap.get( ReleaseType.RELEASE ) );
         versionComboBox.getSelectionModel().select( 0 );
-        currentVersionProperty.set( versionComboBox.getSelectionModel().getSelectedItem() );
+        currentVersionProperty.set( VersionManifest.getInstance().getVersion( versionComboBox.getSelectionModel().getSelectedItem() ) );
     }
 }

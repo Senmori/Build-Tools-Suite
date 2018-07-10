@@ -38,6 +38,9 @@ UI is built with SceneBuilder, use it to make things easier for everyone.
 
 ## TODO
 
+ProgressBar for BuildTools.
+Splash Screen
+
 Create Tab for settings.
  - Edit/Save settings.
  - Cannot Save while building a project.

@@ -42,12 +42,12 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.VersionString;
+import net.senmori.btsuite.SpigotVersion;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
-import net.senmori.btsuite.task.SpigotVersionImporter;
+import net.senmori.btsuite.task.SpigotVersionImportTask;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
 
@@ -197,11 +197,17 @@ public class BuildTabController {
         }
 
         choiceComboBox.setVisibleRowCount(10);
+        runBuildToolsBtn.setDisable( true );
+
         runBuildToolsBtn.disableProperty().bind( buildTools.getRunningProperty() );
 
-        SpigotVersionImporter importer = new SpigotVersionImporter( buildToolsSettings.getVersionLink() );
-        Future<Map<VersionString, BuildInfo>> future = TaskPools.submit(importer);
-        Map<VersionString, BuildInfo> versionMap = null;
+        runTasks();
+    }
+
+    private void runTasks() {
+        SpigotVersionImportTask importer = new SpigotVersionImportTask( buildToolsSettings.getVersionLink() );
+        Future<Map<SpigotVersion, BuildInfo>> future = TaskPools.submit( importer );
+        Map<SpigotVersion, BuildInfo> versionMap = null;
         try {
             versionMap = future.get();
         } catch ( InterruptedException e ) {
@@ -211,10 +217,10 @@ public class BuildTabController {
         }
 
 
-        if(versionMap != null) {
-            handleVersionMap(versionMap);
+        if ( versionMap != null ) {
+            boolean versions = handleVersionMap( versionMap );
         } else {
-            LogHandler.warn("Error importing version map.");
+            LogHandler.warn( "Error importing version map." );
         }
     }
 
@@ -222,13 +228,14 @@ public class BuildTabController {
         runBuildToolsBtn.setDisable(false);
     }
 
-    private void handleVersionMap(Map<VersionString, BuildInfo> map) {
+    private boolean handleVersionMap(Map<SpigotVersion, BuildInfo> map) {
         choiceComboBox.getItems().clear();
-        List<VersionString> versions = Lists.newArrayList(map.keySet());
-        versions.sort(VersionString::compareTo);
+        List<SpigotVersion> versions = Lists.newArrayList( map.keySet() );
+        versions.sort( SpigotVersion::compareTo );
         versions = Lists.reverse(versions);
-        for ( VersionString ver : versions ) {
+        for ( SpigotVersion ver : versions ) {
             this.choiceComboBox.getItems().add(ver.getVersionString());
         }
+        return true;
     }
 }

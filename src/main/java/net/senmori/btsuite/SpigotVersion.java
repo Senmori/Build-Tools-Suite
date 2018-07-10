@@ -29,7 +29,7 @@
 
 package net.senmori.btsuite;
 
-public final class VersionString implements Comparable<VersionString> {
+public final class SpigotVersion implements Comparable<SpigotVersion> {
 
     private final String versionString;
     private String displayString;
@@ -39,23 +39,23 @@ public final class VersionString implements Comparable<VersionString> {
     private String[] extra;
 
 
-    private VersionString(String versionString) {
+    private SpigotVersion(String versionString) {
         this.versionString = versionString;
         parse(versionString);
         this.displayString = versionString;
     }
 
-    private VersionString(String versionString, String displayString) {
+    private SpigotVersion(String versionString, String displayString) {
         this(versionString);
         this.displayString = displayString;
     }
 
-    public static VersionString valueOf(String versionString) {
-        return VersionString.valueOf(versionString, versionString);
+    public static SpigotVersion valueOf(String versionString) {
+        return SpigotVersion.valueOf( versionString, versionString );
     }
 
-    public static VersionString valueOf(String versionString, String displayString) {
-        return new VersionString(versionString, displayString);
+    public static SpigotVersion valueOf(String versionString, String displayString) {
+        return new SpigotVersion( versionString, displayString );
     }
 
     public static boolean isVersionNumber(String versionString) {
@@ -113,7 +113,7 @@ public final class VersionString implements Comparable<VersionString> {
     }
 
     @Override
-    public int compareTo(VersionString other) {
+    public int compareTo(SpigotVersion other) {
         if ( this.major != other.major )
             return Integer.compare(this.major, other.major);
 
@@ -128,7 +128,7 @@ public final class VersionString implements Comparable<VersionString> {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof VersionString && this.compareTo(( VersionString ) obj) == 0;
+        return obj instanceof SpigotVersion && this.compareTo( ( SpigotVersion ) obj ) == 0;
     }
 
     public String toString() {

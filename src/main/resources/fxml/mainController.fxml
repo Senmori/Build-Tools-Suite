@@ -2,8 +2,9 @@
 
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
-
-<TabPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="565.0" prefWidth="550.0" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml/1" fx:controller="net.senmori.btsuite.controllers.MainController">
+<TabPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="565.0"
+         prefWidth="600.0" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml/1" fx:controller="net.senmori.btsuite.controllers.MainController">
   <tabs>
     <Tab fx:id="consoleTab" text="Console">
       <content>
@@ -15,5 +16,10 @@
           <fx:include source="buildTab.fxml"/>
       </content>
     </Tab>
+      <Tab fx:id="minecraftTab" text="Minecraft">
+          <content>
+              <fx:include source="minecraft.fxml"/>
+          </content>
+      </Tab>
   </tabs>
 </TabPane>

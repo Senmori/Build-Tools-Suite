@@ -69,6 +69,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+@Deprecated
 public class BuildToolsProject extends Task<Boolean> {
     private static String applyPatchesShell = "sh";
 

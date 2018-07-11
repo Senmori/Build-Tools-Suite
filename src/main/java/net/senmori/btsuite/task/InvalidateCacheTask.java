@@ -29,7 +29,7 @@
 
 package net.senmori.btsuite.task;
 
-import javafx.application.Platform;
+import com.google.common.collect.Lists;
 import javafx.concurrent.Task;
 import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.util.LogHandler;
@@ -38,6 +38,8 @@ import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 
 public class InvalidateCacheTask extends Task<Boolean> {
 
@@ -65,23 +67,28 @@ public class InvalidateCacheTask extends Task<Boolean> {
             throw new IOException( "Failed to list contents of " + workingDirectory );
         }
 
+        List<File> toDelete = Lists.newLinkedList();
         IOException exception = null;
         for ( final File file : files ) {
+            updateMessage( FilenameUtils.getBaseName( file.getName() ) );
             try {
-                updateMessage( FilenameUtils.getBaseName( file.getName() ) );
                 FileUtils.forceDelete( file );
             } catch ( IOException e ) {
-                exception = e;
+                toDelete.add( file );
             }
         }
 
-        if ( null != exception ) {
-            throw exception;
+        if ( ! toDelete.isEmpty() ) {
+            Iterator<File> iter = toDelete.iterator();
+            while ( iter.hasNext() ) {
+                File next = iter.next();
+                FileUtils.deleteQuietly( next );
+            }
         }
 
         // Re-import spigot versions
-        Platform.runLater( () -> Builder.getInstance().getBuildTabController().importVersions() );
-        Platform.runLater( () -> Builder.getInstance().getMinecraftTabController().importVersions() );
+        Builder.getInstance().getBuildTabController().importVersions().get();
+        Builder.getInstance().getMinecraftTabController().importVersions().get();
 
         LogHandler.info( "Invalidated Cache!" );
         return true;

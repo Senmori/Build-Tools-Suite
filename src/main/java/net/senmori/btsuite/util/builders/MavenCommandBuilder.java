@@ -71,7 +71,7 @@ public class MavenCommandBuilder {
         builder.request.setOutputHandler( (out) -> LogHandler.info( out ) );
         builder.request.setErrorHandler( (err) -> LogHandler.error( err ) );
 
-        builder.invoker.setMavenHome( BuildToolsSettings.getInstance().getDirectories().getMvnDir().getFile() ); // No need for setMvnExecutable since we have this
+        builder.invoker.setMavenHome( other.invoker.getMavenHome() ); // No need for setMvnExecutable since we have this
         return builder;
     }
 

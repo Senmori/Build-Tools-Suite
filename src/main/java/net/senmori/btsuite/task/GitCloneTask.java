@@ -33,7 +33,6 @@ import javafx.concurrent.Task;
 import net.senmori.btsuite.util.GitUtil;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.SystemChecker;
-import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.BatchingProgressMonitor;
@@ -55,7 +54,6 @@ public class GitCloneTask extends Task<File> {
     @Override
     public File call() throws Exception {
         LogHandler.info("Starting clone of " + url + " to " + target.getName());
-        CloneCommand clone = new CloneCommand();
         Git result = Git.cloneRepository()
                         .setURI( url )
                         .setDirectory( target )

@@ -30,7 +30,6 @@
 package net.senmori.btsuite.controllers;
 
 import com.google.common.collect.Lists;
-import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -187,6 +186,7 @@ public class BuildTabController {
             }
             buildToolsOptions.setOutputDirectories( outputDirListView.getItems() );
 
+            runBuildToolsBtn.setDisable( true );
             BuildToolsTask task = new BuildToolsTask( buildToolsOptions );
             Callback<Long> callback = new Callback<Long>() {
                 @Override
@@ -196,11 +196,18 @@ public class BuildTabController {
                     String formatted = String.format( "%d:%02d", seconds / 60, seconds % 60 );
                     LogHandler.info( "It took " + formatted + " to complete this build." );
                     LogHandler.info( "BuildToolsSuite has finished!" );
+                    runBuildToolsBtn.setDisable( false );
+                }
+            };
+            Callback<Void> failure = new Callback<Void>() {
+                @Override
+                public void accept(Void value) {
+                    reset();
                 }
             };
 
             Builder.setActiveTab( WindowTab.CONSOLE );
-            Console.getInstance().registerTask( task, "Progress: ", callback, false );
+            Console.getInstance().registerTask( task, "Progress: ", callback, failure, false );
             TaskPools.submit( task );
         }
     }
@@ -211,7 +218,6 @@ public class BuildTabController {
     void initialize() {
         buildToolsOptions = new BuildToolsOptions( this );
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        binding = Bindings.or( buildToolsOptions.getRunningProperty(), Bindings.not( initializedProperty ) );
 
         updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
         updateVersionsBtn.visibleProperty().bind( updateVersionCheckBox.selectedProperty() );
@@ -223,7 +229,6 @@ public class BuildTabController {
         }
 
         choiceComboBox.setVisibleRowCount( 10 );
-        runBuildToolsBtn.disableProperty().bind( binding );
 
         Builder.getInstance().setController( WindowTab.BUILD, this );
         importVersions();
@@ -264,14 +269,22 @@ public class BuildTabController {
                 buildInvalidateCache.setSelected( false );
             }
         };
+        Callback<Void> failure = new Callback<Void>() {
+            @Override
+            public void accept(Void value) {
+                reset();
+            }
+        };
+
         SpigotVersionImportTask task = new SpigotVersionImportTask( buildToolsSettings.getVersionLink() );
 
-        Console.getInstance().registerTask( task, "Importing Spigot Versions", callback, true );
+        Console.getInstance().registerTask( task, "Importing Spigot Versions", callback, failure, true );
         return task;
     }
 
-    public void onBuildToolsFinished(BuildToolsOptions tool) {
-        runBuildToolsBtn.setDisable(false);
+    public void reset() {
+        runBuildToolsBtn.setDisable( false );
+        updateVersionCheckBox.setSelected( false );
     }
 
     private boolean handleVersionMap(Map<SpigotVersion, BuildInfo> map) {

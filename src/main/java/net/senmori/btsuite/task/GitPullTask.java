@@ -50,14 +50,27 @@ public class GitPullTask extends Task<File> {
     public File call() throws Exception {
         LogHandler.info("Pulling updates for " + repo.getRepository().getDirectory());
 
-        repo.reset().setRef("origin/master").setMode(ResetCommand.ResetType.HARD).call();
-        repo.fetch().setProgressMonitor( getMonitor() ).call();
+        repo.reset()
+            .setRef( "origin/master" )
+            .setMode( ResetCommand.ResetType.HARD )
+            .call();
+
+        repo.fetch()
+            .setProgressMonitor( getMonitor() )
+            .call();
 
         LogHandler.info("Successfully fetched updates!");
 
-        repo.reset().setRef(ref).setMode(ResetCommand.ResetType.HARD).call();
+        repo.reset()
+            .setRef( ref )
+            .setMode( ResetCommand.ResetType.HARD )
+            .call();
+
         if ( ref.equals("master") ) {
-            repo.reset().setRef("origin/master").setMode(ResetCommand.ResetType.HARD).call();
+            repo.reset()
+                .setRef( "origin/master" )
+                .setMode( ResetCommand.ResetType.HARD )
+                .call();
         }
         LogHandler.info("Checked out: " + ref);
         return repo.getRepository().getDirectory();

@@ -228,10 +228,17 @@ public class MinecraftTabController {
                 initialSettings();
             }
         };
+        Callback<Void> failure = new Callback<Void>() {
+            @Override
+            public void accept(Void value) {
+                downloadServerBtn.setDisable( true );
+                updateMCVersionsCheckBox.setSelected( true );
+            }
+        };
 
         String url = BuildToolsSettings.getInstance().getMinecraftVersionManifestURL();
         ImportMinecraftVersionTask task = new ImportMinecraftVersionTask( url );
-        Console.getInstance().registerTask( task, "Importing Minecraft Versions", callback, true );
+        Console.getInstance().registerTask( task, "Importing Minecraft Versions", callback, failure, true );
 
         return task;
     }

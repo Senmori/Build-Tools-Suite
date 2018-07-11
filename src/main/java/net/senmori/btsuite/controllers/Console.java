@@ -36,6 +36,7 @@ import javafx.scene.text.Text;
 import net.senmori.btsuite.Callback;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.util.LogHandler;
 
 public class Console {
     private static final Console INSTANCE = new Console();
@@ -80,7 +81,7 @@ public class Console {
 
     private TaskPool pool = TaskPools.createSingleTaskPool();
 
-    public void registerTask(Task task, String progressText, Callback callback, boolean runViaConsolePool) {
+    public void registerTask(Task task, String progressText, Callback success, Callback failure, boolean runViaConsolePool) {
         task.setOnRunning( (worker) -> {
             reset();
             textField.setText( progressText );
@@ -90,14 +91,21 @@ public class Console {
         } );
         task.setOnCancelled( (worker) -> {
             reset();
+            if ( failure != null ) {
+                failure.accept( null );
+            }
         } );
         task.setOnFailed( (worker) -> {
             reset();
+            LogHandler.error( task.getException().getMessage() );
+            if ( failure != null ) {
+                failure.accept( null );
+            }
         } );
         task.setOnSucceeded( (worker) -> {
             reset();
-            if ( callback != null ) {
-                callback.accept( task.getValue() );
+            if ( success != null ) {
+                success.accept( task.getValue() );
             }
         } );
 

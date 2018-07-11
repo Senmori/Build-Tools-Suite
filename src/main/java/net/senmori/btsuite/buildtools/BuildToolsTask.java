@@ -56,7 +56,6 @@ import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.builders.MavenCommandBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.maven.shared.invoker.InvocationResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.revwalk.RevCommit;
 
@@ -116,7 +115,7 @@ public final class BuildToolsTask extends Task<Long> {
 
         LogHandler.info( "Cloning Bukkit..." );
         File bukkit = new File( dirs.getWorkingDir().getFile(), "Bukkit" );
-        if ( ! bukkit.exists() ) {
+        if ( ! bukkit.exists() || ! bukkit.isDirectory() || bukkit.listFiles().length < 1 ) {
             String repo = settings.getStashRepoLink() + "bukkit.git";
             GitCloneTask task = new GitCloneTask( repo, bukkit );
             task.messageProperty().addListener( (observable, oldValue, newValue) -> {
@@ -131,7 +130,7 @@ public final class BuildToolsTask extends Task<Long> {
 
         LogHandler.info( "Cloning CraftBukkit..." );
         File craftBukkit = new File( dirs.getWorkingDir().getFile(), "CraftBukkit" );
-        if ( ! craftBukkit.exists() ) {
+        if ( ! craftBukkit.exists() || ! craftBukkit.isDirectory() || craftBukkit.listFiles().length < 1 ) {
             String repo = settings.getStashRepoLink() + "craftbukkit.git";
             GitCloneTask task = new GitCloneTask( repo, craftBukkit );
             task.messageProperty().addListener( (observable, oldValue, newValue) -> {
@@ -146,7 +145,7 @@ public final class BuildToolsTask extends Task<Long> {
 
         LogHandler.info( "Cloning Spigot..." );
         File spigot = new File( dirs.getWorkingDir().getFile(), "Spigot" );
-        if ( ! spigot.exists() ) {
+        if ( ! spigot.exists() || ! spigot.isDirectory() || spigot.listFiles().length < 1 ) {
             String repo = settings.getStashRepoLink() + "spigot.git";
             GitCloneTask task = new GitCloneTask( repo, spigot );
             task.messageProperty().addListener( (observable, oldValue, newValue) -> {
@@ -161,7 +160,7 @@ public final class BuildToolsTask extends Task<Long> {
 
         LogHandler.info( "Cloning BuildData..." );
         File buildData = new File( dirs.getWorkingDir().getFile(), "BuildData" );
-        if ( ! buildData.exists() ) {
+        if ( ! buildData.exists() || ! buildData.isDirectory() || buildData.listFiles().length < 1 ) {
             String repo = settings.getStashRepoLink() + "builddata.git";
             GitCloneTask task = new GitCloneTask( repo, buildData );
             task.messageProperty().addListener( (observable, oldValue, newValue) -> {
@@ -343,33 +342,20 @@ public final class BuildToolsTask extends Task<Long> {
                     "-m", "mappings/" + versionInfo.getPackageMappings(), "-o", finalMappedJar.getAbsolutePath() );
             updateWork();
         } else {
-            LogHandler.info( "Mapped jar for mappings version " + mappingsVersion + " already exist!" );
+            LogHandler.info( "Mapped jar for mappings version " + mappingsVersion + " already exists!" );
         }
         updateMessage( "" );
 
-        LogHandler.info( "Installing '" + finalMappedJar.getName() + "' to local repository" );
+        LogHandler.info( "Installing \'" + finalMappedJar.getName() + "\' to local repository" );
 
-        MavenCommandBuilder install = MavenCommandBuilder.builder();
-        String[] goals = new String[] {
-                "install:install-file",
-                "-Dfile=" + finalMappedJar.getAbsolutePath(),
-                "-Dpackaging=jar",
-                "-DgroupId=org.spigotmc",
-                "-DartifactId=minecraft-server",
-                "-Dversion=" + versionInfo.getMinecraftVersion() + "-SNAPSHOT"
+        String[] goals = new String[] { "sh", mvn,
+                "install:install-file", "-Dfile=" + finalMappedJar.getAbsolutePath(),
+                "-Dpackaging=jar", "-DgroupId=org.spigotmc",
+                "-DartifactId=minecraft-server", "-Dversion=" + versionInfo.getMinecraftVersion() + "-SNAPSHOT"
         };
-        install.setMavenOpts( "-Xmx1024M" )
-               .setInteractiveMode( false )
-               .setBaseDirectory( dirs.getJarDir().getFile() )
-               .setGoals( Arrays.asList( goals ) );
-        InvocationResult result = install.execute();
-        updateWork();
-        if ( result.getExitCode() != 0 ) {
-            LogHandler.error( result.getExecutionException().getMessage() );
-            options.setRunning( false );
-            cancel( true );
-            return - 1L;
-        }
+        ICommandIssuer command = CommandHandler.getCommandIssuer();
+        command.executeCommand( dirs.getWorkingDir().getFile(), goals );
+
         LogHandler.info( "Decompiling: " );
         File decompileDir = new File( dirs.getWorkDir().getFile(), "decompile-" + mappingsVersion );
         if ( ! decompileDir.exists() ) {
@@ -381,7 +367,15 @@ public final class BuildToolsTask extends Task<Long> {
 
             ExtractFilesTask task = new ExtractFilesTask( finalMappedJar, clazzDir, (str) -> str.startsWith( "net/minecraft/server/" ) );
             task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                updateMessage( newValue );
+                if ( newValue.startsWith( ".." ) ) {
+                    // it's a ...done message, ignore it
+                }
+                String[] split = newValue.split( ":" );
+                if ( split.length > 1 ) {
+                    updateMessage( split[1] );
+                } else {
+                    updateMessage( newValue );
+                }
                 updateWork();
             } );
             projectPool.submit( task );
@@ -406,6 +400,8 @@ public final class BuildToolsTask extends Task<Long> {
 
             LogHandler.info( "Finished decompiling " + FilenameUtils.getBaseName( clazzDir.getName() ) );
             updateWork();
+        } else {
+            LogHandler.info( "Decompile directory " + decompileDir + " already exists!" );
         }
         updateMessage( "" );
 
@@ -419,14 +415,20 @@ public final class BuildToolsTask extends Task<Long> {
         }
         LogHandler.info( "Starting NMS patches..." );
         File patchDir = new File( craftBukkit, "nms-patches" );
-        for ( File file : patchDir.listFiles() ) {
+        File[] files = patchDir.listFiles();
+        for ( File file : files ) {
             if ( ! file.getName().endsWith( ".patch" ) ) {
                 continue;
             }
 
             String targetFile = "net/minecraft/server/" + file.getName().replaceAll( ".patch", ".java" );
 
+
             File clean = new File( decompileDir, targetFile );
+            if ( ! clean.exists() ) {
+                continue;
+            }
+
             File t = new File( nmsDir.getParentFile(), targetFile );
             t.getParentFile().mkdirs();
 
@@ -464,10 +466,42 @@ public final class BuildToolsTask extends Task<Long> {
         File tmpNms = new File( craftBukkit, "tmp-nms" );
         FileUtils.copyDirectory( nmsDir, tmpNms );
 
-        craftBukkitGit.branchDelete().setBranchNames( "patched" ).setForce( true ).call();
-        craftBukkitGit.checkout().setCreateBranch( true ).setForce( true ).setName( "patched" ).call();
-        craftBukkitGit.add().addFilepattern( "src/main/java/net/" ).call();
+        LogHandler.info( "Preparying CraftBukkit repository for cloning and patching..." );
+
+        boolean tempUsed = false;
+        if ( craftBukkitGit.getRepository().getFullBranch().equalsIgnoreCase( "patched" ) ) {
+            craftBukkitGit.checkout().setCreateBranch( true ).setName( "tmpBranchBTS" ).call();
+            tempUsed = true;
+            LogHandler.info( "The \'patched\' branch was checked out. Switching to master." );
+        }
+        LogHandler.info( "Deleting \'patched\' branch..." );
+        craftBukkitGit.branchDelete()
+                      .setBranchNames( "patched" )
+                      .setForce( true )
+                      .call();
+
+        LogHandler.info( "Create new \'patched\' branch..." );
+        craftBukkitGit.checkout()
+                      .setCreateBranch( true )
+                      .setForce( true )
+                      .setName( "patched" )
+                      .call();
+
+        // Delete temp branch
+        if ( tempUsed ) {
+            craftBukkitGit.branchDelete().setBranchNames( "tmpBranchBTS" ).setForce( true ).call();
+            LogHandler.info( "Deleting temporary branch" );
+        }
+
+        LogHandler.info( "Add all files that match \'src/main/java/net\' pattern..." );
+        craftBukkitGit.add()
+                      .addFilepattern( "src/main/java/net/" )
+                      .call();
+
+        LogHandler.info( "Setting commit message." );
         craftBukkitGit.commit().setMessage( "CraftBukkit $ " + new Date() ).call();
+
+        LogHandler.info( "Checking out " + buildInfo.getRefs().getCraftBukkit() );
         craftBukkitGit.checkout().setName( buildInfo.getRefs().getCraftBukkit() ).call();
 
         LogHandler.info( "Moving " + tmpNms.getName() + " to " + nmsDir.getAbsolutePath() );

@@ -58,12 +58,15 @@ import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.task.SpigotVersionImportTask;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
+import org.apache.commons.io.FileDeleteStrategy;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
 
 public class BuildTabController {
 
@@ -100,6 +103,10 @@ public class BuildTabController {
     private ComboBox<String> choiceComboBox;
     @FXML
     private CheckBox buildInvalidateCache;
+    @FXML
+    private CheckBox updateVersionCheckBox;
+    @FXML
+    private Button updateVersionsBtn;
 
     @FXML
     void onInvalidateCacheBtn(ActionEvent event) {
@@ -165,6 +172,12 @@ public class BuildTabController {
     }
 
     @FXML
+    void onUpdateVersionsBtn(ActionEvent event) {
+        Builder.setActiveTab( WindowTab.CONSOLE );
+        invalidateVersions();
+    }
+
+    @FXML
     void onRunBuildToolsClicked() {
         if ( ! buildToolsOptions.isRunning() ) {
             if ( choiceComboBox.getSelectionModel().getSelectedItem() == null ) {
@@ -200,6 +213,9 @@ public class BuildTabController {
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         binding = Bindings.or( buildToolsOptions.getRunningProperty(), Bindings.not( initializedProperty ) );
 
+        updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
+        updateVersionsBtn.visibleProperty().bind( updateVersionCheckBox.selectedProperty() );
+
         // populate directory list
         outputDirListView.getItems().addAll( BuildToolsSettings.getInstance().getRecentOutputDirectories() );
         if ( outputDirListView.getItems().isEmpty() ) {
@@ -213,8 +229,29 @@ public class BuildTabController {
         importVersions();
     }
 
-    private void invalidateVersions() {
+    public void invalidateVersions() {
+        updateVersionCheckBox.setSelected( false );
+        initializedProperty.set( false );
+        BuildToolsSettings.Directories dirs = buildToolsSettings.getDirectories();
+        File versionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
+        LogHandler.info( "Deleting " + versionsDir + '.' );
 
+        TaskPools.submit( () -> {
+            for ( File file : versionsDir.listFiles() ) {
+                try {
+                    FileDeleteStrategy.FORCE.delete( file );
+                } catch ( IOException e ) {
+                    e.printStackTrace();
+                }
+            }
+            try {
+                importVersions().get();
+            } catch ( InterruptedException e ) {
+                e.printStackTrace();
+            } catch ( ExecutionException e ) {
+                e.printStackTrace();
+            }
+        } );
     }
 
     public Task importVersions() {

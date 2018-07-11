@@ -38,13 +38,14 @@ public class MainController {
 
     @FXML
     private Tab buildTab;
+
     @FXML
     private Tab consoleTab;
+
     @FXML
     private Tab minecraftTab;
 
     @FXML
     void initialize() {
-
     }
 }

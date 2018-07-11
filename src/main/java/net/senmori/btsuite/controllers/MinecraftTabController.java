@@ -231,9 +231,6 @@ public class MinecraftTabController {
 
         String url = BuildToolsSettings.getInstance().getMinecraftVersionManifestURL();
         ImportMinecraftVersionTask task = new ImportMinecraftVersionTask( url );
-        task.setOnScheduled( (worker) -> {
-            Builder.setActiveTab( WindowTab.CONSOLE );
-        } );
         Console.getInstance().registerTask( task, "Importing Minecraft Versions", callback, true );
 
         return task;

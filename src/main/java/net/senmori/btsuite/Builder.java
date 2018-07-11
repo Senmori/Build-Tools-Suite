@@ -114,8 +114,6 @@ public class Builder extends Application {
         primaryStage.setMinWidth( primaryStage.getWidth() );
         primaryStage.setMinHeight( primaryStage.getHeight() );
 
-        setActiveTab(WindowTab.BUILD);
-
         getWindow().setOnCloseRequest( (event) -> {
             TaskPools.shutdown();
         });

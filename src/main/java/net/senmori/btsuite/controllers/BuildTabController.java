@@ -50,11 +50,13 @@ import net.senmori.btsuite.Callback;
 import net.senmori.btsuite.SpigotVersion;
 import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.buildtools.BuildInfo;
-import net.senmori.btsuite.buildtools.BuildTools;
+import net.senmori.btsuite.buildtools.BuildToolsOptions;
+import net.senmori.btsuite.buildtools.BuildToolsTask;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.task.SpigotVersionImportTask;
 import net.senmori.btsuite.util.FileUtil;
+import net.senmori.btsuite.util.LogHandler;
 
 import java.io.File;
 import java.net.URL;
@@ -65,7 +67,7 @@ import java.util.ResourceBundle;
 public class BuildTabController {
 
     private BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
-    private BuildTools buildTools;
+    private BuildToolsOptions buildToolsOptions;
 
     @FXML
     private ResourceBundle resources;
@@ -100,32 +102,32 @@ public class BuildTabController {
 
     @FXML
     void onInvalidateCacheBtn(ActionEvent event) {
-        buildTools.setInvalidateCache( this.buildInvalidateCache.isSelected() );
+        buildToolsOptions.setInvalidateCache( this.buildInvalidateCache.isSelected() );
     }
 
     @FXML
     void onCertCheckClicked(ActionEvent event) {
-        buildTools.setDisableCertificateCheck(this.certCheck.isSelected());
+        buildToolsOptions.setDisableCertificateCheck( this.certCheck.isSelected() );
     }
 
     @FXML
     void onDontUpdateClicked(ActionEvent event) {
-        buildTools.setDontUpdate(this.dontUpdate.isSelected());
+        buildToolsOptions.setDontUpdate( this.dontUpdate.isSelected() );
     }
 
     @FXML
     void onSkipCompileClicked(ActionEvent event) {
-        buildTools.setSkipCompile(this.skipCompile.isSelected());
+        buildToolsOptions.setSkipCompile( this.skipCompile.isSelected() );
     }
 
     @FXML
     void onGenSrcClicked(ActionEvent event) {
-        buildTools.setGenSrc(this.genSrc.isSelected());
+        buildToolsOptions.setGenSrc( this.genSrc.isSelected() );
     }
 
     @FXML
     void onGenDocClicked(ActionEvent event) {
-        buildTools.setGenDoc(this.genDoc.isSelected());
+        buildToolsOptions.setGenDoc( this.genDoc.isSelected() );
     }
 
     @FXML
@@ -163,14 +165,29 @@ public class BuildTabController {
 
     @FXML
     void onRunBuildToolsClicked() {
-        if ( !buildTools.isRunning() ) {
+        if ( ! buildToolsOptions.isRunning() ) {
             if ( choiceComboBox.getSelectionModel().getSelectedItem() == null ) {
-                buildTools.setVersion( buildToolsSettings.getDefaultVersion() );
+                buildToolsOptions.setVersion( buildToolsSettings.getDefaultVersion() );
             } else {
-                buildTools.setVersion(choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase());
+                buildToolsOptions.setVersion( choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase() );
             }
-            buildTools.setOutputDirectories( outputDirListView.getItems() );
-            TaskPools.submit(() -> buildTools.run());
+            buildToolsOptions.setOutputDirectories( outputDirListView.getItems() );
+
+            BuildToolsTask task = new BuildToolsTask( buildToolsOptions );
+            Callback<Long> callback = new Callback<Long>() {
+                @Override
+                public void accept(Long value) {
+                    long seconds = value;
+                    buildToolsOptions.setRunning( false );
+                    String formatted = String.format( "%d:%02d", seconds / 60, seconds % 60 );
+                    LogHandler.info( "It took " + formatted + " to complete this build." );
+                    LogHandler.info( "BuildToolsSuite has finished!" );
+                }
+            };
+
+            Builder.setActiveTab( WindowTab.CONSOLE );
+            Console.getInstance().registerTask( task, "Progress: ", callback, false );
+            TaskPools.submit( task );
         }
     }
 
@@ -178,9 +195,9 @@ public class BuildTabController {
     private BooleanBinding binding;
     @FXML
     void initialize() {
-        buildTools = new BuildTools( this );
+        buildToolsOptions = new BuildToolsOptions( this );
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        binding = Bindings.or( buildTools.getRunningProperty(), Bindings.not( initializedProperty ) );
+        binding = Bindings.or( buildToolsOptions.getRunningProperty(), Bindings.not( initializedProperty ) );
 
         // populate directory list
         outputDirListView.getItems().addAll( BuildToolsSettings.getInstance().getRecentOutputDirectories() );
@@ -205,14 +222,15 @@ public class BuildTabController {
             public void accept(Map<SpigotVersion, BuildInfo> value) {
                 handleVersionMap( value );
                 initializedProperty.set( true );
+                LogHandler.info( "Loaded " + value.keySet().size() + " Spigot versions." );
             }
         };
         SpigotVersionImportTask task = new SpigotVersionImportTask( buildToolsSettings.getVersionLink() );
 
-        Console.getInstance().newTask( task, "Importing Spigot Versions", callback );
+        Console.getInstance().registerTask( task, "Importing Spigot Versions", callback, true );
     }
 
-    public void onBuildToolsFinished(BuildTools tool) {
+    public void onBuildToolsFinished(BuildToolsOptions tool) {
         runBuildToolsBtn.setDisable(false);
     }
 

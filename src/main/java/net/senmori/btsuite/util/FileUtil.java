@@ -30,6 +30,7 @@
 package net.senmori.btsuite.util;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -47,7 +48,6 @@ public final class FileUtil {
             LogHandler.error( "No files found in " + sourceDir + " that matched the requirements." );
             return;
         }
-        LogHandler.debug( "FileUtil#copyJar found " + files.length + " in " + sourceDir.getPath() );
 
         if ( ! outDir.isDirectory() ) {
             outDir.mkdirs();
@@ -62,7 +62,7 @@ public final class FileUtil {
 
             long size = sourceChannel.size();
             sourceChannel.transferTo( 0L, size, outChannel );
-            LogHandler.info( "- Copied " + source.getName() + " into " + outDir.getPath() + " as " + finalJarName );
+            LogHandler.info( "- Copied " + FilenameUtils.getBaseName( source.getName() ) + " into " + outDir.getPath() + " as " + finalJarName );
         }
     }
 

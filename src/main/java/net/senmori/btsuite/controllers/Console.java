@@ -29,6 +29,9 @@
 
 package net.senmori.btsuite.controllers;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.concurrent.Task;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
@@ -80,7 +83,7 @@ public class Console {
 
     private TaskPool pool = TaskPools.createSingleTaskPool();
 
-    public void newTask(Task task, String progressText, Callback callback) {
+    public void registerTask(Task task, String progressText, Callback callback, boolean runViaConsolePool) {
         task.setOnRunning( (worker) -> {
             reset();
             textField.setText( progressText );
@@ -96,10 +99,26 @@ public class Console {
         } );
         task.setOnSucceeded( (worker) -> {
             reset();
-            callback.accept( task.getValue() );
+            if ( callback != null ) {
+                callback.accept( task.getValue() );
+            }
         } );
 
-        pool.submit( task );
+        if ( runViaConsolePool ) {
+            pool.submit( task );
+        }
+    }
+
+    public void fakeProgress() {
+        progressBar.setProgress( 0.3D );
+
+        Timeline timeline = new Timeline();
+
+        KeyValue keyValue = new KeyValue( progressBar.progressProperty(), 0.9 );
+        KeyFrame keyFrame = new KeyFrame( new javafx.util.Duration( 1000.0D ), keyValue );
+        timeline.getKeyFrames().add( keyFrame );
+
+        timeline.play();
     }
 
     /**

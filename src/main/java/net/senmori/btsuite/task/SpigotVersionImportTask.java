@@ -94,13 +94,12 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
                 verFile.createNewFile();
                 verFile = pool.submit( new FileDownloadTask( versionUrl, verFile ) ).get(); // block
             }
-            updateMessage( "Version: " + FilenameUtils.getBaseName( verFile.getName() ) );
-            JsonReader reader = new JsonReader(new FileReader(verFile));
+            updateMessage( FilenameUtils.getBaseName( verFile.getName() ) );
+            JsonReader reader = new JsonReader( new FileReader( verFile ) );
             BuildInfo buildInfo = SettingsFactory.getGson().fromJson( reader, BuildInfo.class );
-            map.put(version, buildInfo);
+            map.put( version, buildInfo );
             updateProgress( workPerTask, Double.MAX_VALUE );
         }
-        LogHandler.info("Loaded " + map.keySet().size() + " Spigot versions.");
         return map;
     }
 }

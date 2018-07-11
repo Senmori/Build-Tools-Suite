@@ -24,7 +24,7 @@
                         <Separator orientation="VERTICAL"/>
                         <Text fx:id="consoleProgressTextID" strokeType="OUTSIDE" strokeWidth="0.0"
                               text="Current Progress:"/>
-                        <ProgressBar fx:id="consoleProgressBar" prefWidth="200.0" progress="0.0"/>
+                        <ProgressBar fx:id="consoleProgressBar" prefWidth="100.0" progress="0.0"/>
                         <Text fx:id="consoleOptionalText" strokeType="OUTSIDE" strokeWidth="0.0"/>
                     </items>
                 </ToolBar>

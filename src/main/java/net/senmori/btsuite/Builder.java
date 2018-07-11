@@ -30,7 +30,6 @@
 package net.senmori.btsuite;
 
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
@@ -113,16 +112,8 @@ public class Builder extends Application {
         });
     }
 
-    @SuppressWarnings( "restriction" )
     @Override
     public void stop() {
-        if(!TaskPools.getService().isShutdown()) {
-            do {
-                TaskPools.shutdown();
-            } while ( ! TaskPools.getService().isShutdown() );
-        }
-
-        Platform.exit();
     }
 
     public static Stage getWindow() {
@@ -138,7 +129,17 @@ public class Builder extends Application {
     }
 
     public static void setActiveTab(WindowTab tab) {
-        Builder.getInstance().getTabPane().getSelectionModel().select( tab.ordinal() );
+        switch ( tab ) {
+            case CONSOLE:
+                Builder.getInstance().getTabPane().getSelectionModel().select( 0 );
+                break;
+            case BUILD:
+                Builder.getInstance().getTabPane().getSelectionModel().select( 1 );
+                break;
+            case MINECRAFT:
+                Builder.getInstance().getTabPane().getSelectionModel().select( 2 );
+                return;
+        }
     }
 
     public void setController(WindowTab tab, Object controller) {

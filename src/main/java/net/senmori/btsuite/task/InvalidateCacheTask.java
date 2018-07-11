@@ -29,24 +29,54 @@
 
 package net.senmori.btsuite.task;
 
+import javafx.concurrent.Task;
 import net.senmori.btsuite.util.LogHandler;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
-import java.util.concurrent.Callable;
+import java.io.IOException;
 
-public class InvalidateCacheTask implements Callable<Boolean> {
+public class InvalidateCacheTask extends Task<Boolean> {
 
     private final File workingDirectory;
+    private final Task parent;
 
     public InvalidateCacheTask(File workingDirectory) {
         this.workingDirectory = workingDirectory;
+        this.parent = null;
     }
 
     @Override
     public Boolean call() throws Exception {
         LogHandler.info( "Deleting all files and directories in " + workingDirectory.getName() );
-        FileUtils.cleanDirectory( workingDirectory );
+        // Use our own deletion method instead of apache so we can redirect output to where we want
+        if ( ! workingDirectory.exists() ) {
+            throw new IllegalArgumentException( workingDirectory + " does not exist." );
+        }
+        if ( ! workingDirectory.isDirectory() ) {
+            throw new IllegalArgumentException( workingDirectory + " is not a directory" );
+        }
+
+        final File[] files = workingDirectory.listFiles();
+        if ( files == null ) {
+            throw new IOException( "Failed to list contents of " + workingDirectory );
+        }
+
+        IOException exception = null;
+        for ( final File file : files ) {
+            try {
+                updateMessage( FilenameUtils.getBaseName( file.getName() ) );
+                FileUtils.forceDelete( file );
+            } catch ( IOException e ) {
+                exception = e;
+            }
+        }
+
+        if ( null != exception ) {
+            throw exception;
+        }
+
         LogHandler.info( "Invalidated Cache!" );
         return true;
     }

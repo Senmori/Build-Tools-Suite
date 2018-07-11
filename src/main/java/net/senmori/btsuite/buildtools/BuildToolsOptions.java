@@ -33,20 +33,16 @@ import com.google.common.collect.Lists;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Data;
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.controllers.BuildTabController;
 import net.senmori.btsuite.storage.BuildToolsSettings;
-import net.senmori.btsuite.util.LogHandler;
 
 import java.util.List;
 
 @Data
-public final class BuildTools implements Runnable {
+public final class BuildToolsOptions {
     private final BuildTabController controller;
 
     private BooleanProperty runningProperty = new SimpleBooleanProperty( false );
-    BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
     private boolean disableCertificateCheck = false;
     private boolean dontUpdate = false;
     private boolean skipCompile = false;
@@ -57,7 +53,7 @@ public final class BuildTools implements Runnable {
     private List<String> outputDirectories = Lists.newArrayList();
 
 
-    public BuildTools(BuildTabController controller) {
+    public BuildToolsOptions(BuildTabController controller) {
         this.controller = controller;
     }
 
@@ -72,22 +68,5 @@ public final class BuildTools implements Runnable {
 
     public void setRunning(boolean value) {
         runningProperty.set( value );
-    }
-
-    @Override
-    public void run() {
-        setRunning( true );
-        Builder.setActiveTab(WindowTab.CONSOLE);
-        LogHandler.debug( "Starting BuildToolsSuite" );
-        BuildToolsProject task = new BuildToolsProject( this, buildToolsSettings );
-        try {
-            task.call();
-        } catch ( Exception e ) {
-            e.printStackTrace();
-        }
-    }
-
-    public void setFinished() {
-        setRunning( false );
     }
 }

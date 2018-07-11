@@ -232,7 +232,7 @@ public class MinecraftTabController {
 
         } );
 
-        Console.getInstance().newTask( task, "Importing Minecraft Versions", callback );
+        Console.getInstance().registerTask( task, "Importing Minecraft Versions", callback, true );
     }
 
     private void initialSettings() {

@@ -46,7 +46,6 @@ import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.task.FileDownloadTask;
 import net.senmori.btsuite.task.GitCloneTask;
-import net.senmori.btsuite.task.GitPullTask;
 import net.senmori.btsuite.task.InvalidateCacheTask;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.HashChecker;
@@ -73,13 +72,13 @@ import java.util.function.Predicate;
 public class BuildToolsProject extends Task<Boolean> {
     private static String applyPatchesShell = "sh";
 
-    private final BuildTools options;
+    private final BuildToolsOptions options;
     private final BuildToolsSettings buildToolsSettings;
     private final BuildToolsSettings.Directories dirs;
 
     private final TaskPool projectPool = TaskPools.createSingleTaskPool();
 
-    public BuildToolsProject(BuildTools options, BuildToolsSettings buildToolsSettings) {
+    public BuildToolsProject(BuildToolsOptions options, BuildToolsSettings buildToolsSettings) {
         this.options = options;
         this.buildToolsSettings = buildToolsSettings;
         this.dirs = buildToolsSettings.getDirectories();
@@ -89,7 +88,6 @@ public class BuildToolsProject extends Task<Boolean> {
     public Boolean call() throws Exception {
         Stopwatch watch = Stopwatch.createStarted();
         File work = dirs.getWorkDir().getFile();
-        printOptions(options);
 
         if ( options.isInvalidateCache() ) {
             InvalidateCacheTask task = new InvalidateCacheTask( Builder.WORKING_DIR.getFile() );
@@ -99,31 +97,34 @@ public class BuildToolsProject extends Task<Boolean> {
         File bukkit = new File( dirs.getWorkingDir().getFile(), "Bukkit" );
         if ( ! bukkit.exists() ) {
             String repo = buildToolsSettings.getStashRepoLink() + "bukkit.git";
-            GitCloneTask task = GitCloneTask.clone(repo, bukkit);
-            projectPool.submit( task ).get();
+            GitCloneTask task = new GitCloneTask( repo, bukkit );
+            projectPool.submit( task );
+            task.get();
         }
 
         File craftBukkit = new File( dirs.getWorkingDir().getFile(), "CraftBukkit" );
         if ( ! craftBukkit.exists() ) {
             String repo = buildToolsSettings.getStashRepoLink() + "craftbukkit.git";
-            GitCloneTask task = GitCloneTask.clone(repo, craftBukkit);
-            projectPool.submit( task ).get();
+            GitCloneTask task = new GitCloneTask( repo, craftBukkit );
+            projectPool.submit( task );
+            task.get();
         }
 
         File spigot = new File( dirs.getWorkingDir().getFile(), "Spigot" );
         if ( ! spigot.exists() ) {
             String repo = buildToolsSettings.getStashRepoLink() + "spigot.git";
-            GitCloneTask task = GitCloneTask.clone(repo, spigot);
-            projectPool.submit( task ).get();
+            GitCloneTask task = new GitCloneTask( repo, spigot );
+            projectPool.submit( task );
+            task.get();
         }
 
         File buildData = new File( dirs.getWorkingDir().getFile(), "BuildData" );
         if ( ! buildData.exists() ) {
             String repo = buildToolsSettings.getStashRepoLink() + "builddata.git";
-            GitCloneTask task = GitCloneTask.clone(repo, buildData);
-            projectPool.submit( task ).get();
+            GitCloneTask task = new GitCloneTask( repo, buildData );
+            projectPool.submit( task );
+            task.get();
         }
-
 
         String mvn = new File( dirs.getMvnDir().getFile(), "/bin/mvn" ).getAbsolutePath();
 
@@ -150,10 +151,10 @@ public class BuildToolsProject extends Task<Boolean> {
             LogHandler.debug("Found version " + askedVersion);
             buildInfo = SettingsFactory.getGson().fromJson( new FileReader( verInfo ), BuildInfo.class );
 
-            projectPool.submit(GitPullTask.pull(buildGit, buildInfo.getRefs().getBuildData())).get();
-            projectPool.submit(GitPullTask.pull(bukkitGit, buildInfo.getRefs().getBukkit())).get();
-            projectPool.submit(GitPullTask.pull(craftBukkitGit, buildInfo.getRefs().getCraftBukkit())).get();
-            projectPool.submit(GitPullTask.pull(spigotGit, buildInfo.getRefs().getSpigot())).get();
+            // projectPool.submit(GitPullTask.pull(buildGit, buildInfo.getRefs().getBuildData())).get();
+            // projectPool.submit(GitPullTask.pull(bukkitGit, buildInfo.getRefs().getBukkit())).get();
+            // projectPool.submit(GitPullTask.pull(craftBukkitGit, buildInfo.getRefs().getCraftBukkit())).get();
+            // projectPool.submit(GitPullTask.pull(spigotGit, buildInfo.getRefs().getSpigot())).get();
         }
 
         File infoFile = new File( dirs.getWorkingDir().getFile(), "BuildData/info.json" );
@@ -176,7 +177,6 @@ public class BuildToolsProject extends Task<Boolean> {
 
         if ( !HashChecker.checkHash(vanillaJar, versionInfo) ) {
             LogHandler.error("**** Could not download clean Minecraft jar, giving up.");
-            options.setFinished();
             return false;
         }
 
@@ -239,7 +239,7 @@ public class BuildToolsProject extends Task<Boolean> {
         InvocationResult result = install.execute();
         if(result.getExitCode() != 0) {
             LogHandler.error(result.getExecutionException().getMessage());
-            options.setFinished();
+            //options.setFinished();
             return false;
         }
 
@@ -332,13 +332,17 @@ public class BuildToolsProject extends Task<Boolean> {
         File spigotApi = new File(spigot, "Bukkit");
         if ( !spigotApi.exists() ) {
             String url = "file://" + bukkit.getAbsolutePath();
-            spigotApi = projectPool.submit(GitCloneTask.clone(url, spigotApi)).get();
+            GitCloneTask task = new GitCloneTask( url, spigotApi );
+            projectPool.submit( task );
+            task.get();
         }
         LogHandler.debug("Cloning SpigotServer");
         File spigotServer = new File(spigot, "CraftBukkit");
         if ( !spigotServer.exists() ) {
             String url = "file://" + craftBukkit.getAbsolutePath();
-            spigotServer = projectPool.submit(GitCloneTask.clone(url, spigotServer)).get();
+            GitCloneTask task = new GitCloneTask( url, spigotServer );
+            projectPool.submit( task );
+            task.get();
         }
 
         // Git spigotApiGit = Git.open( spigotApi );
@@ -376,7 +380,7 @@ public class BuildToolsProject extends Task<Boolean> {
             LogHandler.error( "Error compiling Spigot. Please check the wiki for FAQs." );
             LogHandler.error( "If this does not resolve your issue then please pastebin the entire console when seeking support." );
             ex.printStackTrace();
-            options.setFinished();
+            //options.setFinished();
             return false;
         }
 
@@ -436,11 +440,10 @@ public class BuildToolsProject extends Task<Boolean> {
         String formatted = String.format( "%d:%02d", seconds / 60, seconds % 60 );
         LogHandler.info( "It took " + formatted + " to complete this build." );
         projectPool.getService().shutdown();
-        options.setFinished();
         return ! options.isRunning();
     }
 
-    private void printOptions(BuildTools options) {
+    private void printOptions(BuildToolsOptions options) {
         LogHandler.info( "BuildToolsSuite Options: " );
         LogHandler.info("Disable Certificate Check: " + options.isDisableCertificateCheck());
         LogHandler.info("Don't Update: " + options.isDontUpdate());

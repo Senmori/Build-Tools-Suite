@@ -29,22 +29,49 @@
 
 package net.senmori.btsuite.task;
 
-import net.senmori.btsuite.download.FileDownloader;
+import javafx.concurrent.Task;
 
+import java.io.BufferedInputStream;
 import java.io.File;
-import java.util.concurrent.Callable;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 
-public class FileDownloadTask implements Callable<File> {
+public class FileDownloadTask extends Task<File> {
     private final String url;
     private final File target;
+    private final String finalName;
 
     public FileDownloadTask(String url, File target) {
+        this( url, target, null );
+    }
+
+    public FileDownloadTask(String url, File target, String fileName) {
         this.url = url;
         this.target = target;
+        this.finalName = fileName;
     }
 
     @Override
     public File call() throws Exception {
-        return new FileDownloader().download( url, target, null );
+        int totalSize = - 1;
+        URLConnection connection = new URL( url ).openConnection();
+        InputStream stream = connection.getInputStream();
+        totalSize = connection.getContentLength(); // in bytes
+
+        BufferedInputStream buffInStream = new BufferedInputStream( stream );
+        FileOutputStream fOut = new FileOutputStream( target );
+
+        int count;
+        byte[] buffer = new byte[1024];
+        while ( ( count = buffInStream.read( buffer, 0, buffer.length ) ) != - 1 ) {
+            updateMessage( "Downloading: " + count + "/" + totalSize );
+            fOut.write( buffer, 0, count );
+        }
+        if ( finalName != null && ! finalName.trim().isEmpty() ) {
+            target.renameTo( new File( target.getParent(), finalName ) );
+        }
+        return target;
     }
 }

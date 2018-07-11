@@ -70,7 +70,15 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
         File versionFile = new File( spigotVersionsDir, "versions.html" );
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
-            versionFile = pool.submit( new FileDownloadTask( url, versionFile ) ).get(); // block
+            FileDownloadTask task = new FileDownloadTask( url, versionFile );
+            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                updateMessage( newValue );
+            } );
+            task.setOnSucceeded( (worker) -> {
+                updateMessage( "" );
+            } );
+            pool.submit( task );
+            versionFile = task.get();
             LogHandler.info( " Downloaded " + versionFile );
         }
 
@@ -92,13 +100,20 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
             File verFile = new File( spigotVersionsDir, text );
             if ( !verFile.exists() ) {
                 verFile.createNewFile();
-                verFile = pool.submit( new FileDownloadTask( versionUrl, verFile ) ).get(); // block
+                FileDownloadTask task = new FileDownloadTask( versionUrl, verFile );
+                task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                    updateMessage( newValue );
+                } );
+                task.setOnSucceeded( (worker) -> {
+                    updateMessage( "" );
+                } );
+                pool.submit( task );
+                verFile = task.get();
             }
             updateMessage( FilenameUtils.getBaseName( verFile.getName() ) );
             JsonReader reader = new JsonReader( new FileReader( verFile ) );
             BuildInfo buildInfo = SettingsFactory.getGson().fromJson( reader, BuildInfo.class );
             map.put( version, buildInfo );
-            updateProgress( workPerTask, Double.MAX_VALUE );
         }
         return map;
     }

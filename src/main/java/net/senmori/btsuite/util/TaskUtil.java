@@ -67,7 +67,9 @@ public class TaskUtil {
      */
     public static File asyncDownloadFile(String url, File target) {
         try {
-            return TaskPools.submit( new FileDownloadTask( url, target ) ).get();
+            FileDownloadTask task = new FileDownloadTask( url, target );
+            TaskPools.submit( task );
+            return task.get();
         } catch ( InterruptedException e ) {
             e.printStackTrace();
         } catch ( ExecutionException e ) {

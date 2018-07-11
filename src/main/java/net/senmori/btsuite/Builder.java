@@ -29,9 +29,11 @@
 
 package net.senmori.btsuite;
 
+import com.google.common.collect.Maps;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
@@ -46,6 +48,7 @@ import net.senmori.btsuite.storage.Directory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.Map;
 
 public class Builder extends Application {
     public static final Directory WORKING_DIR = new Directory( System.getProperty( "user.dir" ), "BTSuite" );
@@ -56,6 +59,8 @@ public class Builder extends Application {
     public static Builder getInstance() {
         return INSTANCE;
     }
+
+    private Map<WindowTab, Tab> tabMap = Maps.newConcurrentMap();
 
     private Stage window;
     private TabPane tabPane;
@@ -96,6 +101,10 @@ public class Builder extends Application {
         loader.setLocation( getClass().getClassLoader().getResource( "mainController.fxml" ) );
         tabPane = loader.load();
 
+        tabMap.put( WindowTab.CONSOLE, tabPane.getTabs().get( 0 ) );
+        tabMap.put( WindowTab.BUILD, tabPane.getTabs().get( 1 ) );
+        tabMap.put( WindowTab.MINECRAFT, tabPane.getTabs().get( 2 ) );
+
         MainController controller = loader.getController();
 
         Scene scene = new Scene( tabPane );
@@ -129,17 +138,8 @@ public class Builder extends Application {
     }
 
     public static void setActiveTab(WindowTab tab) {
-        switch ( tab ) {
-            case CONSOLE:
-                Builder.getInstance().getTabPane().getSelectionModel().select( 0 );
-                break;
-            case BUILD:
-                Builder.getInstance().getTabPane().getSelectionModel().select( 1 );
-                break;
-            case MINECRAFT:
-                Builder.getInstance().getTabPane().getSelectionModel().select( 2 );
-                return;
-        }
+        Tab newTab = Builder.getInstance().tabMap.getOrDefault( tab, Builder.getInstance().tabPane.getTabs().get( 0 ) );
+        Builder.getInstance().getTabPane().getSelectionModel().select( newTab );
     }
 
     public void setController(WindowTab tab, Object controller) {

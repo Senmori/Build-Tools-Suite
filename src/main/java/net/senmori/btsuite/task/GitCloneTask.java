@@ -91,12 +91,12 @@ public class GitCloneTask extends Task<File> {
             protected void onEndTask(String taskName, int workCurr) {
                 StringBuilder s = new StringBuilder();
                 format( s, taskName, workCurr );
-                s.append( "\n" ); //$NON-NLS-1$
+                //s.append( "\n" ); //$NON-NLS-1$
                 send( s );
             }
 
             private void format(StringBuilder s, String taskName, int workCurr) {
-                s.append( "\r" ); //$NON-NLS-1$
+                //s.append( "\r" ); //$NON-NLS-1$
                 s.append( taskName );
                 s.append( ": " ); //$NON-NLS-1$
                 while ( s.length() < 25 )
@@ -115,13 +115,13 @@ public class GitCloneTask extends Task<File> {
             protected void onEndTask(String taskName, int cmp, int totalWork, int pcnt) {
                 StringBuilder s = new StringBuilder();
                 format( s, taskName, cmp, totalWork, pcnt );
-                s.append( "\n" ); //$NON-NLS-1$
+                //s.append( "\n" ); //$NON-NLS-1$
                 send( s );
             }
 
             private void format(StringBuilder s, String taskName, int cmp,
                                 int totalWork, int pcnt) {
-                s.append( "\r" ); //$NON-NLS-1$
+                //s.append( "\r" ); //$NON-NLS-1$
                 s.append( taskName );
                 s.append( ": " ); //$NON-NLS-1$
                 while ( s.length() < 25 )

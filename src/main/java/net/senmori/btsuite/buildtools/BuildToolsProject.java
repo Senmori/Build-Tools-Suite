@@ -146,7 +146,15 @@ public class BuildToolsProject extends Task<Boolean> {
             if ( !verInfo.exists() ) {
                 // download file
                 String url = buildToolsSettings.getVersionLink() + askedVersion + ".json";
-                verInfo = projectPool.submit( new FileDownloadTask( url, verInfo ) ).get();
+                FileDownloadTask task = new FileDownloadTask( url, verInfo );
+                task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                    updateMessage( newValue );
+                } );
+                task.setOnSucceeded( (worker) -> {
+                    updateMessage( "" );
+                } );
+                projectPool.submit( task );
+                verInfo = task.get();
             }
             LogHandler.debug("Found version " + askedVersion);
             buildInfo = SettingsFactory.getGson().fromJson( new FileReader( verInfo ), BuildInfo.class );
@@ -170,9 +178,11 @@ public class BuildToolsProject extends Task<Boolean> {
         String jarName = "minecraft_server." + versionInfo.getMinecraftVersion() + ".jar";
         File vanillaJar = new File( dirs.getJarDir().getFile(), jarName );
 
-        if ( ! vanillaJar.exists() || ! HashChecker.checkHash(vanillaJar, versionInfo) ) {
-                String url = VersionManifest.getInstance().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
-                vanillaJar = projectPool.submit( new FileDownloadTask( url, vanillaJar ) ).get();
+        if ( ! vanillaJar.exists() || ! HashChecker.checkHash( vanillaJar, versionInfo ) ) {
+            String url = VersionManifest.getInstance().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
+            FileDownloadTask task = new FileDownloadTask( url, vanillaJar );
+            projectPool.submit( task );
+            vanillaJar = task.get();
         }
 
         if ( !HashChecker.checkHash(vanillaJar, versionInfo) ) {

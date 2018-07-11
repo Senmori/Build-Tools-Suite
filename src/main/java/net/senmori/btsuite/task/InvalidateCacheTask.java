@@ -29,7 +29,9 @@
 
 package net.senmori.btsuite.task;
 
+import javafx.application.Platform;
 import javafx.concurrent.Task;
+import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.util.LogHandler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -76,6 +78,10 @@ public class InvalidateCacheTask extends Task<Boolean> {
         if ( null != exception ) {
             throw exception;
         }
+
+        // Re-import spigot versions
+        Platform.runLater( () -> Builder.getInstance().getBuildTabController().importVersions() );
+        Platform.runLater( () -> Builder.getInstance().getMinecraftTabController().importVersions() );
 
         LogHandler.info( "Invalidated Cache!" );
         return true;

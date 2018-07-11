@@ -34,6 +34,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -95,7 +96,9 @@ public class MinecraftTabController {
             File directory = chooser.showDialog( Builder.getWindow() );
             File serverFile = new File( directory, "minecraft_server-" + workingVersion.getVersion() + ".jar" );
             try {
-                File file = TaskPools.submit( new FileDownloadTask( workingVersion.getServerDownloadURL(), serverFile ) ).get();
+                FileDownloadTask task = new FileDownloadTask( workingVersion.getServerDownloadURL(), serverFile );
+                TaskPools.submit( task );
+                serverFile = task.get();
             } catch ( InterruptedException e ) {
                 e.printStackTrace();
             } catch ( ExecutionException e ) {
@@ -199,7 +202,7 @@ public class MinecraftTabController {
         importVersions();
     }
 
-    private void importVersions() {
+    public Task importVersions() {
         versionMap.clear();
         releaseTypeComboBox.setItems( FXCollections.emptyObservableList() );
         versionComboBox.setItems( FXCollections.emptyObservableList() );
@@ -228,11 +231,12 @@ public class MinecraftTabController {
 
         String url = BuildToolsSettings.getInstance().getMinecraftVersionManifestURL();
         ImportMinecraftVersionTask task = new ImportMinecraftVersionTask( url );
-        task.setOnSucceeded( (worker) -> {
-
+        task.setOnScheduled( (worker) -> {
+            Builder.setActiveTab( WindowTab.CONSOLE );
         } );
-
         Console.getInstance().registerTask( task, "Importing Minecraft Versions", callback, true );
+
+        return task;
     }
 
     private void initialSettings() {

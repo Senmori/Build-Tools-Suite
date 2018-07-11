@@ -58,9 +58,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
     private final BuildToolsSettings.Directories dirs = settings.getDirectories();
 
     private final String versionManifestURL;
-
     private final Collection<MinecraftVersion> availableVersions = Lists.newLinkedList();
-
     private final TaskPool pool = TaskPools.createFixedThreadPool( 3 );
 
     public ImportMinecraftVersionTask(String versionManifestURL) {
@@ -77,7 +75,15 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
             // download it
             manifestFile.createNewFile();
             try {
-                manifestFile = pool.submit( new FileDownloadTask( versionManifestURL, manifestFile ) ).get();
+                FileDownloadTask task = new FileDownloadTask( versionManifestURL, manifestFile );
+                task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                    updateMessage( newValue );
+                } );
+                task.setOnSucceeded( (worker) -> {
+                    updateMessage( "" );
+                } );
+                pool.submit( task );
+                manifestFile = task.get();
             } catch ( InterruptedException e ) {
                 e.printStackTrace();
             } catch ( ExecutionException e ) {
@@ -92,7 +98,6 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
         } else {
             LogHandler.info( "Found \'" + FilenameUtils.getBaseName( manifestFile.getName() ) + '\'' );
         }
-        updateProgress( 0.1D, Double.MAX_VALUE );
         JsonObject json = SettingsFactory.getGson().fromJson( new FileReader( manifestFile ), JsonObject.class );
         if ( json == null ) {
             LogHandler.error( "*** Could not parse json in " + FilenameUtils.getBaseName( manifestFile.getName() ) + '\'' );
@@ -103,10 +108,6 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
             LogHandler.info( "Processing versions..." );
             String lastType = "";
             JsonArray array = json.getAsJsonArray( "versions" );
-
-            int size = array.size();
-            int tasksPerObject = 10;
-            double workPerTask = ( double ) ( tasksPerObject * size ) / 100.0D;
 
             for ( JsonElement element : array ) {
                 JsonObject version = element.getAsJsonObject();
@@ -131,7 +132,15 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                 File versionFile = new File( versionsDir, id + ".json" );
                 if ( ! versionFile.exists() ) {
                     try {
-                        versionFile = pool.submit( new FileDownloadTask( verURL, versionFile ) ).get();
+                        FileDownloadTask task = new FileDownloadTask( verURL, versionFile );
+                        task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                            updateMessage( newValue );
+                        } );
+                        task.setOnSucceeded( (worker) -> {
+                            updateMessage( "" );
+                        } );
+                        pool.submit( task );
+                        versionFile = task.get();
                     } catch ( InterruptedException e ) {
                         e.printStackTrace();
                     } catch ( ExecutionException e ) {
@@ -140,7 +149,6 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
 
                     if ( versionFile == null ) {
                         LogHandler.error( "*** Unable to download \'" + id + "\'\'s version file." );
-                        updateProgress( workPerTask, Double.MAX_VALUE );
                         continue;
                     }
                 }
@@ -150,7 +158,6 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                     LogHandler.error( "*** Unable to parse version \"" + id + "\" manifest json." );
                     LogHandler.error( "*** Deleting " + versionFile.getName() + ". Please invalidate the cache in the Minecraft tab if this causes problems." );
                     Files.delete( versionFile.toPath() );
-                    updateProgress( workPerTask, Double.MAX_VALUE );
                     continue;
                 }
 
@@ -178,7 +185,6 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                         availableVersions.add( minecraftVersion );
                     }
                 }
-                updateProgress( workPerTask, Double.MAX_VALUE );
             }
         }
         return availableVersions;

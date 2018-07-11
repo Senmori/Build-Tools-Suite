@@ -69,7 +69,16 @@ public class MavenInstaller extends Task<File> {
 
             try {
                 String url = buildToolsSettings.getMvnInstallerLink();
-                mvnTemp = TaskPools.submit( new FileDownloadTask( url, mvnTemp ) ).get();
+                FileDownloadTask task = new FileDownloadTask( url, mvnTemp );
+                task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                    updateMessage( newValue );
+                } );
+                task.setOnSucceeded( (worker) -> {
+                    updateMessage( "" );
+                } );
+                TaskPools.submit( task );
+                mvnTemp = task.get();
+
                 ZipUtil.unzip( mvnTemp, dirs.getMvnDir().getFile() );
                 dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() ) );
                 mvnTemp.delete();

@@ -35,6 +35,7 @@ import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -216,18 +217,20 @@ public class BuildTabController {
 
     }
 
-    private void importVersions() {
+    public Task importVersions() {
         Callback<Map<SpigotVersion, BuildInfo>> callback = new Callback<Map<SpigotVersion, BuildInfo>>() {
             @Override
             public void accept(Map<SpigotVersion, BuildInfo> value) {
                 handleVersionMap( value );
                 initializedProperty.set( true );
                 LogHandler.info( "Loaded " + value.keySet().size() + " Spigot versions." );
+                buildInvalidateCache.setSelected( false );
             }
         };
         SpigotVersionImportTask task = new SpigotVersionImportTask( buildToolsSettings.getVersionLink() );
 
         Console.getInstance().registerTask( task, "Importing Spigot Versions", callback, true );
+        return task;
     }
 
     public void onBuildToolsFinished(BuildToolsOptions tool) {

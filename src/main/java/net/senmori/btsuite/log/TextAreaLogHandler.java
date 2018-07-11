@@ -44,6 +44,7 @@ import java.util.logging.LogRecord;
 public final class TextAreaLogHandler extends Handler {
 
     private final Console console = Console.getInstance();
+    private final TextArea textArea = console.getConsole();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -54,8 +55,6 @@ public final class TextAreaLogHandler extends Handler {
     @Override
     public void publish(LogRecord event) {
         final String formatted = TextAreaFormatter.DEFAULT_FORMATTER.format( event.getLevel(), event.getMessage() );
-
-        TextArea textArea = console.getConsole();
 
         // append log text to TextArea
         readLock.lock();

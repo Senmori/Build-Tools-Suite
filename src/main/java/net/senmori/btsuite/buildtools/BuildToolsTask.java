@@ -39,6 +39,7 @@ import difflib.Patch;
 import javafx.concurrent.Task;
 import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.command.CommandHandler;
+import net.senmori.btsuite.command.ICommandIssuer;
 import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
@@ -59,22 +60,22 @@ import org.apache.maven.shared.invoker.InvocationResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.revwalk.RevCommit;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 public final class BuildToolsTask extends Task<Long> {
     private String applyPatchesShell = "sh";
-    private final AtomicInteger workCount = new AtomicInteger( 0 );
 
     private final BuildToolsOptions options;
     private final BuildToolsSettings settings;
@@ -91,7 +92,7 @@ public final class BuildToolsTask extends Task<Long> {
     }
 
     private void updateWork() {
-        workCount.incrementAndGet();
+
     }
 
     @Override
@@ -193,7 +194,16 @@ public final class BuildToolsTask extends Task<Long> {
             if ( ! verInfo.exists() ) {
                 // download file
                 String url = settings.getVersionLink() + askedVersion + ".json";
-                verInfo = projectPool.submit( new FileDownloadTask( url, verInfo ) ).get();
+                FileDownloadTask task = new FileDownloadTask( url, verInfo );
+                task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                    updateMessage( newValue );
+                } );
+                task.setOnSucceeded( (worker) -> {
+                    updateMessage( "" );
+                } );
+                projectPool.submit( task );
+                verInfo = task.get();
+
                 LogHandler.info( "Downloaded " + askedVersion + "\'s version file." );
                 updateWork();
             } else {
@@ -269,7 +279,15 @@ public final class BuildToolsTask extends Task<Long> {
         if ( ! vanillaJar.exists() || ! HashChecker.checkHash( vanillaJar, versionInfo ) ) {
             LogHandler.info( "Downloading Minecraft Server Version \'" + versionInfo.getMinecraftVersion() + "\' jar." );
             String url = VersionManifest.getInstance().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
-            vanillaJar = projectPool.submit( new FileDownloadTask( url, vanillaJar ) ).get();
+            FileDownloadTask task = new FileDownloadTask( url, vanillaJar );
+            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
+                updateMessage( newValue );
+            } );
+            task.setOnSucceeded( (worker) -> {
+                updateMessage( "" );
+            } );
+            projectPool.submit( task );
+            vanillaJar = task.get();
             updateWork();
         }
 
@@ -378,7 +396,14 @@ public final class BuildToolsTask extends Task<Long> {
 
             File fernJar = new File( dirs.getWorkingDir().getFile(), "BuildData/bin/fernflower.jar" );
             LogHandler.info( "Running decompile command..." );
-            CommandHandler.getCommandIssuer().executeCommand( dirs.getWorkingDir().getFile(), MessageFormat.format( versionInfo.getDecompileCommand(), clazzDir.getAbsolutePath(), decompileDir.getAbsolutePath() ).split( " " ) );
+            ICommandIssuer handler = CommandHandler.getCommandIssuer();
+            Process process = handler.issue( dirs.getWorkingDir().getFile(), MessageFormat.format( versionInfo.getDecompileCommand(), clazzDir.getAbsolutePath(), decompileDir.getAbsolutePath() ).split( " " ) );
+            BufferedReader reader = new BufferedReader( new InputStreamReader( process.getInputStream() ) );
+            String line = "";
+            while ( ( line = reader.readLine() ) != null ) {
+                updateMessage( line );
+            }
+
             LogHandler.info( "Finished decompiling " + FilenameUtils.getBaseName( clazzDir.getName() ) );
             updateWork();
         }
@@ -405,7 +430,7 @@ public final class BuildToolsTask extends Task<Long> {
             File t = new File( nmsDir.getParentFile(), targetFile );
             t.getParentFile().mkdirs();
 
-            LogHandler.info( "Patching with " + file.getName() );
+            updateMessage( "Patching with " + file.getName() );
 
             List<String> readFile = Files.readLines( file, Charsets.UTF_8 );
 
@@ -429,7 +454,7 @@ public final class BuildToolsTask extends Task<Long> {
                 bw.write( line );
                 bw.newLine();
             }
-            updateMessage( "Patched " + FilenameUtils.getBaseName( file.getName() ) );
+            LogHandler.info( "Patched " + FilenameUtils.getBaseName( file.getName() ) );
             updateWork();
             bw.close();
         }
@@ -578,7 +603,6 @@ public final class BuildToolsTask extends Task<Long> {
         watch = watch.stop();
         long seconds = watch.elapsed( TimeUnit.SECONDS );
         projectPool.getService().shutdown();
-        LogHandler.info( "Total work done: " + workCount.get() );
         return seconds;
     }
 

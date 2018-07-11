@@ -43,4 +43,9 @@ public class MinecraftVersion {
     private final LocalDateTime releaseDate;
     private final String SHA_1;
     private final String serverDownloadURL;
+
+
+    public String toString() {
+        return version;
+    }
 }

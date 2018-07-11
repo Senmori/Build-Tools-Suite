@@ -101,8 +101,8 @@ public class TaskPools {
         commonPool.submit(runnable);
     }
 
-    public static TaskPool async(Runnable runnable) {
-        return commonPool.async(runnable);
+    public static void execute(Runnable runnable) {
+        commonPool.getService().execute( runnable );
     }
 
 

@@ -29,8 +29,8 @@
 
 package net.senmori.btsuite.task;
 
+import javafx.concurrent.Task;
 import net.senmori.btsuite.command.CommandHandler;
-import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.util.FileUtil;
@@ -39,34 +39,20 @@ import net.senmori.btsuite.util.SystemChecker;
 import net.senmori.btsuite.util.TaskUtil;
 
 import java.io.File;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
-public class GitInstaller implements Callable<Boolean> {
+public class GitInstaller extends Task<Boolean> {
 
-    private final BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
-    private final BuildToolsSettings.Directories dirs = buildToolsSettings.getDirectories();
+    private final BuildToolsSettings settings = BuildToolsSettings.getInstance();
+    private final BuildToolsSettings.Directories dirs = settings.getDirectories();
 
     public GitInstaller() {
-    }
-
-    public static boolean install() {
-        try {
-            return TaskPools.submit( new GitInstaller() ).get();
-        } catch ( InterruptedException e ) {
-            e.printStackTrace();
-            return false;
-        } catch ( ExecutionException e ) {
-            e.printStackTrace();
-            return false;
-        }
     }
 
     @Override
     public Boolean call() {
         // check for normal git installation
         try {
-            LogHandler.debug("Checking for Git install location.");
+            LogHandler.debug( "Checking for Git install location." );
             CommandHandler.getCommandIssuer().executeCommand( dirs.getWorkingDir().getFile(), "sh", "-c", "exit" );
             return true;
         } catch ( Exception e ) {
@@ -89,8 +75,8 @@ public class GitInstaller implements Callable<Boolean> {
 
                 if ( ! portableGitDir.exists() ) {
                     portableGitDir.mkdirs();
-                    LogHandler.warn("*** Could not find PortableGit executable, downloading. ***");
-                    portableGitDir = TaskUtil.asyncDownloadFile( buildToolsSettings.getGitInstallerLink(), portableGitDir );
+                    LogHandler.warn( "*** Could not find PortableGit executable, downloading. ***" );
+                    portableGitDir = TaskUtil.asyncDownloadFile( settings.getGitInstallerLink(), portableGitDir );
                 }
                 if ( ! FileUtil.isDirectory( portableGitExe.getFile() ) ) {
                     portableGitExe.getFile().mkdirs();
@@ -98,14 +84,15 @@ public class GitInstaller implements Callable<Boolean> {
                     // ProcessRunner appends information we don't need
                     Runtime.getRuntime().exec( portableGitDir.getPath(), new String[] { "-y", "-gm2", "-nr" }, portableGitDir.getParentFile() );
 
-                    LogHandler.warn("*** Please note this is a beta feature, so if it does not work please also try a manual install valueOf git from https://git-for-windows.github.io/ ***");
+                    LogHandler.warn( "*** Please note this is a beta feature, so if it does not work please also try a manual install valueOf git from https://git-for-windows.github.io/ ***" );
                     dirs.setPortableGitDir( portableGitExe );
-                    LogHandler.info("Successfully installed PortableGit to " + dirs.getPortableGitDir());
+                    LogHandler.info( "Successfully installed PortableGit to " + dirs.getPortableGitDir() );
                 }
             } else { // end if windows check
-                LogHandler.error("Invalid Architecture!");
+                LogHandler.error( " Invalid Architecture! This program can only be run on Windows systems!" );
                 return false; // Invalid Architecture
-            }            LogHandler.info("Git installations success!");
+            }
+            LogHandler.info( "Git installation success!" );
             return true;
         } catch ( Exception e ) {
             LogHandler.error("Failed to install git!");

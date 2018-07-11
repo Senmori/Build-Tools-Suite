@@ -36,6 +36,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import net.senmori.btsuite.controllers.BuildTabController;
+import net.senmori.btsuite.controllers.ConsoleController;
+import net.senmori.btsuite.controllers.MainController;
+import net.senmori.btsuite.controllers.MinecraftTabController;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.Directory;
@@ -43,17 +47,24 @@ import net.senmori.btsuite.storage.Directory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.URL;
 
 public class Builder extends Application {
     public static final Directory WORKING_DIR = new Directory( System.getProperty( "user.dir" ), "BTSuite" );
     public static final Directory SETTINGS_FILE = new Directory( WORKING_DIR, "BTS_Settings.json" );
 
+    private static Builder INSTANCE = null;
 
-    private static BuildToolsSettings SETTINGS;
-    private static Stage WINDOW;
+    public static Builder getInstance() {
+        return INSTANCE;
+    }
 
-    private static TabPane tabPane;
+    private Stage window;
+    private TabPane tabPane;
+    private MainController mainController;
+
+    private ConsoleController consoleController;
+    private BuildTabController buildTabController;
+    private MinecraftTabController minecraftTabController;
 
     public static void main(String[] args) {
         PrintStream empty = new PrintStream( new OutputStream() {
@@ -62,30 +73,34 @@ public class Builder extends Application {
 
             }
         } );
-        System.setOut( empty );
-        System.setErr( empty );
+        //System.setOut( empty );
+        //System.setErr( empty );
         launch( args );
     }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        INSTANCE = this;
         WORKING_DIR.getFile().mkdirs();
-        SETTINGS = BuildToolsSettings.create();
+        BuildToolsSettings.create();
 
 
-        Builder.WINDOW = primaryStage;
-        WINDOW.setTitle( "Build Tools Suite" );
-        WINDOW.setResizable( true );
+        window = primaryStage;
+        window.setTitle( "Build Tools Suite" );
+        window.setResizable( true );
 
 
-        Image icon = new Image(this.getClass().getClassLoader().getResourceAsStream("icon.png"));
-        WINDOW.getIcons().add(icon);
+        Image icon = new Image( this.getClass().getClassLoader().getResourceAsStream( "icon.png" ) );
+        window.getIcons().add( icon );
 
-        URL mainController = this.getClass().getClassLoader().getResource("fxml/mainController.fxml");
-        tabPane = FXMLLoader.load(mainController);
+        FXMLLoader loader = new FXMLLoader();
+        loader.setLocation( getClass().getClassLoader().getResource( "mainController.fxml" ) );
+        tabPane = loader.load();
 
-        Scene scene = new Scene(tabPane);
-        WINDOW.setScene( scene );
+        MainController controller = loader.getController();
+
+        Scene scene = new Scene( tabPane );
+        window.setScene( scene );
 
         primaryStage.show();
         primaryStage.setMinWidth( primaryStage.getWidth() );
@@ -93,9 +108,8 @@ public class Builder extends Application {
 
         setActiveTab(WindowTab.BUILD);
 
-        getWindow().setOnCloseRequest((event) -> {
+        getWindow().setOnCloseRequest( (event) -> {
             TaskPools.shutdownNow();
-            Platform.exit();
         });
     }
 
@@ -104,28 +118,52 @@ public class Builder extends Application {
         if(!TaskPools.getService().isShutdown()) {
             TaskPools.shutdownNow();
         }
+        Platform.exit();
     }
 
     public static Stage getWindow() {
-        return Builder.WINDOW;
+        return Builder.getInstance().window;
     }
 
     public TabPane getTabPane() {
-        return tabPane;
+        return Builder.getInstance().tabPane;
+    }
+
+    public MainController getMainController() {
+        return Builder.getInstance().mainController;
     }
 
     public static void setActiveTab(WindowTab tab) {
+        Builder.getInstance().getTabPane().getSelectionModel().select( tab.ordinal() );
+    }
+
+    public void setController(WindowTab tab, Object controller) {
         switch ( tab ) {
             case CONSOLE:
-                tabPane.getSelectionModel().select( 0 );
-                break;
+                this.consoleController = ( ConsoleController ) controller;
+                return;
             case BUILD:
-            default:
-                tabPane.getSelectionModel().select( 1 );
+                this.buildTabController = ( BuildTabController ) controller;
+                return;
+            case MINECRAFT:
+                this.minecraftTabController = ( MinecraftTabController ) controller;
+                return;
         }
     }
 
+    public BuildTabController getBuildTabController() {
+        return buildTabController;
+    }
+
+    public ConsoleController getConsoleController() {
+        return consoleController;
+    }
+
+    public MinecraftTabController getMinecraftTabController() {
+        return minecraftTabController;
+    }
+
     public static boolean isDebugEnabled() {
-        return Boolean.getBoolean( "debugBuildTools" );
+        return false;
     }
 }

@@ -50,7 +50,6 @@ public class SettingsFactory {
                                                       .registerTypeAdapter( BuildToolsSettings.class, new BuildToolsDeserializer() )
                                                       .create();
 
-
     public static Gson getGson() {
         return GSON;
     }

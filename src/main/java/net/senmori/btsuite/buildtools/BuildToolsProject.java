@@ -36,6 +36,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import difflib.DiffUtils;
 import difflib.Patch;
+import javafx.concurrent.Task;
 import net.senmori.btsuite.Builder;
 import net.senmori.btsuite.command.CommandHandler;
 import net.senmori.btsuite.minecraft.VersionManifest;
@@ -66,11 +67,10 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-public class BuildToolsProject implements Callable<Boolean> {
+public class BuildToolsProject extends Task<Boolean> {
     private static String applyPatchesShell = "sh";
 
     private final BuildTools options;

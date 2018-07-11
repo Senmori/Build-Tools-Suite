@@ -29,6 +29,7 @@
 
 package net.senmori.btsuite.task;
 
+import javafx.concurrent.Task;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.Directory;
@@ -38,29 +39,16 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-public class MavenInstaller implements Callable<File> {
+public class MavenInstaller extends Task<File> {
 
     private final BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
     private final BuildToolsSettings.Directories dirs = buildToolsSettings.getDirectories();
 
     public MavenInstaller() {
-
     }
 
-    public static boolean install() {
-        try {
-            return TaskPools.submit( new MavenInstaller() ).get() != null;
-        } catch ( InterruptedException e ) {
-            e.printStackTrace();
-            return false;
-        } catch ( ExecutionException e ) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     @Override
     public File call() {
@@ -95,11 +83,9 @@ public class MavenInstaller implements Callable<File> {
             if ( ! maven.exists() ) {
                 LogHandler.info( "Maven directory was found, but no maven installation!" );
                 FileUtils.deleteQuietly( dirs.getMvnDir().getFile() ); // delete and ignore errors
-                try {
-                    return TaskPools.submit( new MavenInstaller() ).get();
-                } catch ( InterruptedException | ExecutionException e ) {
-                    e.printStackTrace();
-                }
+                TaskPools.execute( new MavenInstaller() );
+                this.cancel( true );
+                return null;
             } else { // apache-maven-<version> exists
                 LogHandler.info( "Local install of maven found!" );
                 dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() ) );

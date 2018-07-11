@@ -27,19 +27,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite.gui;
+package net.senmori.btsuite.buildtools;
 
-import javafx.scene.control.TextArea;
+import javafx.concurrent.Task;
 
-public class BuildToolsConsole {
-    private final TextArea console;
+public final class BuildToolsTask extends Task<Boolean> {
+    private static BuildToolsTask INSTANCE = new BuildToolsTask();
 
-    public BuildToolsConsole(TextArea area) {
-        this.console = area;
+    public static BuildToolsTask getInstance() {
+        return INSTANCE;
     }
 
+    private BuildToolsTask() {
+    }
 
-    public TextArea getConsole() {
-        return console;
+    @Override
+    protected Boolean call() throws Exception {
+        return false;
     }
 }

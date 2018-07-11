@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Text?>
+<AnchorPane fx:id="consoleAnchorPane" minHeight="565.0" minWidth="600.0" xmlns="http://javafx.com/javafx/9.0.1"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="net.senmori.btsuite.controllers.ConsoleController">
+    <children>
+        <VBox fx:id="consoleVBox" prefHeight="200.0" prefWidth="100.0" AnchorPane.bottomAnchor="0.0"
+              AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <children>
+                <ToolBar fx:id="consoleToolBar" prefHeight="40.0" prefWidth="200.0">
+                    <items>
+                        <Button fx:id="consoleMakePasteBtn" mnemonicParsing="false" onAction="#onMakePasteBtn"
+                                text="Create Paste"/>
+                        <Separator orientation="VERTICAL"/>
+                        <Button fx:id="consoleClearChatBtn" mnemonicParsing="false" onAction="#onClearChatBtn"
+                                text="Clear"/>
+                        <Separator orientation="VERTICAL"/>
+                        <Text fx:id="consoleProgressTextID" strokeType="OUTSIDE" strokeWidth="0.0"
+                              text="Current Progress:"/>
+                        <ProgressBar fx:id="consoleProgressBar" prefWidth="200.0" progress="0.0"/>
+                        <Text fx:id="consoleOptionalText" strokeType="OUTSIDE" strokeWidth="0.0"/>
+                    </items>
+                </ToolBar>
+                <TextArea fx:id="consoleTextArea" editable="false" prefHeight="200.0" prefWidth="200.0" wrapText="true"
+                          VBox.vgrow="ALWAYS"/>
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>

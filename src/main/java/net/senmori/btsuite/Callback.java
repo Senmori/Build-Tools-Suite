@@ -29,8 +29,8 @@
 
 package net.senmori.btsuite;
 
-public enum WindowTab {
-    BUILD,
-    CONSOLE,
-    MINECRAFT,
+@FunctionalInterface
+public interface Callback<T> {
+
+    void accept(T value);
 }

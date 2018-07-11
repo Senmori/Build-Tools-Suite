@@ -30,6 +30,10 @@
 package net.senmori.btsuite.controllers;
 
 import com.google.common.collect.Lists;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -42,70 +46,55 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.Callback;
 import net.senmori.btsuite.SpigotVersion;
+import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.buildtools.BuildInfo;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.task.SpigotVersionImportTask;
 import net.senmori.btsuite.util.FileUtil;
-import net.senmori.btsuite.util.LogHandler;
 
 import java.io.File;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class BuildTabController {
 
     private BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
     private BuildTools buildTools;
 
-    @FXML // ResourceBundle that was given to the FXMLLoader
+    @FXML
     private ResourceBundle resources;
-
-    @FXML // URL location valueOf the FXML file that was given to the FXMLLoader
+    @FXML
     private URL location;
-
-    @FXML // fx:id="flagBox"
+    @FXML
     private VBox flagBox;
-
-    @FXML // fx:id="certCheck"
+    @FXML
     private CheckBox certCheck;
-
-    @FXML // fx:id="dontUpdate"
+    @FXML
     private CheckBox dontUpdate;
-
-    @FXML // fx:id="skipCompile"
+    @FXML
     private CheckBox skipCompile;
-
-    @FXML // fx:id="genSrc"
+    @FXML
     private CheckBox genSrc;
-
-    @FXML // fx:id="genDoc"
+    @FXML
     private CheckBox genDoc;
-
-    @FXML // fx:id="runBuildToolsBtn"
+    @FXML
     private Button runBuildToolsBtn;
-
-    @FXML // fx:id="outputAnchorPane"
+    @FXML
     private AnchorPane outputAnchorPane;
-
-    @FXML // fx:id="addOutputDirBtn"
+    @FXML
     private Button addOutputDirBtn;
-
-    @FXML // fx:id="delOutputBtn"
+    @FXML
     private Button delOutputBtn;
-
-    @FXML // fx:id="outputDirListView"
+    @FXML
     private ListView<String> outputDirListView;
-
-    @FXML // fx:id="choiceComboBox"
+    @FXML
     private ComboBox<String> choiceComboBox;
-
     @FXML
     private CheckBox buildInvalidateCache;
 
@@ -185,10 +174,13 @@ public class BuildTabController {
         }
     }
 
+    private BooleanProperty initializedProperty = new SimpleBooleanProperty( this, "Initialized", false );
+    private BooleanBinding binding;
     @FXML
     void initialize() {
         buildTools = new BuildTools( this );
         outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        binding = Bindings.or( buildTools.getRunningProperty(), Bindings.not( initializedProperty ) );
 
         // populate directory list
         outputDirListView.getItems().addAll( BuildToolsSettings.getInstance().getRecentOutputDirectories() );
@@ -196,32 +188,28 @@ public class BuildTabController {
             outputDirListView.getItems().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
         }
 
-        choiceComboBox.setVisibleRowCount(10);
-        runBuildToolsBtn.setDisable( true );
+        choiceComboBox.setVisibleRowCount( 10 );
+        runBuildToolsBtn.disableProperty().bind( binding );
 
-        runBuildToolsBtn.disableProperty().bind( buildTools.getRunningProperty() );
-
-        runTasks();
+        Builder.getInstance().setController( WindowTab.BUILD, this );
+        importVersions();
     }
 
-    private void runTasks() {
-        SpigotVersionImportTask importer = new SpigotVersionImportTask( buildToolsSettings.getVersionLink() );
-        Future<Map<SpigotVersion, BuildInfo>> future = TaskPools.submit( importer );
-        Map<SpigotVersion, BuildInfo> versionMap = null;
-        try {
-            versionMap = future.get();
-        } catch ( InterruptedException e ) {
-            e.printStackTrace();
-        } catch ( ExecutionException e ) {
-            e.printStackTrace();
-        }
+    private void invalidateVersions() {
 
+    }
 
-        if ( versionMap != null ) {
-            boolean versions = handleVersionMap( versionMap );
-        } else {
-            LogHandler.warn( "Error importing version map." );
-        }
+    private void importVersions() {
+        Callback<Map<SpigotVersion, BuildInfo>> callback = new Callback<Map<SpigotVersion, BuildInfo>>() {
+            @Override
+            public void accept(Map<SpigotVersion, BuildInfo> value) {
+                handleVersionMap( value );
+                initializedProperty.set( true );
+            }
+        };
+        SpigotVersionImportTask task = new SpigotVersionImportTask( buildToolsSettings.getVersionLink() );
+
+        Console.getInstance().newTask( task, "Importing Spigot Versions", callback );
     }
 
     public void onBuildToolsFinished(BuildTools tool) {

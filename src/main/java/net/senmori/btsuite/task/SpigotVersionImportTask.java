@@ -31,12 +31,15 @@ package net.senmori.btsuite.task;
 
 import com.google.common.collect.Maps;
 import com.google.gson.stream.JsonReader;
+import javafx.concurrent.Task;
 import net.senmori.btsuite.SpigotVersion;
 import net.senmori.btsuite.buildtools.BuildInfo;
+import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.util.LogHandler;
+import org.apache.commons.io.FilenameUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -45,15 +48,16 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
-public class SpigotVersionImportTask implements Callable<Map<SpigotVersion, BuildInfo>> {
-    private static final Pattern JSON_PATTERN = Pattern.compile(".json");
-    private static final BuildToolsSettings SETTINGS = BuildToolsSettings.getInstance();
-    private static final BuildToolsSettings.Directories DIRS = SETTINGS.getDirectories();
+public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>> {
+    private final Pattern JSON_PATTERN = Pattern.compile( ".json" );
+    private final BuildToolsSettings SETTINGS = BuildToolsSettings.getInstance();
+    private final BuildToolsSettings.Directories DIRS = SETTINGS.getDirectories();
 
     private final String url;
+
+    private final TaskPool pool = TaskPools.createFixedThreadPool( 3 );
 
     public SpigotVersionImportTask(String url) {
         this.url = url;
@@ -66,12 +70,15 @@ public class SpigotVersionImportTask implements Callable<Map<SpigotVersion, Buil
         File versionFile = new File( spigotVersionsDir, "versions.html" );
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
-            versionFile = TaskPools.submit( new FileDownloadTask( url, versionFile ) ).get(); // block
-            LogHandler.debug(" Downloaded " + versionFile);
+            versionFile = pool.submit( new FileDownloadTask( url, versionFile ) ).get(); // block
+            LogHandler.info( " Downloaded " + versionFile );
         }
 
         Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
         Map<SpigotVersion, BuildInfo> map = Maps.newHashMap();
+        int size = map.keySet().size();
+        int tasksPerElement = 4;
+        double workPerTask = ( double ) ( tasksPerElement * size ) / 100.0D;
         for ( Element element : links ) {
             if ( element.wholeText().startsWith("..") ) // ignore non-version links
                 continue;
@@ -85,11 +92,13 @@ public class SpigotVersionImportTask implements Callable<Map<SpigotVersion, Buil
             File verFile = new File( spigotVersionsDir, text );
             if ( !verFile.exists() ) {
                 verFile.createNewFile();
-                verFile = TaskPools.submit( new FileDownloadTask( versionUrl, verFile ) ).get(); // block
+                verFile = pool.submit( new FileDownloadTask( versionUrl, verFile ) ).get(); // block
             }
+            updateMessage( "Version: " + FilenameUtils.getBaseName( verFile.getName() ) );
             JsonReader reader = new JsonReader(new FileReader(verFile));
             BuildInfo buildInfo = SettingsFactory.getGson().fromJson( reader, BuildInfo.class );
             map.put(version, buildInfo);
+            updateProgress( workPerTask, Double.MAX_VALUE );
         }
         LogHandler.info("Loaded " + map.keySet().size() + " Spigot versions.");
         return map;

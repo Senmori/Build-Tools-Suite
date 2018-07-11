@@ -31,7 +31,7 @@ package net.senmori.btsuite.log;
 
 import javafx.application.Platform;
 import javafx.scene.control.TextArea;
-import net.senmori.btsuite.gui.BuildToolsConsole;
+import net.senmori.btsuite.controllers.Console;
 import net.senmori.btsuite.util.format.TextAreaFormatter;
 
 import java.util.concurrent.locks.Lock;
@@ -43,20 +43,19 @@ import java.util.logging.LogRecord;
 
 public final class TextAreaLogHandler extends Handler {
 
-    private final BuildToolsConsole console;
-    private final TextArea textArea;
+    private final Console console = Console.getInstance();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
 
-    public TextAreaLogHandler(BuildToolsConsole console) {
-        this.console = console;
-        this.textArea = console.getConsole();
+    public TextAreaLogHandler() {
     }
 
     @Override
     public void publish(LogRecord event) {
         final String formatted = TextAreaFormatter.DEFAULT_FORMATTER.format( event.getLevel(), event.getMessage() );
+
+        TextArea textArea = console.getConsole();
 
         // append log text to TextArea
         readLock.lock();
@@ -81,6 +80,7 @@ public final class TextAreaLogHandler extends Handler {
 
     @Override
     public void flush() {
+
     }
 
     @Override

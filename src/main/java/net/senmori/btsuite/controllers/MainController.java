@@ -31,13 +31,17 @@ package net.senmori.btsuite.controllers;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Tab;
+import lombok.Getter;
 
+@Getter
 public class MainController {
 
     @FXML
-    Tab buildTab;
+    private Tab buildTab;
     @FXML
-    Tab consoleTab;
+    private Tab consoleTab;
+    @FXML
+    private Tab minecraftTab;
 
     @FXML
     void initialize() {

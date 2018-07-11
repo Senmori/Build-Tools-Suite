@@ -29,79 +29,71 @@
 
 package net.senmori.btsuite.controllers;
 
+import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.gui.BuildToolsConsole;
+import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.log.LoggerStream;
 import net.senmori.btsuite.log.TextAreaLogHandler;
-import net.senmori.btsuite.task.GitConfigurationTask;
-import net.senmori.btsuite.task.GitInstaller;
-import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.util.JFxUtils;
-import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.PasteUtil;
 
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class ConsoleController {
 
-    @FXML // ResourceBundle that was given to the FXMLLoader
+    @FXML
     private ResourceBundle resources;
-
-    @FXML // URL location of the FXML file that was given to the FXMLLoader
+    @FXML
     private URL location;
-
     @FXML
     private AnchorPane consoleAnchorPane;
-
     @FXML
     private VBox consoleVBox;
-
     @FXML
     private ToolBar consoleToolBar;
-
     @FXML
     private Button consoleMakePasteBtn;
-
     @FXML
     private Button consoleClearChatBtn;
-
     @FXML
     private TextArea consoleTextArea;
+    @FXML
+    private Text consoleProgressTextID;
+    @FXML
+    private ProgressBar consoleProgressBar;
+    @FXML
+    private Text consoleOptionalText;
 
     @FXML
     void initialize() {
-        assert consoleTextArea != null;
+        Builder.getInstance().setController( WindowTab.CONSOLE, this );
         LogManager.getLogManager().reset(); // remove all handlers
         Logger rootLogger = LogManager.getLogManager().getLogger("");
-        if ( Builder.isDebugEnabled() ) {
-            rootLogger.setLevel( Level.CONFIG );
-        }
 
-        BuildToolsConsole console = new BuildToolsConsole( consoleTextArea );
-        TextAreaLogHandler handler = new TextAreaLogHandler( console );
-        rootLogger.addHandler( handler );
+        Console.getInstance().setConsole( consoleTextArea );
+        Console.getInstance().setProgressBar( consoleProgressBar );
+        Console.getInstance().setProgessTextField( consoleProgressTextID );
+        Console.getInstance().setOptionalTextField( consoleOptionalText );
+        rootLogger.addHandler( new TextAreaLogHandler() );
         LoggerStream.setOutAndErrToLog();
-
-        boolean git = GitInstaller.install();
-        boolean mvn = MavenInstaller.install();
-
-        GitConfigurationTask.runTask();
 
         consoleClearChatBtn.disableProperty().bind( consoleTextArea.textProperty().isEmpty() );
         consoleMakePasteBtn.disableProperty().bind( consoleClearChatBtn.disableProperty() );
 
-        LogHandler.debug( "Debug mode enabled!" );
+        consoleProgressTextID.visibleProperty().bind( Bindings.isNotEmpty( consoleProgressTextID.textProperty() ) );
+        consoleOptionalText.visibleProperty().bind( Bindings.isNotEmpty( consoleOptionalText.textProperty() ) );
     }
 
     @FXML

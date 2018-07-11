@@ -33,6 +33,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -69,7 +74,8 @@ public class TaskPools {
     public static TaskPool createCachedTaskPool() {
         return createTaskPool(Executors.newCachedThreadPool(r -> {
             final Thread thread = new Thread(r);
-            thread.setName("BuildToolsSuiteQueue Thread " + threadID.getAndIncrement());
+            thread.setName( "BuildToolsSuite Thread " + threadID.getAndIncrement() );
+            thread.setDaemon( true );
             return thread;
         }));
     }
@@ -81,7 +87,20 @@ public class TaskPools {
      * @return a new {@link TaskPool}
      */
     public static TaskPool createFixedThreadPool(int maxThreads) {
-        return createTaskPool(Executors.newFixedThreadPool(maxThreads));
+        return createTaskPool( new ThreadPoolExecutor(
+                        maxThreads, maxThreads, 0L,
+                        TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
+                        new ThreadFactory() {
+                            @Override
+                            public Thread newThread(Runnable r) {
+                                Thread thread = new Thread( r );
+                                thread.setName( "BuildToolsSuite-Thread " + threadID.incrementAndGet() );
+                                thread.setDaemon( true );
+                                return thread;
+                            }
+                        }
+                )
+        );
     }
 
     /**
@@ -90,7 +109,15 @@ public class TaskPools {
      * @return a new {@link TaskPool}
      */
     public static TaskPool createSingleTaskPool() {
-        return createTaskPool(Executors.newSingleThreadScheduledExecutor());
+        return createTaskPool( new ScheduledThreadPoolExecutor( 1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread( r );
+                thread.setName( "BuildToolsSuite-Thread " + threadID.incrementAndGet() );
+                thread.setDaemon( true );
+                return thread;
+            }
+        } ) );
     }
 
     public static <T> Future<T> submit(Callable<T> callable) {
@@ -116,5 +143,9 @@ public class TaskPools {
 
     public static void shutdownNow() {
         commonPool.getService().shutdownNow();
+    }
+
+    public static boolean isShutdown() {
+        return commonPool.getService().isShutdown();
     }
 }

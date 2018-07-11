@@ -109,15 +109,19 @@ public class Builder extends Application {
         setActiveTab(WindowTab.BUILD);
 
         getWindow().setOnCloseRequest( (event) -> {
-            TaskPools.shutdownNow();
+            TaskPools.shutdown();
         });
     }
 
+    @SuppressWarnings( "restriction" )
     @Override
     public void stop() {
         if(!TaskPools.getService().isShutdown()) {
-            TaskPools.shutdownNow();
+            do {
+                TaskPools.shutdown();
+            } while ( ! TaskPools.getService().isShutdown() );
         }
+
         Platform.exit();
     }
 

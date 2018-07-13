@@ -37,7 +37,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.Main;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.ConfigurationKey;
 import net.senmori.btsuite.storage.Directory;
@@ -101,7 +101,7 @@ public final class BuildToolsDeserializer implements com.google.gson.JsonDeseria
 
     private Map<String, Directory> buildDirs(JsonArray obj) {
         Map<String, Directory> directories = Maps.newHashMap();
-        directories.put( "working_dir", Builder.WORKING_DIR );
+        directories.put( "working_dir", Main.WORKING_DIR );
 
         List<JsonObject> deferred = Lists.newLinkedList(); // attempt to accommodate for out of order directories
         Set<String> ids = Sets.newLinkedHashSet();

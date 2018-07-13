@@ -30,6 +30,7 @@
 package net.senmori.btsuite.task;
 
 import javafx.concurrent.Task;
+import net.senmori.btsuite.Console;
 import net.senmori.btsuite.util.LogHandler;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
@@ -40,10 +41,12 @@ import java.io.File;
 public class GitPullTask extends Task<File> {
     private final Git repo;
     private final String ref;
+    private final Console console;
 
-    public GitPullTask(Git repo, String ref) {
+    public GitPullTask(Git repo, String ref, Console console) {
         this.repo = repo;
         this.ref = ref;
+        this.console = console;
     }
 
     @Override
@@ -142,7 +145,7 @@ public class GitPullTask extends Task<File> {
             }
 
             private void send(StringBuilder s) {
-                updateMessage( s.toString() );
+                console.setOptionalText( s.toString() );
             }
         };
     }

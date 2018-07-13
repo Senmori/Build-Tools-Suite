@@ -29,9 +29,8 @@
 
 package net.senmori.btsuite.log;
 
-import javafx.application.Platform;
 import javafx.scene.control.TextArea;
-import net.senmori.btsuite.controllers.Console;
+import net.senmori.btsuite.Console;
 import net.senmori.btsuite.util.format.TextAreaFormatter;
 
 import java.util.concurrent.locks.Lock;
@@ -43,13 +42,15 @@ import java.util.logging.LogRecord;
 
 public final class TextAreaLogHandler extends Handler {
 
-    private final Console console = Console.getInstance();
-    private final TextArea textArea = console.getConsole();
+    private final Console console;
+    private final TextArea textArea;
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
 
-    public TextAreaLogHandler() {
+    public TextAreaLogHandler(Console console) {
+        this.console = console;
+        this.textArea = console.getConsoleTextArea();
     }
 
     @Override
@@ -59,16 +60,7 @@ public final class TextAreaLogHandler extends Handler {
         // append log text to TextArea
         readLock.lock();
         try {
-            Platform.runLater(() -> {
-                try {
-                    if (textArea != null) {
-                        textArea.appendText( formatted );
-                        textArea.selectEnd();
-                    }
-                } catch ( Throwable t ) {
-                    throw new IllegalStateException( "Error writing to console." );
-                }
-            });
+            console.append( formatted ); // this is already wrapped in Platform#runLater
         } catch ( IllegalStateException ex ) {
             ex.printStackTrace();
 

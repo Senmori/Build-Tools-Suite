@@ -55,6 +55,7 @@ public class TaskPools {
     private static final AtomicInteger threadID = new AtomicInteger();
 
     private static final TaskPool commonPool = createCachedTaskPool();
+    private static final TaskPool singlePool = createSingleTaskPool();
 
     /**
      * Create a new {@link TaskPool} with a specified {@link ExecutorService}.
@@ -63,7 +64,7 @@ public class TaskPools {
      * @return a new {@link TaskPool}
      */
     public static TaskPool createTaskPool(ExecutorService service) {
-        return new ExecutorTaskPool(service);
+        return new ExecutorTaskPool( service );
     }
 
     /**
@@ -72,12 +73,7 @@ public class TaskPools {
      * @return a new {@link TaskPool}
      */
     public static TaskPool createCachedTaskPool() {
-        return createTaskPool(Executors.newCachedThreadPool(r -> {
-            final Thread thread = new Thread(r);
-            thread.setName( "BuildToolsSuite Thread " + threadID.getAndIncrement() );
-            thread.setDaemon( true );
-            return thread;
-        }));
+        return createTaskPool( Executors.newCachedThreadPool( getThreadFactory() ) );
     }
 
     /**
@@ -90,15 +86,7 @@ public class TaskPools {
         return createTaskPool( new ThreadPoolExecutor(
                         maxThreads, maxThreads, 0L,
                         TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
-                        new ThreadFactory() {
-                            @Override
-                            public Thread newThread(Runnable r) {
-                                Thread thread = new Thread( r );
-                                thread.setName( "BuildToolsSuite-Thread " + threadID.incrementAndGet() );
-                                thread.setDaemon( true );
-                                return thread;
-                            }
-                        }
+                getThreadFactory()
                 )
         );
     }
@@ -109,15 +97,17 @@ public class TaskPools {
      * @return a new {@link TaskPool}
      */
     public static TaskPool createSingleTaskPool() {
-        return createTaskPool( new ScheduledThreadPoolExecutor( 1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread( r );
-                thread.setName( "BuildToolsSuite-Thread " + threadID.incrementAndGet() );
-                thread.setDaemon( true );
-                return thread;
-            }
-        } ) );
+        return createTaskPool( new ScheduledThreadPoolExecutor( 1, getThreadFactory() ) );
+    }
+
+    /**
+     * Get a copy of the TaskPool created by {@link #createSingleTaskPool()} so multiple tasks can occupy
+     * the same pool to ensure they are run in order.
+     *
+     * @return the {@link TaskPool}
+     */
+    public static TaskPool getSinglePool() {
+        return singlePool;
     }
 
     public static <T> Future<T> submit(Callable<T> callable) {
@@ -131,7 +121,6 @@ public class TaskPools {
     public static void execute(Runnable runnable) {
         commonPool.getService().execute( runnable );
     }
-
 
     public static ExecutorService getService() {
         return commonPool.getService();
@@ -147,5 +136,17 @@ public class TaskPools {
 
     public static boolean isShutdown() {
         return commonPool.getService().isShutdown();
+    }
+
+    public static ThreadFactory getThreadFactory() {
+        return new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread( r );
+                thread.setName( "BuildToolsSuite-Thread " + threadID.incrementAndGet() );
+                thread.setDaemon( true );
+                return thread;
+            }
+        };
     }
 }

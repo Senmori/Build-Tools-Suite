@@ -41,7 +41,8 @@
                   <Separator prefHeight="24.0" prefWidth="180.0"/>
               </children>
           </VBox>
-          <Button fx:id="runBuildToolsBtn" layoutX="388.0" layoutY="25.0" mnemonicParsing="false" onAction="#onRunBuildToolsClicked" prefHeight="25.0" prefWidth="101.0" text="Run BuildTools" />
+    <Button fx:id="runBuildToolsBtn" layoutX="388.0" layoutY="25.0" mnemonicParsing="false"
+            onAction="#onRunBuildToolsClicked" text="Run BuildTools"/>
     <AnchorPane fx:id="outputAnchorPane" layoutX="14.0" layoutY="184.0" prefHeight="203.0" prefWidth="475.0">
               <children>
                   <Button fx:id="addOutputDirBtn" layoutY="2.0" mnemonicParsing="false" onAction="#onAddOutputDirClicked" text="Add Output Directory..." />

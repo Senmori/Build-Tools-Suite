@@ -32,13 +32,16 @@ package net.senmori.btsuite.task;
 import com.google.common.collect.Maps;
 import com.google.gson.stream.JsonReader;
 import javafx.concurrent.Task;
-import net.senmori.btsuite.SpigotVersion;
+import net.senmori.btsuite.Console;
 import net.senmori.btsuite.buildtools.BuildInfo;
+import net.senmori.btsuite.buildtools.BuildTools;
+import net.senmori.btsuite.buildtools.SpigotVersion;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.util.LogHandler;
+import net.senmori.btsuite.util.TaskUtil;
 import org.apache.commons.io.FilenameUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
@@ -52,41 +55,40 @@ import java.util.regex.Pattern;
 
 public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>> {
     private final Pattern JSON_PATTERN = Pattern.compile( ".json" );
-    private final BuildToolsSettings SETTINGS = BuildToolsSettings.getInstance();
-    private final BuildToolsSettings.Directories DIRS = SETTINGS.getDirectories();
+    private final BuildToolsSettings settings;
+    private final BuildToolsSettings.Directories dirs;
 
     private final String url;
 
     private final TaskPool pool = TaskPools.createFixedThreadPool( 3 );
+    private final BuildTools buildTools;
+    private final Console console;
 
-    public SpigotVersionImportTask(String url) {
-        this.url = url;
+    public SpigotVersionImportTask(BuildTools buildTools) {
+        this.buildTools = buildTools;
+        this.console = buildTools.getConsole();
+
+        this.settings = buildTools.getSettings();
+        this.dirs = buildTools.getSettings().getDirectories();
+        this.url = this.settings.getVersionLink();
     }
 
     @Override
     public Map<SpigotVersion, BuildInfo> call() throws Exception {
-        File spigotVersionsDir = new File( DIRS.getVersionsDir().getFile(), "spigot" );
+        File spigotVersionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
         spigotVersionsDir.mkdirs();
         File versionFile = new File( spigotVersionsDir, "versions.html" );
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
-            FileDownloadTask task = new FileDownloadTask( url, versionFile );
-            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                updateMessage( newValue );
-            } );
-            task.setOnSucceeded( (worker) -> {
-                updateMessage( "" );
-            } );
-            pool.submit( task );
-            versionFile = task.get();
-            LogHandler.info( " Downloaded " + versionFile );
+            versionFile = TaskUtil.asyncDownloadFile( url, versionFile );
+            LogHandler.info( " Downloaded " + FilenameUtils.getBaseName( versionFile.getName() ) );
+        } else {
+            LogHandler.info( versionFile.getName() + " already exists!" );
         }
 
         Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
         Map<SpigotVersion, BuildInfo> map = Maps.newHashMap();
-        int size = map.keySet().size();
-        int tasksPerElement = 4;
-        double workPerTask = ( double ) ( tasksPerElement * size ) / 100.0D;
+
         for ( Element element : links ) {
             if ( element.wholeText().startsWith("..") ) // ignore non-version links
                 continue;
@@ -100,17 +102,9 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
             File verFile = new File( spigotVersionsDir, text );
             if ( !verFile.exists() ) {
                 verFile.createNewFile();
-                FileDownloadTask task = new FileDownloadTask( versionUrl, verFile );
-                task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                    updateMessage( newValue );
-                } );
-                task.setOnSucceeded( (worker) -> {
-                    updateMessage( "" );
-                } );
-                pool.submit( task );
-                verFile = task.get();
+                verFile = TaskUtil.asyncDownloadFile( versionUrl, verFile );
             }
-            updateMessage( FilenameUtils.getBaseName( verFile.getName() ) );
+            console.setOptionalText( FilenameUtils.getBaseName( verFile.getName() ) );
             JsonReader reader = new JsonReader( new FileReader( verFile ) );
             BuildInfo buildInfo = SettingsFactory.getGson().fromJson( reader, BuildInfo.class );
             map.put( version, buildInfo );

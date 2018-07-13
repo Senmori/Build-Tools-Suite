@@ -29,68 +29,77 @@
 
 package net.senmori.btsuite.task;
 
-import com.google.common.collect.Lists;
 import javafx.concurrent.Task;
-import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.buildtools.BuildTools;
+import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.util.LogHandler;
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FileDeleteStrategy;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
+import java.util.stream.Stream;
 
 public class InvalidateCacheTask extends Task<Boolean> {
 
-    private final File workingDirectory;
-    private final Task parent;
+    private final BuildTools buildTools;
+    private final VersionManifest manifest;
 
-    public InvalidateCacheTask(File workingDirectory) {
-        this.workingDirectory = workingDirectory;
-        this.parent = null;
+    public InvalidateCacheTask(BuildTools buildTools, VersionManifest manifest) {
+        this.buildTools = buildTools;
+        this.manifest = manifest;
     }
 
     @Override
     public Boolean call() throws Exception {
+        File workingDirectory = buildTools.getWorkingDirectory().getFile();
         LogHandler.info( "Deleting all files and directories in " + workingDirectory.getName() );
         // Use our own deletion method instead of apache so we can redirect output to where we want
-        if ( ! workingDirectory.exists() ) {
+        if ( !workingDirectory.exists() ) {
             throw new IllegalArgumentException( workingDirectory + " does not exist." );
         }
-        if ( ! workingDirectory.isDirectory() ) {
+        if ( !workingDirectory.isDirectory() ) {
             throw new IllegalArgumentException( workingDirectory + " is not a directory" );
         }
 
-        final File[] files = workingDirectory.listFiles();
-        if ( files == null ) {
+        File[] files = workingDirectory.listFiles();
+        if ( ( files == null ) || ( files.length < 1 ) ) {
             throw new IOException( "Failed to list contents of " + workingDirectory );
         }
 
-        List<File> toDelete = Lists.newLinkedList();
-        IOException exception = null;
-        for ( final File file : files ) {
-            updateMessage( FilenameUtils.getBaseName( file.getName() ) );
-            try {
-                FileUtils.forceDelete( file );
-            } catch ( IOException e ) {
-                toDelete.add( file );
-            }
-        }
+        Stream.of( files ).forEach( this::delete );
 
-        if ( ! toDelete.isEmpty() ) {
-            Iterator<File> iter = toDelete.iterator();
-            while ( iter.hasNext() ) {
-                File next = iter.next();
-                FileUtils.deleteQuietly( next );
-            }
-        }
+        // Re-import spigot and minecraft versions
+        buildTools.importVersions();
+        manifest.importVersions();
 
-        // Re-import spigot versions
-        Builder.getInstance().getBuildTabController().importVersions().get();
-        Builder.getInstance().getMinecraftTabController().importVersions().get();
-
-        LogHandler.info( "Invalidated Cache!" );
         return true;
+    }
+
+    private void delete(File file) {
+        if ( file.isDirectory() ) {
+            File[] files = file.listFiles();
+            if ( ( files == null ) || ( files.length < 1 ) ) {
+                return;
+            }
+            for ( File in : files ) {
+                if ( in.isDirectory() ) {
+                    delete( in );
+                } else {
+                    updateMessage( FilenameUtils.getBaseName( in.getName() ) );
+                    try {
+                        FileDeleteStrategy.FORCE.delete( in );
+                    } catch ( IOException e ) {
+
+                    }
+                }
+            }
+        }
+        updateMessage( "Deleting " + FilenameUtils.getBaseName( file.getName() ) );
+        try {
+            FileDeleteStrategy.FORCE.delete( file );
+        } catch ( IOException e ) {
+
+        }
     }
 }

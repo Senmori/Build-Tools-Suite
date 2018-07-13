@@ -29,67 +29,55 @@
 
 package net.senmori.btsuite.minecraft;
 
-import com.google.common.collect.Lists;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import lombok.Getter;
-import net.senmori.btsuite.storage.BuildToolsSettings;
-import net.senmori.btsuite.util.LogHandler;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 @Getter
 public class VersionManifest {
-    private static final VersionManifest INSTANCE = new VersionManifest();
 
-    public static VersionManifest getInstance() {
-        return INSTANCE;
+    private final BooleanProperty initializedProperty = new SimpleBooleanProperty( this, "initialized", false );
+    private final BooleanProperty importVersionsProxyProperty = new SimpleBooleanProperty( this, "importVersions", false );
+    private final ObservableList<MinecraftVersion> availableVersions = FXCollections.observableArrayList();
+
+    public BooleanProperty getInitializedProperty() {
+        return initializedProperty;
     }
-
-    private VersionManifest() {
-    }
-
-
-    private final BooleanProperty initializedProperty = new SimpleBooleanProperty( this, "VersionManifest", false );
-    private final Collection<MinecraftVersion> availableVersions = Lists.newLinkedList();
 
     public boolean isInitialized() {
         return initializedProperty.get();
+    }
+
+    public void setInitialized(boolean value) {
+        initializedProperty.set( value );
+    }
+
+    public BooleanProperty getImportVersionsProperty() {
+        return importVersionsProxyProperty;
+    }
+
+    public void importVersions() {
+        importVersionsProxyProperty.set( true );
     }
 
     public MinecraftVersion getVersion(String version) {
         return availableVersions.stream().filter( (ver) -> ver.getVersion().equalsIgnoreCase( version ) ).findFirst().orElse( null );
     }
 
-    public Collection<MinecraftVersion> getByReleaseType(ReleaseType releaseType) {
+    public Collection<MinecraftVersion> getVersionsByReleaseType(ReleaseType releaseType) {
         return availableVersions.stream().filter( (ver) -> ver.getReleaseType() == releaseType ).collect( Collectors.toList() );
     }
 
     public void setAvailableVersions(Collection<MinecraftVersion> versions) {
         this.availableVersions.clear();
-        this.availableVersions.addAll( versions );
-    }
-
-    public boolean invalidateCache() {
-        initializedProperty.set( false );
-        // delete versions_manifest file
-        availableVersions.clear();
-        BuildToolsSettings.Directories dirs = BuildToolsSettings.getInstance().getDirectories();
-        File versionsDir = new File( dirs.getVersionsDir().getFile(), "minecraft" );
-        versionsDir.mkdirs();
-        File manifestFile = new File( versionsDir, "version_manifest.json" );
-        boolean delete = false;
-        try {
-            delete = Files.deleteIfExists( manifestFile.toPath() );
-            LogHandler.info( "Deleted version_manifest" );
-        } catch ( IOException e ) {
-            e.printStackTrace();
-            return false;
+        for ( MinecraftVersion v : versions ) {
+            availableVersions.add( v );
         }
-        return delete;
+        this.initializedProperty.set( true );
     }
 }

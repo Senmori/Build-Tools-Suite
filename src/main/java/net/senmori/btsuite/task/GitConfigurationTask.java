@@ -37,14 +37,17 @@ import net.senmori.btsuite.util.LogHandler;
 public class GitConfigurationTask implements Runnable {
 
 
-    public static void runTask() {
-        new GitConfigurationTask().run();
+    private final BuildToolsSettings settings;
+    private final BuildToolsSettings.Directories dirs;
+
+    public GitConfigurationTask(BuildToolsSettings settings) {
+        this.settings = settings;
+        this.dirs = settings.getDirectories();
     }
 
     @Override
     public void run() {
         ICommandIssuer commandHandler = CommandHandler.getCommandIssuer();
-        BuildToolsSettings.Directories dirs = BuildToolsSettings.getInstance().getDirectories();
         try {
             commandHandler.executeCommand( dirs.getWorkingDir().getFile(), "git", "--version" );
         } catch ( Exception e ) {

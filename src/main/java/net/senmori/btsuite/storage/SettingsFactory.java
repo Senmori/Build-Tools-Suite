@@ -31,7 +31,7 @@ package net.senmori.btsuite.storage;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.Main;
 import net.senmori.btsuite.storage.adapters.BuildToolsDeserializer;
 import net.senmori.btsuite.storage.adapters.BuildToolsSerializer;
 
@@ -59,7 +59,7 @@ public class SettingsFactory {
             BuildToolsSettings settings = null;
             if ( ! file.exists() ) {
                 file.createNewFile();
-                settings = GSON.fromJson( new InputStreamReader( Builder.class.getResourceAsStream( "BTS_Settings.json" ) ), BuildToolsSettings.class );
+                settings = GSON.fromJson( new InputStreamReader( Main.class.getResourceAsStream( "BTS_Settings.json" ) ), BuildToolsSettings.class );
             } else {
                 settings = GSON.fromJson( new FileReader( file ), BuildToolsSettings.class );
             }
@@ -76,7 +76,7 @@ public class SettingsFactory {
     }
 
     public static File saveSettings(BuildToolsSettings settings) {
-        File settingsFile = Builder.SETTINGS_FILE.getFile();
+        File settingsFile = Main.SETTINGS_FILE.getFile();
         try ( Writer writer = new FileWriter( settingsFile ) ) {
             GSON.toJson( settings, writer );
         } catch ( IOException e ) {

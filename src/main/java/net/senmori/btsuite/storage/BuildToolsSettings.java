@@ -35,7 +35,7 @@ import com.google.gson.annotations.SerializedName;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.Main;
 import net.senmori.btsuite.buildtools.VersionInfo;
 import net.senmori.btsuite.storage.annotations.Exclude;
 import net.senmori.btsuite.storage.annotations.Section;
@@ -162,12 +162,16 @@ public final class BuildToolsSettings {
 
     /**
      * The most recently used output directories.<br>
-     * The output will automatically be put in {@link Builder#WORKING_DIR} if no other options exist.
+     * The output will automatically be put in {@link Main#WORKING_DIR} if no other options exist.
      */
     @Section( SectionKey.OUTPUT_DIRS )
     private final List<String> recentOutputDirectories = Lists.newLinkedList();
 
-    private BuildToolsSettings(Map<String, String> map, Map<String, Directory> directories, List<String> recentOutputDirectories) {
+    public BuildToolsSettings() {
+        this( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
+    }
+
+    public BuildToolsSettings(Map<String, String> map, Map<String, Directory> directories, List<String> recentOutputDirectories) {
         this.directories = new Directories( directories );
 
         // versions
@@ -217,7 +221,7 @@ public final class BuildToolsSettings {
          */
         @Setter( AccessLevel.NONE )
         @Exclude
-        private final Directory workingDir = Builder.WORKING_DIR;
+        private final Directory workingDir = Main.WORKING_DIR;
 
         /**
          * The location where most valueOf the work done by BuildToolsSuite is performed.
@@ -272,7 +276,7 @@ public final class BuildToolsSettings {
             init();
         }
 
-        private void init() {
+        public void init() {
             workingDir.getFile().mkdir(); // Required & immutable.
 
             workDir.getFile().mkdir();

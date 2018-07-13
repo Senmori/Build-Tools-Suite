@@ -37,10 +37,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import net.senmori.btsuite.controllers.BuildTabController;
-import net.senmori.btsuite.controllers.ConsoleController;
-import net.senmori.btsuite.controllers.MainController;
-import net.senmori.btsuite.controllers.MinecraftTabController;
+import net.senmori.btsuite.controllers.ControllerFactory;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.Directory;
@@ -50,13 +47,13 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Map;
 
-public class Builder extends Application {
+public class Main extends Application {
     public static final Directory WORKING_DIR = new Directory( System.getProperty( "user.dir" ), "BTSuite" );
     public static final Directory SETTINGS_FILE = new Directory( WORKING_DIR, "BTS_Settings.json" );
 
-    private static Builder INSTANCE = null;
+    private static Main INSTANCE = null;
 
-    public static Builder getInstance() {
+    public static Main getInstance() {
         return INSTANCE;
     }
 
@@ -64,11 +61,6 @@ public class Builder extends Application {
 
     private Stage window;
     private TabPane tabPane;
-    private MainController mainController;
-
-    private ConsoleController consoleController;
-    private BuildTabController buildTabController;
-    private MinecraftTabController minecraftTabController;
 
     public static void main(String[] args) {
         PrintStream empty = new PrintStream( new OutputStream() {
@@ -87,25 +79,25 @@ public class Builder extends Application {
         INSTANCE = this;
         WORKING_DIR.getFile().mkdirs();
         BuildToolsSettings.create();
-
+        BuildToolsSettings.getInstance().getDirectories().init();
 
         window = primaryStage;
         window.setTitle( "Build Tools Suite" );
         window.setResizable( true );
 
-
         Image icon = new Image( this.getClass().getClassLoader().getResourceAsStream( "icon.png" ) );
         window.getIcons().add( icon );
 
+        ControllerFactory factory = new ControllerFactory( BuildToolsSettings.getInstance() );
+
         FXMLLoader loader = new FXMLLoader();
+        loader.setControllerFactory( factory );
         loader.setLocation( getClass().getClassLoader().getResource( "mainController.fxml" ) );
         tabPane = loader.load();
 
         tabMap.put( WindowTab.CONSOLE, tabPane.getTabs().get( 0 ) );
         tabMap.put( WindowTab.BUILD, tabPane.getTabs().get( 1 ) );
         tabMap.put( WindowTab.MINECRAFT, tabPane.getTabs().get( 2 ) );
-
-        MainController controller = loader.getController();
 
         Scene scene = new Scene( tabPane );
         window.setScene( scene );
@@ -124,46 +116,16 @@ public class Builder extends Application {
     }
 
     public static Stage getWindow() {
-        return Builder.getInstance().window;
-    }
-
-    public TabPane getTabPane() {
-        return Builder.getInstance().tabPane;
-    }
-
-    public MainController getMainController() {
-        return Builder.getInstance().mainController;
+        return Main.getInstance().window;
     }
 
     public static void setActiveTab(WindowTab tab) {
-        Tab newTab = Builder.getInstance().tabMap.getOrDefault( tab, Builder.getInstance().tabPane.getTabs().get( 0 ) );
-        Builder.getInstance().getTabPane().getSelectionModel().select( newTab );
+        Tab newTab = Main.getInstance().tabMap.getOrDefault( tab, Main.getInstance().tabPane.getTabs().get( 0 ) );
+        Main.getInstance().getTabPane().getSelectionModel().select( newTab );
     }
 
-    public void setController(WindowTab tab, Object controller) {
-        switch ( tab ) {
-            case CONSOLE:
-                this.consoleController = ( ConsoleController ) controller;
-                return;
-            case BUILD:
-                this.buildTabController = ( BuildTabController ) controller;
-                return;
-            case MINECRAFT:
-                this.minecraftTabController = ( MinecraftTabController ) controller;
-                return;
-        }
-    }
-
-    public BuildTabController getBuildTabController() {
-        return buildTabController;
-    }
-
-    public ConsoleController getConsoleController() {
-        return consoleController;
-    }
-
-    public MinecraftTabController getMinecraftTabController() {
-        return minecraftTabController;
+    public TabPane getTabPane() {
+        return Main.getInstance().tabPane;
     }
 
     public static boolean isDebugEnabled() {

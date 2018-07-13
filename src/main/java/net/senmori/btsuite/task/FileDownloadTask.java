@@ -30,13 +30,9 @@
 package net.senmori.btsuite.task;
 
 import javafx.concurrent.Task;
+import net.senmori.btsuite.download.FileDownloader;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
 
 public class FileDownloadTask extends Task<File> {
     private final String url;
@@ -55,23 +51,6 @@ public class FileDownloadTask extends Task<File> {
 
     @Override
     public File call() throws Exception {
-        int totalSize = - 1;
-        URLConnection connection = new URL( url ).openConnection();
-        InputStream stream = connection.getInputStream();
-        totalSize = connection.getContentLength(); // in bytes
-
-        BufferedInputStream buffInStream = new BufferedInputStream( stream );
-        FileOutputStream fOut = new FileOutputStream( target );
-
-        int count;
-        byte[] buffer = new byte[1024];
-        while ( ( count = buffInStream.read( buffer, 0, buffer.length ) ) != - 1 ) {
-            updateMessage( "Downloading: " + count + "/" + totalSize );
-            fOut.write( buffer, 0, count );
-        }
-        if ( finalName != null && ! finalName.trim().isEmpty() ) {
-            target.renameTo( new File( target.getParent(), finalName ) );
-        }
-        return target;
+        return new FileDownloader().download( url, target, finalName );
     }
 }

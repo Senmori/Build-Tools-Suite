@@ -39,8 +39,8 @@ import javafx.scene.control.ToolBar;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.WindowTab;
+import lombok.Getter;
+import net.senmori.btsuite.Console;
 import net.senmori.btsuite.log.LoggerStream;
 import net.senmori.btsuite.log.TextAreaLogHandler;
 import net.senmori.btsuite.util.JFxUtils;
@@ -51,6 +51,7 @@ import java.util.ResourceBundle;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+@Getter
 public class ConsoleController {
 
     @FXML
@@ -76,34 +77,56 @@ public class ConsoleController {
     @FXML
     private Text consoleOptionalText;
 
+    private final Console console;
+
+    public ConsoleController(Console console) {
+        this.console = console;
+    }
+
     @FXML
     void initialize() {
-        Builder.getInstance().setController( WindowTab.CONSOLE, this );
         LogManager.getLogManager().reset(); // remove all handlers
-        Logger rootLogger = LogManager.getLogManager().getLogger("");
+        Logger rootLogger = LogManager.getLogManager().getLogger( "" );
 
-        Console.getInstance().setConsole( consoleTextArea );
-        Console.getInstance().setProgressBar( consoleProgressBar );
-        Console.getInstance().setProgessTextField( consoleProgressTextID );
-        Console.getInstance().setOptionalTextField( consoleOptionalText );
-        rootLogger.addHandler( new TextAreaLogHandler() );
+        rootLogger.addHandler( new TextAreaLogHandler( console ) );
         LoggerStream.setOutAndErrToLog();
 
+        // Don't let users clear chat / make pastes when there is no chat
         consoleClearChatBtn.disableProperty().bind( consoleTextArea.textProperty().isEmpty() );
         consoleMakePasteBtn.disableProperty().bind( consoleClearChatBtn.disableProperty() );
 
+        consoleTextArea.textProperty().bindBidirectional( console.getConsoleTextArea().textProperty() );
+        consoleTextArea.textProperty().addListener( (observable, oldValue, newValue) -> {
+            // scroll down when text is added
+            consoleTextArea.appendText( "" );
+            console.getConsoleTextArea().appendText( "" );
+        } );
+        console.getConsoleTextArea().textProperty().addListener( (observable, oldValue, newValue) -> {
+            consoleTextArea.appendText( "" );
+            console.getConsoleTextArea().appendText( "" );
+        } );
+
+        // Don't show text if the text is empty
         consoleProgressTextID.visibleProperty().bind( Bindings.isNotEmpty( consoleProgressTextID.textProperty() ) );
         consoleOptionalText.visibleProperty().bind( Bindings.isNotEmpty( consoleOptionalText.textProperty() ) );
+
+        // bind console text to Console's text
+        consoleProgressTextID.textProperty().bind( console.getProgressTextField().textProperty() );
+        consoleOptionalText.textProperty().bind( console.getOptionalTextField().textProperty() );
+
+        // bind console progress bar to Console's progress bar
+        consoleProgressBar.progressProperty().bind( console.getProgressBar().progressProperty() );
+        consoleProgressBar.visibleProperty().bind( console.getProgressBar().visibleProperty() );
     }
 
     @FXML
     void onClearChatBtn(ActionEvent event) {
-        consoleTextArea.clear();
+        console.clearConsole();
     }
 
     @FXML
     void onMakePasteBtn(ActionEvent event) {
-        String url = PasteUtil.post( consoleTextArea.getText() );
+        String url = PasteUtil.post( console.getText() );
         PasteUtil.copyStringToClipboard( url );
         JFxUtils.createAlert( "Hastebin Log Created", "The Hastebin url has been copied to your clipboard!", url );
     }

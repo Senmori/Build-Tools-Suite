@@ -30,7 +30,8 @@
 package net.senmori.btsuite.controllers;
 
 import com.google.common.collect.Lists;
-import javafx.beans.binding.BooleanBinding;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
@@ -45,19 +46,21 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
-import net.senmori.btsuite.Builder;
-import net.senmori.btsuite.Callback;
-import net.senmori.btsuite.SpigotVersion;
+import javafx.util.StringConverter;
+import net.senmori.btsuite.Main;
 import net.senmori.btsuite.WindowTab;
 import net.senmori.btsuite.buildtools.BuildInfo;
-import net.senmori.btsuite.buildtools.BuildToolsOptions;
-import net.senmori.btsuite.buildtools.BuildToolsTask;
+import net.senmori.btsuite.buildtools.BuildTools;
+import net.senmori.btsuite.buildtools.SpigotVersion;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.task.BuildToolsTask;
+import net.senmori.btsuite.task.InvalidateCacheTask;
 import net.senmori.btsuite.task.SpigotVersionImportTask;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
 import org.apache.commons.io.FileDeleteStrategy;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -65,13 +68,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutionException;
 
 public class BuildTabController {
-
-    private BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
-    private BuildToolsOptions buildToolsOptions;
-
     @FXML
     private ResourceBundle resources;
     @FXML
@@ -107,44 +105,124 @@ public class BuildTabController {
     @FXML
     private Button updateVersionsBtn;
 
+    private final BuildTools buildTools;
+    private final BuildToolsSettings settings;
+    // used as a proxy to run build tools without injecting the controller into BuildTools
+    private final BooleanProperty runBuildToolsProxyProperty = new SimpleBooleanProperty( this, "runBuildToolsProxy", false );
+    // used as a proxy to re-import versions without injecting the controller into BuildTools
+    private final BooleanProperty reimportVersionsProperty = new SimpleBooleanProperty( this, "reimportVersionsProperty", false );
+
+    public BuildTabController(BuildTools tools) {
+        this.buildTools = tools;
+        this.settings = tools.getSettings();
+    }
+
+    @FXML
+    void initialize() {
+        outputDirListView.getSelectionModel().setSelectionMode( SelectionMode.MULTIPLE );
+        choiceComboBox.setVisibleRowCount( 10 );
+
+        updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
+        updateVersionsBtn.visibleProperty().bind( updateVersionCheckBox.selectedProperty() );
+
+        runBuildToolsProxyProperty.bindBidirectional( buildTools.getRunBuildToolsProperty() );
+        reimportVersionsProperty.bindBidirectional( buildTools.getReimportVersions() );
+
+        runBuildToolsProxyProperty.addListener( (observable, oldValue, newValue) -> {
+            if ( newValue == true ) {
+                // run build tools
+                runBuildToolsBtn.fire();
+            }
+            runBuildToolsProxyProperty.set( false );
+        } );
+        reimportVersionsProperty.addListener( (observable, oldValue, newValue) -> {
+            if ( newValue == true ) {
+                updateVersionsBtn.fire();
+            }
+            reimportVersionsProperty.set( false );
+        } );
+
+        runBuildToolsBtn.textProperty().bind( Bindings.when( buildInvalidateCache.selectedProperty() )
+                                                      .then( "Invalidate Cache" )
+                                                      .otherwise( "Run Build Tools Suite" )
+        );
+        runBuildToolsBtn.textProperty().addListener( (observable, oldValue, newValue) -> {
+            runBuildToolsBtn.getParent().layout();
+            runBuildToolsBtn.getParent().applyCss();
+        } );
+
+        choiceComboBox.setConverter( new StringConverter<String>() {
+            @Override
+            public String toString(String object) {
+                return ( ( object == null ) || object.trim().isEmpty() ) ? settings.getDefaultVersion() : object;
+            }
+
+            @Override
+            public String fromString(String string) {
+                return ( ( string == null ) || string.trim().isEmpty() ) ? settings.getDefaultVersion() : string;
+            }
+        } );
+
+        // bind everything to BuildTools
+
+        // Disable run button if Build Tools is currently running, or we are not initialized
+        runBuildToolsBtn.disableProperty().bind( buildTools.getRunningProperty() );
+
+        certCheck.selectedProperty().bindBidirectional( buildTools.getDisableCertificateCheckProperty() );
+        dontUpdate.selectedProperty().bindBidirectional( buildTools.getDontUpdateProperty() );
+        skipCompile.selectedProperty().bindBidirectional( buildTools.getSkipCompileProperty() );
+        genSrc.selectedProperty().bindBidirectional( buildTools.getGenSourceProperty() );
+        genDoc.selectedProperty().bindBidirectional( buildTools.getGenDocumentationProperty() );
+        buildInvalidateCache.selectedProperty().bindBidirectional( buildTools.getInvalidateCacheProperty() );
+
+        updateVersionCheckBox.selectedProperty().bindBidirectional( buildTools.getUpdateVersionsProperty() );
+        choiceComboBox.valueProperty().bindBidirectional( buildTools.getVersionProperty() );
+
+        if ( outputDirListView.getItems().isEmpty() ) {
+            outputDirListView.getItems().add( buildTools.getWorkingDirectory().getFile().getAbsolutePath() );
+        }
+        importVersions();
+    }
+
+
     @FXML
     void onInvalidateCacheBtn(ActionEvent event) {
-        buildToolsOptions.setInvalidateCache( this.buildInvalidateCache.isSelected() );
+        buildTools.setInvalidateCache( this.buildInvalidateCache.isSelected() );
     }
 
     @FXML
     void onCertCheckClicked(ActionEvent event) {
-        buildToolsOptions.setDisableCertificateCheck( this.certCheck.isSelected() );
+        buildTools.setDisableCertificateCheck( this.certCheck.isSelected() );
     }
 
     @FXML
     void onDontUpdateClicked(ActionEvent event) {
-        buildToolsOptions.setDontUpdate( this.dontUpdate.isSelected() );
+        buildTools.setDontUpdate( this.dontUpdate.isSelected() );
     }
 
     @FXML
     void onSkipCompileClicked(ActionEvent event) {
-        buildToolsOptions.setSkipCompile( this.skipCompile.isSelected() );
+        buildTools.setSkipCompile( this.skipCompile.isSelected() );
     }
 
     @FXML
     void onGenSrcClicked(ActionEvent event) {
-        buildToolsOptions.setGenSrc( this.genSrc.isSelected() );
+        buildTools.setGenSource( this.genSrc.isSelected() );
     }
 
     @FXML
     void onGenDocClicked(ActionEvent event) {
-        buildToolsOptions.setGenDoc( this.genDoc.isSelected() );
+        buildTools.setGenDocumentation( this.genDoc.isSelected() );
     }
 
     @FXML
     void onAddOutputDirClicked(ActionEvent event) {
         DirectoryChooser dirChooser = new DirectoryChooser();
-        dirChooser.setInitialDirectory( buildToolsSettings.getDirectories().getWorkingDir().getFile() );
-        dirChooser.setTitle("Add output directory");
-        File output = dirChooser.showDialog(Builder.getWindow());
-        if ( FileUtil.isDirectory(output) ) {
-            this.outputDirListView.getItems().add(output.getAbsolutePath());
+        dirChooser.setInitialDirectory( settings.getDirectories().getWorkingDir().getFile() );
+        dirChooser.setTitle( "Add output directory" );
+        File output = dirChooser.showDialog( Main.getWindow() );
+        if ( FileUtil.isDirectory( output ) ) {
+            this.outputDirListView.getItems().add( output.getAbsolutePath() );
             BuildToolsSettings.getInstance().getRecentOutputDirectories().add( output.getAbsolutePath() );
         }
     }
@@ -153,16 +231,13 @@ public class BuildTabController {
     void onDelOutputDirClicked(ActionEvent event) {
         ObservableList<String> selected = this.outputDirListView.getSelectionModel().getSelectedItems();
         ObservableList<String> all = this.outputDirListView.getItems();
-        all.removeAll(selected);
-        this.outputDirListView.setItems(all);
-        BuildToolsSettings.getInstance().getRecentOutputDirectories().clear();
-        BuildToolsSettings.getInstance().getRecentOutputDirectories().addAll( all );
-        if ( this.outputDirListView.getItems().isEmpty() ) {
-            outputDirListView.getItems().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
-            BuildToolsSettings.getInstance().getRecentOutputDirectories().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
-        }
+        all.removeAll( selected );
+        this.outputDirListView.setItems( all );
+        settings.getRecentOutputDirectories().clear();
+        settings.getRecentOutputDirectories().addAll( all );
+
         if ( outputDirListView.getItems().size() == 1 ) {
-            if ( outputDirListView.getItems().get( 0 ).equalsIgnoreCase( Builder.WORKING_DIR.getFile().getAbsolutePath() ) ) {
+            if ( outputDirListView.getItems().get( 0 ).equalsIgnoreCase( buildTools.getWorkingDirectory().getFile().getAbsolutePath() ) ) {
                 delOutputBtn.setDisable( true );
                 return;
             }
@@ -172,128 +247,154 @@ public class BuildTabController {
 
     @FXML
     void onUpdateVersionsBtn(ActionEvent event) {
-        Builder.setActiveTab( WindowTab.CONSOLE );
+        Main.setActiveTab( WindowTab.CONSOLE );
         invalidateVersions();
     }
 
     @FXML
-    void onRunBuildToolsClicked() {
-        if ( ! buildToolsOptions.isRunning() ) {
+    void onRunBuildToolsClicked(ActionEvent event) {
+        // Invalidate cache
+        if ( buildInvalidateCache.isSelected() ) {
+            // invalidate cache and then make them run BTS again to prevent any file errors
+            InvalidateCacheTask task = new InvalidateCacheTask( buildTools, buildTools.getVersionManifest() );
+            task.setOnRunning( (worker) -> {
+                buildTools.setRunning( true );
+                buildTools.getConsole().setProgressText( "Invalidating Cache" );
+            } );
+            task.setOnSucceeded( (worker) -> {
+                buildInvalidateCache.setSelected( false );
+                buildTools.setRunning( false );
+                buildTools.getConsole().reset();
+            } );
+
+            task.setOnFailed( (worker) -> {
+                buildInvalidateCache.setSelected( false );
+                buildTools.setRunning( false );
+                buildTools.getConsole().reset();
+            } );
+
+            task.setOnCancelled( (worker) -> {
+                buildInvalidateCache.setSelected( false );
+                buildTools.setRunning( false );
+                buildTools.getConsole().reset();
+            } );
+
+            Main.setActiveTab( WindowTab.CONSOLE );
+            TaskPools.getSinglePool().submit( task );
+            return;
+        }
+
+        // Run Build Tools
+        if ( !buildTools.isRunning() ) {
             if ( choiceComboBox.getSelectionModel().getSelectedItem() == null ) {
-                buildToolsOptions.setVersion( buildToolsSettings.getDefaultVersion() );
+                buildTools.setVersion( settings.getDefaultVersion() );
             } else {
-                buildToolsOptions.setVersion( choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase() );
+                buildTools.setVersion( choiceComboBox.getSelectionModel().getSelectedItem().toLowerCase() );
             }
-            buildToolsOptions.setOutputDirectories( outputDirListView.getItems() );
+            buildTools.getOutputDirectories().addAll( outputDirListView.getItems() );
 
-            runBuildToolsBtn.setDisable( true );
-            BuildToolsTask task = new BuildToolsTask( buildToolsOptions );
-            Callback<Long> callback = new Callback<Long>() {
-                @Override
-                public void accept(Long value) {
-                    long seconds = value;
-                    buildToolsOptions.setRunning( false );
-                    String formatted = String.format( "%d:%02d", seconds / 60, seconds % 60 );
-                    LogHandler.info( "It took " + formatted + " to complete this build." );
-                    LogHandler.info( "BuildToolsSuite has finished!" );
-                    runBuildToolsBtn.setDisable( false );
+            BuildToolsTask task = new BuildToolsTask( buildTools );
+            task.setOnRunning( (worker) -> {
+                buildTools.setRunning( true );
+                buildTools.getConsole().reset();
+                buildTools.getConsole().setProgressText( "Progress" );
+            } );
+            task.setOnSucceeded( (worker) -> {
+                long seconds = task.getValue();
+                String formatted = String.format( "%d:%02d", seconds / 60L, seconds % 60L );
+                LogHandler.info( "It took " + formatted + " to complete this build." );
+                LogHandler.info( "BuildToolsSuite has finished!" );
+                buildTools.setRunning( false );
+                buildTools.getConsole().reset();
+            } );
+            task.setOnCancelled( (worker) -> {
+                buildTools.setRunning( false );
+                buildTools.getConsole().reset();
+                LogHandler.error( "BuildToolsTask was cancelled!" );
+                if ( task.getException() != null ) {
+                    LogHandler.error( task.getException().getMessage() );
                 }
-            };
-            Callback<Void> failure = new Callback<Void>() {
-                @Override
-                public void accept(Void value) {
-                    reset();
-                }
-            };
+            } );
+            task.setOnFailed( (worker) -> {
+                buildTools.setRunning( false );
+                buildTools.getConsole().reset();
+                LogHandler.error( "BuildToolsTask failed!" );
+                LogHandler.error( task.getException().getMessage() );
+            } );
 
-            Builder.setActiveTab( WindowTab.CONSOLE );
-            Console.getInstance().registerTask( task, "Progress: ", callback, failure, false );
-            TaskPools.submit( task );
+
+            Main.setActiveTab( WindowTab.CONSOLE );
+            TaskPools.getSinglePool().submit( task );
         }
     }
 
-    private BooleanProperty initializedProperty = new SimpleBooleanProperty( this, "Initialized", false );
-    private BooleanBinding binding;
-    @FXML
-    void initialize() {
-        buildToolsOptions = new BuildToolsOptions( this );
-        outputDirListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-
-        updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
-        updateVersionsBtn.visibleProperty().bind( updateVersionCheckBox.selectedProperty() );
-
-        // populate directory list
-        outputDirListView.getItems().addAll( BuildToolsSettings.getInstance().getRecentOutputDirectories() );
-        if ( outputDirListView.getItems().isEmpty() ) {
-            outputDirListView.getItems().add( Builder.WORKING_DIR.getFile().getAbsolutePath() );
-        }
-
-        choiceComboBox.setVisibleRowCount( 10 );
-
-        Builder.getInstance().setController( WindowTab.BUILD, this );
-        importVersions();
-    }
 
     public void invalidateVersions() {
-        updateVersionCheckBox.setSelected( false );
-        initializedProperty.set( false );
-        BuildToolsSettings.Directories dirs = buildToolsSettings.getDirectories();
-        File versionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
-        LogHandler.info( "Deleting " + versionsDir + '.' );
+        // ensure we're on the main thread, in case this is called from somewhere else
+        Platform.runLater( () -> {
+            updateVersionCheckBox.setSelected( false );
+        } );
 
+        buildTools.getConsole().reset();
         TaskPools.submit( () -> {
-            for ( File file : versionsDir.listFiles() ) {
-                try {
-                    FileDeleteStrategy.FORCE.delete( file );
-                } catch ( IOException e ) {
-                    e.printStackTrace();
+
+            BuildToolsSettings.Directories dirs = settings.getDirectories();
+            File versionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
+            LogHandler.info( "Deleting " + versionsDir + '.' );
+            File[] files = versionsDir.listFiles();
+            if ( ( files != null ) && ( files.length > 0 ) ) {
+                for ( File file : files ) {
+                    try {
+                        buildTools.getConsole().setOptionalText( FilenameUtils.getBaseName( file.getName() ) );
+                        FileDeleteStrategy.FORCE.delete( file );
+                    } catch ( IOException e ) {
+                        e.printStackTrace();
+                    }
                 }
             }
-            try {
-                importVersions().get();
-            } catch ( InterruptedException e ) {
-                e.printStackTrace();
-            } catch ( ExecutionException e ) {
-                e.printStackTrace();
-            }
+            buildTools.getConsole().reset();
+            buildTools.getConsole().setOptionalText( "Re-importing spigot versions..." );
+            LogHandler.info( "Re-importing spigot versions..." );
+            importVersions();
         } );
     }
 
     public Task importVersions() {
-        Callback<Map<SpigotVersion, BuildInfo>> callback = new Callback<Map<SpigotVersion, BuildInfo>>() {
-            @Override
-            public void accept(Map<SpigotVersion, BuildInfo> value) {
-                handleVersionMap( value );
-                initializedProperty.set( true );
-                LogHandler.info( "Loaded " + value.keySet().size() + " Spigot versions." );
-                buildInvalidateCache.setSelected( false );
-            }
-        };
-        Callback<Void> failure = new Callback<Void>() {
-            @Override
-            public void accept(Void value) {
-                reset();
-            }
-        };
+        SpigotVersionImportTask task = new SpigotVersionImportTask( buildTools );
+        task.setOnRunning( (worker) -> {
+            buildTools.getConsole().reset();
+            buildTools.getConsole().setProgressText( "Importing Spigot Versions" );
+        } );
+        task.setOnSucceeded( (worker) -> {
+            Map<SpigotVersion, BuildInfo> map = task.getValue();
+            handleVersionMap( map );
+            LogHandler.info( "Loaded " + map.keySet().size() + " Spigot versions." );
+            buildInvalidateCache.setSelected( false );
+            buildTools.setRunning( false );
+            buildTools.getConsole().reset();
+        } );
 
-        SpigotVersionImportTask task = new SpigotVersionImportTask( buildToolsSettings.getVersionLink() );
-
-        Console.getInstance().registerTask( task, "Importing Spigot Versions", callback, failure, true );
+        task.setOnFailed( (worker) -> {
+            updateVersionCheckBox.setSelected( false );
+            buildTools.setRunning( false );
+            buildTools.getConsole().reset();
+        } );
+        task.setOnCancelled( (worker) -> {
+            updateVersionCheckBox.setSelected( false );
+            buildTools.setRunning( false );
+            buildTools.getConsole().reset();
+        } );
+        TaskPools.getSinglePool().submit( task );
         return task;
-    }
-
-    public void reset() {
-        runBuildToolsBtn.setDisable( false );
-        updateVersionCheckBox.setSelected( false );
     }
 
     private boolean handleVersionMap(Map<SpigotVersion, BuildInfo> map) {
         choiceComboBox.getItems().clear();
         List<SpigotVersion> versions = Lists.newArrayList( map.keySet() );
         versions.sort( SpigotVersion::compareTo );
-        versions = Lists.reverse(versions);
+        versions = Lists.reverse( versions );
         for ( SpigotVersion ver : versions ) {
-            this.choiceComboBox.getItems().add(ver.getVersionString());
+            this.choiceComboBox.getItems().add( ver.getVersionString() );
         }
         return true;
     }

@@ -34,6 +34,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import javafx.concurrent.Task;
+import net.senmori.btsuite.Console;
+import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.minecraft.MinecraftVersion;
 import net.senmori.btsuite.minecraft.ReleaseType;
 import net.senmori.btsuite.pool.TaskPool;
@@ -41,28 +43,35 @@ import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.util.LogHandler;
+import net.senmori.btsuite.util.TaskUtil;
+import org.apache.commons.io.FileDeleteStrategy;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 
 public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion>> {
 
-    private final BuildToolsSettings settings = BuildToolsSettings.getInstance();
-    private final BuildToolsSettings.Directories dirs = settings.getDirectories();
+    private final BuildToolsSettings settings;
+    private final BuildToolsSettings.Directories dirs;
 
     private final String versionManifestURL;
+    private final BuildTools buildTools;
+    private final Console console;
     private final Collection<MinecraftVersion> availableVersions = Lists.newLinkedList();
-    private final TaskPool pool = TaskPools.createFixedThreadPool( 3 );
+    private final TaskPool pool = TaskPools.createFixedThreadPool( 4 );
 
-    public ImportMinecraftVersionTask(String versionManifestURL) {
-        this.versionManifestURL = versionManifestURL;
+    public ImportMinecraftVersionTask(BuildTools buildTools) {
+        this.buildTools = buildTools;
+        this.console = buildTools.getConsole();
+        this.settings = buildTools.getSettings();
+        this.dirs = this.settings.getDirectories();
+
+        this.versionManifestURL = this.settings.getMinecraftVersionManifestURL();
     }
 
     @Override
@@ -71,24 +80,11 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
         File versionsDir = new File( dirs.getVersionsDir().getFile(), "minecraft" );
         versionsDir.mkdirs();
         File manifestFile = new File( versionsDir, "version_manifest.json" );
-        if ( ! manifestFile.exists() ) {
+        if ( !manifestFile.exists() ) {
             // download it
             manifestFile.createNewFile();
-            try {
-                FileDownloadTask task = new FileDownloadTask( versionManifestURL, manifestFile );
-                task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                    updateMessage( newValue );
-                } );
-                task.setOnSucceeded( (worker) -> {
-                    updateMessage( "" );
-                } );
-                pool.submit( task );
-                manifestFile = task.get();
-            } catch ( InterruptedException e ) {
-                e.printStackTrace();
-            } catch ( ExecutionException e ) {
-                e.printStackTrace();
-            }
+            manifestFile = TaskUtil.asyncDownloadFile( versionManifestURL, manifestFile );
+            console.setOptionalText( "" );
 
             if ( manifestFile == null ) {
                 LogHandler.error( "*** Could not download \' version_manifest.json\' file." );
@@ -117,7 +113,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                 String releaseTime = version.get( "releaseTime" ).getAsString();
                 String verURL = version.get( "url" ).getAsString();
 
-                if ( ! type.equalsIgnoreCase( lastType ) ) {
+                if ( !type.equalsIgnoreCase( lastType ) ) {
                     lastType = type;
                     LogHandler.info( "Processing release type: " + lastType );
                 }
@@ -126,26 +122,13 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
 
                 LocalDateTime releaseDate = LocalDateTime.parse( releaseTime, DateTimeFormatter.ISO_OFFSET_DATE_TIME ); // ISO_OFFSET_DATE_TIME
 
-                updateMessage( id );
+                console.setOptionalText( "Processing: " + id );
 
                 // download this version's specific json file
                 File versionFile = new File( versionsDir, id + ".json" );
-                if ( ! versionFile.exists() ) {
-                    try {
-                        FileDownloadTask task = new FileDownloadTask( verURL, versionFile );
-                        task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                            updateMessage( newValue );
-                        } );
-                        task.setOnSucceeded( (worker) -> {
-                            updateMessage( "" );
-                        } );
-                        pool.submit( task );
-                        versionFile = task.get();
-                    } catch ( InterruptedException e ) {
-                        e.printStackTrace();
-                    } catch ( ExecutionException e ) {
-                        e.printStackTrace();
-                    }
+                if ( !versionFile.exists() ) {
+                    versionFile.createNewFile();
+                    versionFile = TaskUtil.asyncDownloadFile( verURL, versionFile );
 
                     if ( versionFile == null ) {
                         LogHandler.error( "*** Unable to download \'" + id + "\'\'s version file." );
@@ -157,7 +140,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                 if ( versionJson == null ) {
                     LogHandler.error( "*** Unable to parse version \"" + id + "\" manifest json." );
                     LogHandler.error( "*** Deleting " + versionFile.getName() + ". Please invalidate the cache in the Minecraft tab if this causes problems." );
-                    Files.delete( versionFile.toPath() );
+                    FileDeleteStrategy.FORCE.delete( versionFile );
                     continue;
                 }
 
@@ -175,6 +158,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                         availableVersions.add( minecraftVersion );
 
                     } else if ( downloads.has( "client" ) ) {
+                        // old_alpha or some old_beta
                         JsonObject server = downloads.getAsJsonObject( "client" );
 
                         String sha = server.get( "sha1" ).getAsString();
@@ -186,7 +170,10 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                     }
                 }
             }
+            console.setOptionalText( "" );
         }
+        LogHandler.info( "All versions imported!" );
+        console.setOptionalText( "All versions imported!" );
         return availableVersions;
     }
 }

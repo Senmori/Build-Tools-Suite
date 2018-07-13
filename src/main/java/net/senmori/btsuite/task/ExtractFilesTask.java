@@ -32,6 +32,8 @@ package net.senmori.btsuite.task;
 import com.google.common.base.Predicate;
 import com.google.common.io.ByteStreams;
 import javafx.concurrent.Task;
+import net.senmori.btsuite.Console;
+import net.senmori.btsuite.util.LogHandler;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
@@ -48,11 +50,13 @@ public class ExtractFilesTask extends Task<Boolean> {
     private final File zipFile;
     private final File targetFolder;
     private final Predicate<String> filter;
+    private final Console console;
 
-    public ExtractFilesTask(File zipFile, File targetFolder, Predicate<String> filter) {
+    public ExtractFilesTask(File zipFile, File targetFolder, Console console, Predicate<String> filter) {
         this.zipFile = zipFile;
         this.targetFolder = targetFolder;
         this.filter = filter;
+        this.console = console;
     }
 
     @Override
@@ -61,12 +65,13 @@ public class ExtractFilesTask extends Task<Boolean> {
         ZipFile zip = new ZipFile( zipFile );
         InputStream is = null;
         OutputStream out = null;
+        LogHandler.info( "ZipFile: " + zip.getName() );
         try {
             for ( Enumeration<? extends ZipEntry> entries = zip.entries(); entries.hasMoreElements(); ) {
                 ZipEntry entry = entries.nextElement();
 
                 if ( filter != null ) {
-                    if ( ! filter.apply( entry.getName() ) ) {
+                    if ( !filter.apply( entry.getName() ) ) {
                         continue;
                     }
                 }
@@ -90,7 +95,7 @@ public class ExtractFilesTask extends Task<Boolean> {
                     is.close();
                     out.close();
                 }
-                updateMessage( "Extracted: " + FilenameUtils.getBaseName( outFile.getName() ) );
+                console.setOptionalText( FilenameUtils.getBaseName( outFile.getName() ) );
             }
         } finally {
             zip.close();

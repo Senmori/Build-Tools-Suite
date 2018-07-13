@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite;
+package net.senmori.btsuite.buildtools;
 
 public final class SpigotVersion implements Comparable<SpigotVersion> {
 

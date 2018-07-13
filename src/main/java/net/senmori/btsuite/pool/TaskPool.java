@@ -51,18 +51,5 @@ public interface TaskPool {
      */
     void submit(Runnable runnable);
 
-
-    /**
-     * Used to chain together several {@link #submit(Runnable)} calls.
-     *
-     * @param run the {@link Runnable} to run
-     * @return the {@link TaskPool} for chaining calls.
-     */
-    default TaskPool async(Runnable run) {
-        submit(run);
-        return this;
-    }
-
-
     ExecutorService getService();
 }

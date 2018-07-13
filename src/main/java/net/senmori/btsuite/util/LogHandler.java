@@ -30,7 +30,7 @@
 package net.senmori.btsuite.util;
 
 import javafx.application.Platform;
-import net.senmori.btsuite.Builder;
+import net.senmori.btsuite.Main;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,7 +47,7 @@ public class LogHandler {
     }
 
     public static void debug(String message) {
-        if( Builder.isDebugEnabled() ) {
+        if ( Main.isDebugEnabled() ) {
             log(Level.FINE, message);
         }
     }

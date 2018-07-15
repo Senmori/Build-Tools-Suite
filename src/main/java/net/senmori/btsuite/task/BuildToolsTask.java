@@ -33,9 +33,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Stopwatch;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
-import difflib.DiffUtils;
-import difflib.Patch;
 import javafx.concurrent.Task;
 import net.senmori.btsuite.Console;
 import net.senmori.btsuite.buildtools.BuildInfo;
@@ -57,17 +54,10 @@ import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.revwalk.RevCommit;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -336,12 +326,12 @@ public final class BuildToolsTask extends Task<Long> {
             }
 
             // call fernflower - all this is so we can capture the output and redirect it accordingly
-            File fernJar = new File( dirs.getWorkingDir().getFile(), "BuildData/bin/fernflower.jar" );
             LogHandler.info( "Running decompile command..." );
             ICommandIssuer handler = CommandHandler.getCommandIssuer();
             Process process = handler.issue( dirs.getWorkingDir().getFile(), MessageFormat.format( versionInfo.getDecompileCommand(), clazzDir.getAbsolutePath(), decompileDir.getAbsolutePath() ).split( " " ) );
             BufferedReader reader = new BufferedReader( new InputStreamReader( process.getInputStream() ) );
             String line = "";
+            int numDecompiled = 0;
             while ( ( line = reader.readLine() ) != null ) {
                 if ( line.startsWith( ".." ) ) {
                     // it's a ...done message, ignore it
@@ -349,12 +339,14 @@ public final class BuildToolsTask extends Task<Long> {
                 String[] split = line.split( ":" );
                 if ( split.length > 1 ) {
                     console.setOptionalText( split[ 1 ] );
+                    numDecompiled++;
                 } else {
                     console.setOptionalText( line );
+                    numDecompiled++;
                 }
             }
 
-            LogHandler.info( "Finished decompiling " + FilenameUtils.getBaseName( clazzDir.getName() ) );
+            LogHandler.info( "Finished decompiling " + numDecompiled + "classes in " + FilenameUtils.getBaseName( clazzDir.getName() ) );
         } else {
             // check to see if the directory has net/minecraft/server
             if ( decompileDir.isDirectory() && decompileDir.listFiles().length > 0 ) {
@@ -380,69 +372,35 @@ public final class BuildToolsTask extends Task<Long> {
 
         LogHandler.info( "Starting NMS patches..." );
         File patchDir = new File( craftBukkit, "nms-patches" );
-        File[] files = patchDir.listFiles();
-        for ( File file : files ) {
-            if ( !file.getName().endsWith( ".patch" ) ) {
-                continue;
-            }
+        /*
+         * Apply patches from 'patchDir' to the files in 'decompileDir' and put the resulting file in 'nmsDir'
+         */
+        LogHandler.info( "Patch File Dir: " + patchDir.getPath() );
+        LogHandler.info( "Source File Dir: " + decompileDir.getPath() );
+        LogHandler.info( "Output File Dir: " + nmsDir.getPath() );
+        ApplyPatchesTask applyPatchesTask = new ApplyPatchesTask( patchDir, decompileDir, nmsDir, console );
+        projectPool.submit( applyPatchesTask );
+        int patchesApplied = applyPatchesTask.get();
+        int totalPatches = patchDir.listFiles( (file, name) -> name.endsWith( ".patch" ) ).length;
 
-            String targetFile = "net/minecraft/server/" + file.getName().replaceAll( ".patch", ".java" );
-
-
-            File clean = new File( decompileDir, targetFile );
-            File t = new File( nmsDir.getParentFile(), targetFile );
-            t.getParentFile().mkdirs();
-
-            console.setOptionalText( "Patching: " + FilenameUtils.getBaseName( file.getName() ) );
-
-            List<String> readFile = Files.readLines( file, Charsets.UTF_8 );
-
-            // Manually append prelude if it is not found in the first few lines.
-            boolean preludeFound = false;
-            for ( int i = 0; i < Math.min( 3, readFile.size() ); i++ ) {
-                if ( readFile.get( i ).startsWith( "+++" ) ) {
-                    preludeFound = true;
-                    break;
-                }
-            }
-            if ( !preludeFound ) {
-                readFile.add( 0, "+++" );
-            }
-
-            Patch parsedPatch = DiffUtils.parseUnifiedDiff( readFile );
-            List<?> modifiedLines = DiffUtils.patch( Files.readLines( clean, Charsets.UTF_8 ), parsedPatch );
-
-            BufferedWriter bw = new BufferedWriter( new FileWriter( t ) );
-            for ( String line : ( List<String> ) modifiedLines ) {
-                bw.write( line );
-                bw.newLine();
-            }
-            bw.close();
+        File cbNMSDir = new File( nmsDir, "minecraft/server/" );
+        if ( cbNMSDir.exists() ) {
+            LogHandler.info( "Applied " + patchesApplied + "/" + totalPatches + " patches." );
         }
         console.setOptionalText( "" );
-
         LogHandler.info( "Patching complete!" );
+
         File tmpNms = new File( craftBukkit, "tmp-nms" );
         FileUtils.copyDirectory( nmsDir, tmpNms );
 
-        LogHandler.info( "Preparing CraftBukkit repository for cloning and patching..." );
         LogHandler.info( "Deleting \'patched\' branch..." );
-        craftBukkitGit.branchDelete()
-                      .setBranchNames( "patched" )
-                      .setForce( true )
-                      .call();
+        craftBukkitGit.branchDelete().setBranchNames( "patched" ).setForce( true ).call();
 
         LogHandler.info( "Create new \'patched\' branch..." );
-        craftBukkitGit.checkout()
-                      .setCreateBranch( true )
-                      .setForce( true )
-                      .setName( "patched" )
-                      .call();
+        craftBukkitGit.checkout().setCreateBranch( true ).setForce( true ).setName( "patched" ).call();
 
         LogHandler.info( "Add all files that match \'src/main/java/net\' pattern..." );
-        craftBukkitGit.add()
-                      .addFilepattern( "src/main/java/net/" )
-                      .call();
+        craftBukkitGit.add().addFilepattern( "src/main/java/net/" ).call();
 
         LogHandler.info( "Setting commit message." );
         craftBukkitGit.commit().setMessage( "CraftBukkit $ " + new Date() ).call();
@@ -498,6 +456,8 @@ public final class BuildToolsTask extends Task<Long> {
             LogHandler.info( "Starting applyPatches for Spigot" );
             File spigotDir = new File( dirs.getWorkingDir().getFile(), "Spigot" );
             CommandHandler.getCommandIssuer().executeCommand( spigotDir, applyPatchesShell, "applyPatches.sh" );
+            ;
+
             LogHandler.info( "*** Spigot patches applied!" );
 
             if ( !options.isSkipCompile() ) {
@@ -582,6 +542,20 @@ public final class BuildToolsTask extends Task<Long> {
         LogHandler.info( "Version: " + options.getVersion() );
         for ( String dir : options.getOutputDirectories() ) {
             LogHandler.info( "Output Directory: " + dir );
+        }
+    }
+
+    private void redirectToConsole(Process process, Console console) {
+        InputStream inputStream = process.getInputStream();
+        BufferedReader reader = new BufferedReader( new InputStreamReader( inputStream ) );
+
+        try {
+            String line = "";
+            while ( ( line = reader.readLine() ) != null ) {
+                console.setOptionalText( line );
+            }
+        } catch ( IOException e ) {
+
         }
     }
 }

@@ -38,11 +38,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListView;
-import javafx.scene.control.SelectionMode;
+import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
@@ -312,14 +308,16 @@ public class BuildTabController {
                 buildTools.getConsole().reset();
                 LogHandler.error( "BuildToolsTask was cancelled!" );
                 if ( task.getException() != null ) {
-                    LogHandler.error( task.getException().getMessage() );
+                    task.getException().printStackTrace();
                 }
             } );
             task.setOnFailed( (worker) -> {
                 buildTools.setRunning( false );
                 buildTools.getConsole().reset();
                 LogHandler.error( "BuildToolsTask failed!" );
-                LogHandler.error( task.getException().getMessage() );
+                if ( task.getException() != null ) {
+                    task.getException().printStackTrace();
+                }
             } );
 
 

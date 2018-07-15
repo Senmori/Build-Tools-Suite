@@ -86,7 +86,7 @@ public class InvalidateCacheTask extends Task<Boolean> {
                 if ( in.isDirectory() ) {
                     delete( in );
                 } else {
-                    updateMessage( FilenameUtils.getBaseName( in.getName() ) );
+                    buildTools.getConsole().setOptionalText( FilenameUtils.getBaseName( in.getName() ) );
                     try {
                         FileDeleteStrategy.FORCE.delete( in );
                     } catch ( IOException e ) {
@@ -95,7 +95,7 @@ public class InvalidateCacheTask extends Task<Boolean> {
                 }
             }
         }
-        updateMessage( "Deleting " + FilenameUtils.getBaseName( file.getName() ) );
+        buildTools.getConsole().setOptionalText( "Deleting " + FilenameUtils.getBaseName( file.getName() ) );
         try {
             FileDeleteStrategy.FORCE.delete( file );
         } catch ( IOException e ) {

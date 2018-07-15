@@ -63,7 +63,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
     private final BuildTools buildTools;
     private final Console console;
     private final Collection<MinecraftVersion> availableVersions = Lists.newLinkedList();
-    private final TaskPool pool = TaskPools.createFixedThreadPool( 4 );
+    private final TaskPool pool = TaskPools.createCachedTaskPool();
 
     public ImportMinecraftVersionTask(BuildTools buildTools) {
         this.buildTools = buildTools;

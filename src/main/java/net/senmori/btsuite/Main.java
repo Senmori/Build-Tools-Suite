@@ -42,9 +42,6 @@ import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.Directory;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Map;
 
 public class Main extends Application {
@@ -63,15 +60,12 @@ public class Main extends Application {
     private TabPane tabPane;
 
     public static void main(String[] args) {
-        PrintStream empty = new PrintStream( new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-
-            }
-        } );
-        //System.setOut( empty );
-        //System.setErr( empty );
         launch( args );
+    }
+
+    @Override
+    public void init() {
+
     }
 
     @Override

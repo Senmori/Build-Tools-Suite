@@ -27,28 +27,44 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite.util;
+package net.senmori.btsuite;
 
-import lombok.RequiredArgsConstructor;
+import net.senmori.btsuite.util.JFxUtils;
 
-import java.io.*;
+import java.io.File;
 
-@RequiredArgsConstructor
-public class StreamCapturer implements Runnable {
+public class BootStrap {
+    public static boolean shouldStart() {
 
-    private final InputStream in;
-    private final PrintStream out;
+        File workingDir = Main.WORKING_DIR.getFile();
 
-    @Override
-    public void run() {
-        BufferedReader br = new BufferedReader( new InputStreamReader( in ) );
-        try {
-            String line;
-            while ( ( line = br.readLine() ) != null ) {
-                out.println( line );
-            }
-        } catch ( IOException ex ) {
-            throw new RuntimeException( ex.getMessage() );
+        String errorTitle = "Error running Build Tools Suite";
+
+        if ( workingDir.getAbsolutePath().contains( "\'" ) || workingDir.getAbsolutePath().contains( "#" ) ) {
+            JFxUtils.createAlert( errorTitle, "Build Tools Suite cannot be run from files containing special charactesr.", "" );
+            return false;
         }
+
+        if ( workingDir.getAbsolutePath().contains( " " ) ) {
+
+        }
+
+        float javaVersion = Float.parseFloat( System.getProperty( "java.class.version" ) );
+
+        // java 8
+        if ( javaVersion < 52.0F ) {
+            String header = "Build Tools Suite requires at least Java 8 in order to run.";
+            String content = "Outdated Java Version detected (" + javaVersion + "). Minecraft >=1.2 requires at least Java 8.";
+            JFxUtils.createAlert( errorTitle, header, content );
+            return false;
+        }
+
+        if ( javaVersion > 55.0F ) {
+            String header = "Build Tools Suite has only been tested up to Java 11.";
+            String content = "Unsupported Java Version (" + javaVersion + ").";
+            JFxUtils.createAlert( errorTitle, header, content );
+            return false;
+        }
+        return true;
     }
 }

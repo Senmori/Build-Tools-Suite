@@ -29,37 +29,27 @@
 
 package net.senmori.btsuite.buildtools;
 
+import java.util.regex.Pattern;
+
 public final class SpigotVersion implements Comparable<SpigotVersion> {
+    private static final Pattern VERSION_PATTERN = Pattern.compile( "(\\d+)\\.(\\d+)?.*" );
 
     private final String versionString;
     private String displayString;
-    private int major;
-    private int minor;
-    private int revision;
-    private String[] extra;
 
 
-    private SpigotVersion(String versionString) {
+    public SpigotVersion(String versionString) {
         this.versionString = versionString;
-        parse(versionString);
         this.displayString = versionString;
     }
 
-    private SpigotVersion(String versionString, String displayString) {
-        this(versionString);
+    public SpigotVersion(String versionString, String displayString) {
+        this( versionString );
         this.displayString = displayString;
     }
 
-    public static SpigotVersion valueOf(String versionString) {
-        return SpigotVersion.valueOf( versionString, versionString );
-    }
-
-    public static SpigotVersion valueOf(String versionString, String displayString) {
-        return new SpigotVersion( versionString, displayString );
-    }
-
     public static boolean isVersionNumber(String versionString) {
-        return ( versionString.split( "\\." ).length > 1 );
+        return VERSION_PATTERN.matcher( versionString ).find();
     }
 
     public String getAlias() {
@@ -70,40 +60,16 @@ public final class SpigotVersion implements Comparable<SpigotVersion> {
         return versionString;
     }
 
-    public void parse(String versionString) {
-        String[] arr = versionString.split("\\.");
-
-        try {
-            if ( arr.length == 1 ) {
-                major = Integer.valueOf(arr[0]);
-            } else if ( arr.length == 2 ) {
-                major = Integer.valueOf(arr[0]);
-                minor = Integer.valueOf(arr[1]);
-            } else if ( arr.length >= 3 ) {
-                major = Integer.valueOf(arr[0]);
-                minor = Integer.valueOf(arr[1]);
-                revision = Integer.valueOf(arr[2]);
-
-                if ( arr.length > 3 ) {
-                    extra = new String[arr.length - 3];
-                    System.arraycopy(arr, 3, extra, 0, arr.length);
-                }
-            } else {
-                throw new IllegalArgumentException("Invalid version string (" + versionString + ")");
-            }
-        } catch ( NumberFormatException e ) {
-            throw new IllegalArgumentException("Invalid version string (" + versionString + ")");
-        }
-    }
-
     @Override
     public int compareTo(SpigotVersion other) {
-        return versionCompare( this.getVersionString(), other.getVersionString() );
+        String thisVersion = this.versionString.contains( "-" ) ? this.versionString.split( "-" )[0] : versionString;
+        String otherVer = other.versionString.contains( "-" ) ? other.versionString.split( "-" )[0] : other.versionString;
+        return versionCompare( thisVersion, otherVer );
     }
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof SpigotVersion && this.compareTo( ( SpigotVersion ) obj ) == 0;
+        return ( obj instanceof SpigotVersion ) && ( this.compareTo( ( SpigotVersion ) obj ) == 0 );
     }
 
     public String toString() {
@@ -112,17 +78,15 @@ public final class SpigotVersion implements Comparable<SpigotVersion> {
 
     /**
      * Compares two version strings.
-     *
+     * <p>
      * Use this instead of String.compareTo() for a non-lexicographical
      * comparison that works for version strings. e.g. "1.10".compareTo("1.6").
      *
      * @param str1 a string of ordinal numbers separated by decimal points.
      * @param str2 a string of ordinal numbers separated by decimal points.
-     *
      * @return The result is a negative integer if str1 is _numerically_ less than str2.
-     *         The result is a positive integer if str1 is _numerically_ greater than str2.
-     *         The result is zero if the strings are _numerically_ equal.
-     *
+     * The result is a positive integer if str1 is _numerically_ greater than str2.
+     * The result is zero if the strings are _numerically_ equal.
      * @note It does not work if "1.10" is supposed to be equal to "1.10.0".
      */
     public static int versionCompare(String str1, String str2) {

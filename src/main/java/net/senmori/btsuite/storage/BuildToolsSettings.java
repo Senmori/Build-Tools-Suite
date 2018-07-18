@@ -88,10 +88,11 @@ public final class BuildToolsSettings {
     /**
      * The url to where Spigot hosts the latest working version valueOf PortableGit.
      * <br>
-     * Current value: https://static.spigotmc.org/git/
+     * Current value: https://static.spigotmc.org/git/PortableGit-{0}-{1}-bit.7z.exe
      */
     @Section( SectionKey.URL )
     @SerializedName( ConfigurationKey.Name.GIT_INSTALLER_LINK )
+    @SerializedValue(ConfigurationKey.Value.DEFAULT_GIT_INSTALLER_LINK)
     private final String gitInstallerLink;
 
     /**
@@ -114,24 +115,13 @@ public final class BuildToolsSettings {
     private final String stashRepoLink; // append with 'bukkit.git', 'craftbukkit.git', etc.
 
     /**
-     * The url of where to download Minecraft server jars.
-     * <br>
-     * Current value: https://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar
-     */
-    @Section( SectionKey.URL )
-    @SerializedName( ConfigurationKey.Name.S3_DOWNLOAD_LINK )
-    @SerializedValue( ConfigurationKey.Value.DEFAULT_S3_DOWNLOAD_LINK )
-    @Deprecated
-    private final String s3DownloadLink;
-
-    /**
      * The url to the updated method of downloading server jars.
      * <br>
      * Current value: https://launchermeta.mojang.com/mc/game/version_manifest.json
      */
     @Section( SectionKey.URL )
     @SerializedName( ConfigurationKey.Name.MC_JAR_DOWNLOAD_LINK )
-    private final String minecraftVersionManifestURL; // TODO: download new jars from here
+    private final String minecraftVersionManifestURL;
 
     /**
      * The PortableGit version
@@ -175,24 +165,24 @@ public final class BuildToolsSettings {
         this.directories = new Directories( directories );
 
         // versions
-        this.defaultVersion = map.getOrDefault( "defaultVersion", "1.12.2" );
-        this.mavenVersion = map.getOrDefault( "mvnVersion", "3.5.0" );
+        this.defaultVersion = map.getOrDefault( ConfigurationKey.Name.DEFAULT_SPIGOT_VERSION, "1.12.2" );
+        this.mavenVersion = map.getOrDefault( ConfigurationKey.Name.MAVEN_VERSION, "3.5.0" );
         // git
-        this.gitVersion = map.getOrDefault( "gitVersion", "2.15.0" );
+        this.gitVersion = map.getOrDefault( ConfigurationKey.Name.PORTABLE_GIT_VERSION, "2.15.0" );
         this.recentOutputDirectories.addAll( recentOutputDirectories );
 
         // urls
-        String formatMvn = map.getOrDefault( "mavenInstallerLink", "https://static.spigotmc.org/maven/apache-maven-{0}-bin.zip" );
+        String formatMvn = map.getOrDefault( ConfigurationKey.Name.MAVEN_INSTALLER_LINK, "https://static.spigotmc.org/maven/apache-maven-{0}-bin.zip" );
         this.mvnInstallerLink = MessageFormat.format( formatMvn, this.mavenVersion );
 
-        String formatGit = map.getOrDefault( "gitInstallerLink", "https://static.spigotmc.org/git/PortableGit-{0}-{1}-bit.7z.exe" );
+        String formatGit = map.getOrDefault( ConfigurationKey.Name.GIT_INSTALLER_LINK, "https://static.spigotmc.org/git/PortableGit-{0}-{1}-bit.7z.exe" );
         String arch = ( System.getProperty( "os.arch" ).endsWith( "64" ) ? "64" : "32" );
         this.gitInstallerLink = MessageFormat.format( formatGit, gitVersion, arch );
 
-        this.versionLink = map.getOrDefault( "spigotVersionLink", "https://hub.spigotmc.org/versions/" );
-        this.stashRepoLink = map.getOrDefault( "stashRepoLink", "https://hub.spigotmc.org/stash/scm/spigot/" );
-        this.s3DownloadLink = map.getOrDefault( "s3DownloadLink", "https://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar" );
-        this.minecraftVersionManifestURL = map.getOrDefault( "mcJarDownloadLink", "https://launchermeta.mojang.com/mc/game/version_manifest.json" );
+        this.versionLink = map.getOrDefault( ConfigurationKey.Name.SPIGOT_VERSION_LINK, "https://hub.spigotmc.org/versions/" );
+        this.stashRepoLink = map.getOrDefault( ConfigurationKey.Name.STASH_REPO_LINK, "https://hub.spigotmc.org/stash/scm/spigot/" );
+        //this.s3DownloadLink = map.getOrDefault( "s3DownloadLink", "https://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar" );
+        this.minecraftVersionManifestURL = map.getOrDefault( ConfigurationKey.Name.MC_JAR_DOWNLOAD_LINK, "https://launchermeta.mojang.com/mc/game/version_manifest.json" );
     }
 
 

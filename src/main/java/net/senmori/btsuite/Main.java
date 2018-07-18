@@ -37,6 +37,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import net.senmori.btsuite.controllers.ControllerFactory;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
@@ -58,6 +59,7 @@ public class Main extends Application {
 
     private Stage window;
     private TabPane tabPane;
+    private ControllerFactory controllerFactory;
 
     public static void main(String[] args) {
         launch( args );
@@ -82,10 +84,13 @@ public class Main extends Application {
         Image icon = new Image( this.getClass().getClassLoader().getResourceAsStream( "icon.png" ) );
         window.getIcons().add( icon );
 
-        ControllerFactory factory = new ControllerFactory( BuildToolsSettings.getInstance() );
+        controllerFactory = new ControllerFactory( BuildToolsSettings.getInstance() );
+        primaryStage.addEventHandler( WindowEvent.WINDOW_SHOWN, (event) -> {
+            controllerFactory.startupTasks();
+        } );
 
         FXMLLoader loader = new FXMLLoader();
-        loader.setControllerFactory( factory );
+        loader.setControllerFactory( controllerFactory );
         loader.setLocation( getClass().getClassLoader().getResource( "mainController.fxml" ) );
         tabPane = loader.load();
 
@@ -99,6 +104,7 @@ public class Main extends Application {
         primaryStage.show();
         primaryStage.setMinWidth( primaryStage.getWidth() );
         primaryStage.setMinHeight( primaryStage.getHeight() );
+
 
         getWindow().setOnCloseRequest( (event) -> {
             TaskPools.shutdown();

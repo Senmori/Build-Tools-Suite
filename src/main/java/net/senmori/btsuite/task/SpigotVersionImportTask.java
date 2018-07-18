@@ -81,7 +81,7 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
         if ( !versionFile.exists() ) {
             versionFile.createNewFile();
             versionFile = TaskUtil.asyncDownloadFile( url, versionFile );
-            LogHandler.info( " Downloaded " + FilenameUtils.getBaseName( versionFile.getName() ) );
+            LogHandler.info( " Downloaded new " + versionFile.getName() );
         } else {
             LogHandler.info( versionFile.getName() + " already exists!" );
         }
@@ -94,10 +94,10 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
                 continue;
             String text = element.wholeText(); // 1.12.2.json
             String versionText = JSON_PATTERN.matcher(text).replaceAll(""); // 1.12.2
-            if ( ! SpigotVersion.isVersionNumber( versionText ) ) {
+            if ( !SpigotVersion.isVersionNumber( versionText ) ) {
                 continue;
             }
-            SpigotVersion version = SpigotVersion.valueOf( versionText );
+            SpigotVersion version = new SpigotVersion( versionText );
             String versionUrl = url + text; // ../work/versions/1.12.2.json
             File verFile = new File( spigotVersionsDir, text );
             if ( !verFile.exists() ) {

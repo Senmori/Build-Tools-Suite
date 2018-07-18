@@ -492,9 +492,7 @@ public final class BuildToolsTask extends Task<Long> {
                 final Predicate<String> isValidJar = new Predicate<String>() {
                     @Override
                     public boolean test(String str) {
-                        return str.contains( version ) &&
-                                       !str.startsWith( "original" ) && !str.contains( "-shaded" ) &&
-                                       !str.contains( "-remapped" ) && str.endsWith( ".jar" );
+                        return str.contains( version ) && str.endsWith( ".jar" );
                     }
                 };
                 for ( String outputDir : options.getOutputDirectories() ) {
@@ -513,14 +511,15 @@ public final class BuildToolsTask extends Task<Long> {
                         break;
                     }
                 }
-                FileUtil.deleteFilesInDirectory( craftSourceDir, (str) -> str.endsWith( ".jar" ) );
-                FileUtil.deleteFilesInDirectory( spigotSourceDir, (str) -> str.endsWith( ".jar" ) );
                 if ( options.isGenSource() ) {
                     FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-sources" ) );
                 }
                 if ( options.isGenDocumentation() ) {
                     FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-javadoc" ) );
                 }
+                FileUtil.deleteFilesInDirectory( craftSourceDir, (str) -> str.endsWith( ".jar" ) );
+                FileUtil.deleteFilesInDirectory( spigotSourceDir, (str) -> str.endsWith( ".jar" ) );
+
                 return true;
             } ).get();
         }

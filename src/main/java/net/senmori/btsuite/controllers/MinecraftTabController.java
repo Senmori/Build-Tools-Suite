@@ -55,10 +55,7 @@ import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.task.FileDownloadTask;
-import net.senmori.btsuite.task.GitConfigurationTask;
-import net.senmori.btsuite.task.GitInstaller;
 import net.senmori.btsuite.task.ImportMinecraftVersionTask;
-import net.senmori.btsuite.task.MavenInstaller;
 import net.senmori.btsuite.util.LogHandler;
 import org.apache.commons.io.FileDeleteStrategy;
 
@@ -107,7 +104,7 @@ public class MinecraftTabController {
 
     @FXML
     void initialize() {
-        updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
+        //updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
         updateVersionsBtn.visibleProperty().bind( updateMCVersionsCheckBox.selectedProperty() );
 
         downloadServerBtn.disableProperty().bind( Bindings.isNull( currentVersionProperty ) );
@@ -153,14 +150,12 @@ public class MinecraftTabController {
             }
         } ) );
 
-        GitInstaller git = new GitInstaller();
-        git.setOnSucceeded( (worker) -> {
-            TaskPools.submit( new GitConfigurationTask( buildTools.getSettings() ) );
-        } );
-        TaskPools.submit( git );
-        TaskPools.submit( new MavenInstaller() );
-
-        importVersions();
+//        GitInstaller git = new GitInstaller();
+//        git.setOnSucceeded( (worker) -> {
+//            TaskPools.submit( new GitConfigurationTask( buildTools.getSettings() ) );
+//        } );
+//        TaskPools.submit( git );
+//        TaskPools.submit( new MavenInstaller() );
     }
 
 

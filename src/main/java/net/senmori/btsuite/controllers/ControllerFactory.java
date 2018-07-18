@@ -34,7 +34,11 @@ import javafx.util.Callback;
 import net.senmori.btsuite.Console;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.minecraft.VersionManifest;
+import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.task.GitConfigurationTask;
+import net.senmori.btsuite.task.GitInstaller;
+import net.senmori.btsuite.task.MavenInstaller;
 
 import java.util.Map;
 
@@ -72,5 +76,23 @@ public class ControllerFactory implements Callback<Class<?>, Object> {
     @Override
     public Object call(Class<?> param) {
         return controllerMap.get( param );
+    }
+
+    /**
+     * All tasks that should always be started when the program starts should be submitted here.
+     * <p>
+     * This method should only be called once; directly after the main stage is shown.
+     */
+    public void startupTasks() {
+        GitInstaller git = new GitInstaller();
+        git.setOnSucceeded( (worker) -> {
+            TaskPools.submit( new GitConfigurationTask( buildTools.getSettings() ) );
+        } );
+        TaskPools.submit( git );
+        MavenInstaller maven = new MavenInstaller();
+        TaskPools.submit( maven );
+
+        buildTabController.importVersions();
+        minecraftTabController.importVersions();
     }
 }

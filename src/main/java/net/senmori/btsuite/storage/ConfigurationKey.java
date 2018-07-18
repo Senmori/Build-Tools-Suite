@@ -100,6 +100,8 @@ public interface ConfigurationKey {
          */
         public static final String DEFAULT_MAVEN_INSTALLER_LINK = "https://static.spigotmc.org/maven/apache-maven-{0}-bin.zip";
 
-        public static final String DEFAULT_S3_DOWNLOAD_LINK = "https://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar";
+        public static final String DEFAULT_GIT_INSTALLER_LINK = "https://static.spigotmc.org/git/PortableGit-{0}-{1}-bit.7z.exe";
+
+        //public static final String DEFAULT_S3_DOWNLOAD_LINK = "https://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar";
     }
 }

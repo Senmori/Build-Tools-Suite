@@ -90,7 +90,7 @@ public class InvalidateCacheTask extends Task<Boolean> {
                     try {
                         FileDeleteStrategy.FORCE.delete( in );
                     } catch ( IOException e ) {
-
+                        LogHandler.error( "Could not delete " + in.getPath() );
                     }
                 }
             }
@@ -99,7 +99,7 @@ public class InvalidateCacheTask extends Task<Boolean> {
         try {
             FileDeleteStrategy.FORCE.delete( file );
         } catch ( IOException e ) {
-
+            LogHandler.error( "Could not delete " + file.getPath() );
         }
     }
 }

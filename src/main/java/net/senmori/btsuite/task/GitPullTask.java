@@ -75,6 +75,7 @@ public class GitPullTask extends Task<File> {
                 .setMode( ResetCommand.ResetType.HARD )
                 .call();
         }
+        repo.close();
         LogHandler.info("Checked out: " + ref);
         return repo.getRepository().getDirectory();
     }

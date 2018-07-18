@@ -118,7 +118,7 @@ public class BuildTabController {
         outputDirListView.getSelectionModel().setSelectionMode( SelectionMode.MULTIPLE );
         choiceComboBox.setVisibleRowCount( 10 );
 
-        updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
+        //updateVersionsBtn.managedProperty().bind( updateVersionsBtn.visibleProperty() );
         updateVersionsBtn.visibleProperty().bind( updateVersionCheckBox.selectedProperty() );
 
         runBuildToolsProxyProperty.bindBidirectional( buildTools.getRunBuildToolsProperty() );
@@ -177,7 +177,7 @@ public class BuildTabController {
         if ( outputDirListView.getItems().isEmpty() ) {
             outputDirListView.getItems().add( buildTools.getWorkingDirectory().getFile().getAbsolutePath() );
         }
-        importVersions();
+        //importVersions();
     }
 
 

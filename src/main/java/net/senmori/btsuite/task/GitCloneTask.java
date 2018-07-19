@@ -30,6 +30,8 @@
 package net.senmori.btsuite.task;
 
 import javafx.concurrent.Task;
+import net.senmori.btsuite.Console;
+import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.SystemChecker;
 import org.eclipse.jgit.api.Git;
@@ -45,16 +47,19 @@ import java.util.Iterator;
 public class GitCloneTask extends Task<File> {
 
     private final String url;
-    private final File target;
+    private final Directory targetDirectory;
+    private final Console console;
 
-    public GitCloneTask(String url, File target) {
+    public GitCloneTask(String url, Directory target, Console console) {
         this.url = url;
-        this.target = target;
+        this.targetDirectory = target;
+        this.console = console;
     }
 
     @Override
     public File call() throws Exception {
-        LogHandler.info("Starting clone of " + url + " to " + target.getName());
+        File target = targetDirectory.getFile();
+        LogHandler.info( "Starting clone of " + url + " to " + target.getName() );
         Git result = Git.cloneRepository()
                         .setURI( url )
                         .setDirectory( target )
@@ -63,7 +68,7 @@ public class GitCloneTask extends Task<File> {
 
         try {
             StoredConfig config = result.getRepository().getConfig();
-            config.setBoolean("core", null, "autocrlf", SystemChecker.isAutocrlf());
+            config.setBoolean( "core", null, "autocrlf", SystemChecker.isAutocrlf() );
             config.save();
 
             LogHandler.info( "Cloned git repository " + url + " to " + target.getName() + ". Current HEAD: " + commitHash( result ) );
@@ -73,6 +78,7 @@ public class GitCloneTask extends Task<File> {
             e.printStackTrace();
         } finally {
             result.close();
+            target = null; // don't keep the reference around
         }
         return result.getRepository().getDirectory();
     }
@@ -89,7 +95,7 @@ public class GitCloneTask extends Task<File> {
         }
         StringBuilder sb = new StringBuilder();
         sb.append( "expected one element but was: <" + first );
-        for ( int i = 0; i < 4 && iterator.hasNext(); i++ ) {
+        for ( int i = 0; ( i < 4 ) && iterator.hasNext(); i++ ) {
             sb.append( ", " + iterator.next() );
         }
         if ( iterator.hasNext() ) {
@@ -113,14 +119,12 @@ public class GitCloneTask extends Task<File> {
             protected void onEndTask(String taskName, int workCurr) {
                 StringBuilder s = new StringBuilder();
                 format( s, taskName, workCurr );
-                //s.append( "\n" ); //$NON-NLS-1$
                 send( s );
             }
 
             private void format(StringBuilder s, String taskName, int workCurr) {
-                //s.append( "\r" ); //$NON-NLS-1$
                 s.append( taskName );
-                s.append( ": " ); //$NON-NLS-1$
+                s.append( ": " );
                 while ( s.length() < 25 )
                     s.append( ' ' );
                 s.append( workCurr );
@@ -137,36 +141,33 @@ public class GitCloneTask extends Task<File> {
             protected void onEndTask(String taskName, int cmp, int totalWork, int pcnt) {
                 StringBuilder s = new StringBuilder();
                 format( s, taskName, cmp, totalWork, pcnt );
-                //s.append( "\n" ); //$NON-NLS-1$
                 send( s );
             }
 
-            private void format(StringBuilder s, String taskName, int cmp,
-                                int totalWork, int pcnt) {
-                //s.append( "\r" ); //$NON-NLS-1$
+            private void format(StringBuilder s, String taskName, int cmp, int totalWork, int pcnt) {
                 s.append( taskName );
-                s.append( ": " ); //$NON-NLS-1$
+                s.append( ": " );
                 while ( s.length() < 25 )
                     s.append( ' ' );
 
                 String endStr = String.valueOf( totalWork );
                 String curStr = String.valueOf( cmp );
                 while ( curStr.length() < endStr.length() )
-                    curStr = " " + curStr; //$NON-NLS-1$
+                    curStr = ' ' + curStr;
                 if ( pcnt < 100 )
                     s.append( ' ' );
                 if ( pcnt < 10 )
                     s.append( ' ' );
                 s.append( pcnt );
-                s.append( "% (" ); //$NON-NLS-1$
+                s.append( "% (" );
                 s.append( curStr );
-                s.append( "/" ); //$NON-NLS-1$
+                s.append( '/' );
                 s.append( endStr );
-                s.append( ")" ); //$NON-NLS-1$
+                s.append( ')' );
             }
 
             private void send(StringBuilder s) {
-                updateMessage( s.toString() );
+                console.setOptionalText( s.toString() );
             }
         };
     }

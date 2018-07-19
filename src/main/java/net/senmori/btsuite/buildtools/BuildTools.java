@@ -130,7 +130,7 @@ public class BuildTools {
                     try {
                         FileDeleteStrategy.FORCE.delete( in );
                     } catch ( NullPointerException | IOException e ) {
-                        LogHandler.error( "** Could not delete " + in + " **" );
+                        LogHandler.error( "** Could not delete " + in.getPath() + " **" );
                     }
                 }
             }
@@ -139,7 +139,7 @@ public class BuildTools {
         try {
             FileDeleteStrategy.FORCE.delete( file );
         } catch ( NullPointerException | IOException e ) {
-            LogHandler.error( "** Could not delete " + file + " **" );
+            LogHandler.error( "** Could not delete " + file.getPath() + " **" );
         }
     }
 

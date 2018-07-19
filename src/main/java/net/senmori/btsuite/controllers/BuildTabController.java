@@ -38,7 +38,11 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
@@ -55,11 +59,8 @@ import net.senmori.btsuite.task.InvalidateCacheTask;
 import net.senmori.btsuite.task.SpigotVersionImportTask;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
-import org.apache.commons.io.FileDeleteStrategy;
-import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -139,8 +140,8 @@ public class BuildTabController {
         } );
 
         runBuildToolsBtn.textProperty().bind( Bindings.when( buildInvalidateCache.selectedProperty() )
-                                                      .then( "Invalidate Cache" )
-                                                      .otherwise( "Run Build Tools Suite" )
+                .then( "Invalidate Cache" )
+                .otherwise( "Run Build Tools Suite" )
         );
         runBuildToolsBtn.textProperty().addListener( (observable, oldValue, newValue) -> {
             runBuildToolsBtn.getParent().layout();
@@ -338,27 +339,24 @@ public class BuildTabController {
 
             BuildToolsSettings.Directories dirs = settings.getDirectories();
             File versionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
-            LogHandler.info( "Deleting " + versionsDir + '.' );
-            File[] files = versionsDir.listFiles();
-            if ( ( files != null ) && ( files.length > 0 ) ) {
-                for ( File file : files ) {
-                    try {
-                        buildTools.getConsole().setOptionalText( FilenameUtils.getBaseName( file.getName() ) );
-                        FileDeleteStrategy.FORCE.delete( file );
-                    } catch ( IOException e ) {
-                        e.printStackTrace();
+            File versionsFile = new File( versionsDir, "versions.html" );
+            if ( versionsDir.exists() && versionsDir.isDirectory() ) {
+                if ( versionsFile.exists() && versionsFile.isFile() ) {
+                    if ( versionsFile.delete() ) {
+                        LogHandler.info( "Deleted old versions.html file!" );
                     }
                 }
             }
+
             buildTools.getConsole().reset();
             buildTools.getConsole().setOptionalText( "Re-importing spigot versions..." );
             LogHandler.info( "Re-importing spigot versions..." );
-            importVersions();
+            importVersions( true );
         } );
     }
 
-    public Task importVersions() {
-        SpigotVersionImportTask task = new SpigotVersionImportTask( buildTools );
+    public Task importVersions(boolean reset) {
+        SpigotVersionImportTask task = new SpigotVersionImportTask( buildTools, reset );
         task.setOnRunning( (worker) -> {
             buildTools.getConsole().reset();
             buildTools.getConsole().setProgressText( "Importing Spigot Versions" );

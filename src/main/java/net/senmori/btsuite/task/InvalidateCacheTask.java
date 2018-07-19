@@ -30,10 +30,10 @@
 package net.senmori.btsuite.task;
 
 import javafx.concurrent.Task;
+import net.senmori.btsuite.Console;
 import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.util.LogHandler;
-import org.apache.commons.io.FileDeleteStrategy;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
@@ -44,10 +44,12 @@ public class InvalidateCacheTask extends Task<Boolean> {
 
     private final BuildTools buildTools;
     private final VersionManifest manifest;
+    private final Console console;
 
     public InvalidateCacheTask(BuildTools buildTools, VersionManifest manifest) {
         this.buildTools = buildTools;
         this.manifest = manifest;
+        this.console = buildTools.getConsole();
     }
 
     @Override
@@ -77,29 +79,23 @@ public class InvalidateCacheTask extends Task<Boolean> {
     }
 
     private void delete(File file) {
+        String baseName = FilenameUtils.getBaseName( file.getName() );
         if ( file.isDirectory() ) {
             File[] files = file.listFiles();
             if ( ( files == null ) || ( files.length < 1 ) ) {
+                file.delete();
                 return;
             }
             for ( File in : files ) {
                 if ( in.isDirectory() ) {
                     delete( in );
                 } else {
-                    buildTools.getConsole().setOptionalText( FilenameUtils.getBaseName( in.getName() ) );
-                    try {
-                        FileDeleteStrategy.FORCE.delete( in );
-                    } catch ( IOException e ) {
-                        LogHandler.error( "Could not delete " + in.getPath() );
-                    }
+                    console.setOptionalText( baseName + ": " + FilenameUtils.getBaseName( in.getName() ) );
+                    in.delete();
                 }
             }
         }
-        buildTools.getConsole().setOptionalText( "Deleting " + FilenameUtils.getBaseName( file.getName() ) );
-        try {
-            FileDeleteStrategy.FORCE.delete( file );
-        } catch ( IOException e ) {
-            LogHandler.error( "Could not delete " + file.getPath() );
-        }
+        console.setOptionalText( "Deleting " + FilenameUtils.getBaseName( file.getName() ) );
+        file.delete();
     }
 }

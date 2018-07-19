@@ -39,6 +39,7 @@ import net.senmori.btsuite.buildtools.SpigotVersion;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.TaskUtil;
@@ -47,7 +48,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -59,13 +59,15 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
     private final BuildToolsSettings.Directories dirs;
 
     private final String url;
+    private final boolean resetVersions;
 
     private final TaskPool pool = TaskPools.createFixedThreadPool( 3 );
     private final BuildTools buildTools;
     private final Console console;
 
-    public SpigotVersionImportTask(BuildTools buildTools) {
+    public SpigotVersionImportTask(BuildTools buildTools, boolean resetVersions) {
         this.buildTools = buildTools;
+        this.resetVersions = resetVersions;
         this.console = buildTools.getConsole();
 
         this.settings = buildTools.getSettings();
@@ -75,18 +77,20 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
 
     @Override
     public Map<SpigotVersion, BuildInfo> call() throws Exception {
-        File spigotVersionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
-        spigotVersionsDir.mkdirs();
-        File versionFile = new File( spigotVersionsDir, "versions.html" );
-        if ( !versionFile.exists() ) {
-            versionFile.createNewFile();
-            versionFile = TaskUtil.asyncDownloadFile( url, versionFile );
-            LogHandler.info( " Downloaded new " + versionFile.getName() );
+        Directory spigotVersionsDir = new Directory( dirs.getVersionsDir(), "spigot" );
+        spigotVersionsDir.getFile().mkdirs();
+        Directory versionFile = new Directory( spigotVersionsDir, "versions.html" );
+        if ( resetVersions || !versionFile.exists() ) {
+            versionFile.getFile().createNewFile();
+            FileDownloadTask versionDLTask = new FileDownloadTask( url, versionFile, console );
+            pool.submit( versionDLTask );
+            versionDLTask.get();
+            LogHandler.info( " Downloaded new " + versionFile.getFile().getName() );
         } else {
-            LogHandler.info( versionFile.getName() + " already exists!" );
+            LogHandler.info( versionFile.getFile().getName() + " already exists!" );
         }
 
-        Elements links = Jsoup.parse(versionFile, StandardCharsets.UTF_8.name()).getElementsByTag("a");
+        Elements links = Jsoup.parse( versionFile.getFile(), StandardCharsets.UTF_8.name() ).getElementsByTag( "a" );
         Map<SpigotVersion, BuildInfo> map = Maps.newHashMap();
 
         for ( Element element : links ) {
@@ -99,13 +103,13 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
             }
             SpigotVersion version = new SpigotVersion( versionText );
             String versionUrl = url + text; // ../work/versions/1.12.2.json
-            File verFile = new File( spigotVersionsDir, text );
+            Directory verFile = new Directory( spigotVersionsDir, text );
             if ( !verFile.exists() ) {
-                verFile.createNewFile();
-                verFile = TaskUtil.asyncDownloadFile( versionUrl, verFile );
+                verFile.getFile().createNewFile();
+                verFile = TaskUtil.asyncDownloadFile( versionUrl, verFile, console );
             }
-            console.setOptionalText( FilenameUtils.getBaseName( verFile.getName() ) );
-            JsonReader reader = new JsonReader( new FileReader( verFile ) );
+            console.setOptionalText( FilenameUtils.getBaseName( verFile.toString() ) );
+            JsonReader reader = new JsonReader( new FileReader( verFile.getFile() ) );
             BuildInfo buildInfo = SettingsFactory.getGson().fromJson( reader, BuildInfo.class );
             map.put( version, buildInfo );
         }

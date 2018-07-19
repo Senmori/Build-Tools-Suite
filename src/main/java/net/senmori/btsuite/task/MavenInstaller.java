@@ -65,8 +65,7 @@ public class MavenInstaller extends Task<File> {
             maven.mkdirs();
             LogHandler.info( "Maven does not exist, downloading. Please wait." );
 
-            File mvnTemp = new File( dirs.getWorkingDir().getFile(), "mvn.zip" );
-
+            Directory mvnTemp = new Directory( dirs.getWorkingDir(), "mvn.zip" );
             try {
                 String url = buildToolsSettings.getMvnInstallerLink();
                 FileDownloadTask task = new FileDownloadTask( url, mvnTemp );
@@ -79,9 +78,9 @@ public class MavenInstaller extends Task<File> {
                 TaskPools.submit( task );
                 mvnTemp = task.get();
 
-                ZipUtil.unzip( mvnTemp, dirs.getMvnDir().getFile() );
+                ZipUtil.unzip( mvnTemp.getFile(), dirs.getMvnDir().getFile() );
                 dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() ) );
-                mvnTemp.delete();
+                mvnTemp.getFile().delete();
             } catch ( IOException | InterruptedException | ExecutionException e ) {
                 e.printStackTrace();
                 return null;

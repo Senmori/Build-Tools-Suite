@@ -40,21 +40,27 @@ import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.buildtools.VersionInfo;
 import net.senmori.btsuite.command.CommandHandler;
 import net.senmori.btsuite.command.ICommandIssuer;
+import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.HashChecker;
 import net.senmori.btsuite.util.LogHandler;
-import net.senmori.btsuite.util.TaskUtil;
 import net.senmori.btsuite.util.builders.MavenCommandBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.revwalk.RevCommit;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -81,28 +87,22 @@ public final class BuildToolsTask extends Task<Long> {
     @Override
     protected Long call() throws Exception {
         Stopwatch watch = Stopwatch.createStarted();
-        File work = dirs.getWorkDir().getFile();
         printOptions( options );
 
         if ( options.isInvalidateCache() ) {
-            InvalidateCacheTask task = new InvalidateCacheTask( options, options.getVersionManifest() );
-            task.messageProperty().addListener( ( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } ) );
+            VersionManifest manifest = options.getVersionManifest();
+            InvalidateCacheTask task = new InvalidateCacheTask( options, manifest );
             projectPool.submit( task );
             task.get();
         }
         console.setOptionalText( "" );
 
-
         LogHandler.info( "Cloning Bukkit..." );
-        File bukkit = new File( dirs.getWorkingDir().getFile(), "Bukkit" );
-        if ( !bukkit.exists() ) {
+        Directory bukkit = new Directory( dirs.getWorkingDir(), "Bukkit" );
+        if ( !bukkit.getFile().exists() ) {
+            bukkit.getFile().mkdirs();
             String repo = settings.getStashRepoLink() + "bukkit.git";
-            GitCloneTask task = new GitCloneTask( repo, bukkit );
-            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
+            GitCloneTask task = new GitCloneTask( repo, bukkit, console );
             projectPool.submit( task );
             task.get();
         } else {
@@ -111,13 +111,11 @@ public final class BuildToolsTask extends Task<Long> {
         console.setOptionalText( "" );
 
         LogHandler.info( "Cloning CraftBukkit..." );
-        File craftBukkit = new File( dirs.getWorkingDir().getFile(), "CraftBukkit" );
-        if ( !craftBukkit.exists() ) {
+        Directory craftBukkit = new Directory( dirs.getWorkingDir(), "CraftBukkit" );
+        if ( !craftBukkit.getFile().exists() ) {
+            craftBukkit.getFile().mkdirs();
             String repo = settings.getStashRepoLink() + "craftbukkit.git";
-            GitCloneTask task = new GitCloneTask( repo, craftBukkit );
-            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
+            GitCloneTask task = new GitCloneTask( repo, craftBukkit, console );
             projectPool.submit( task );
             task.get();
         } else {
@@ -126,13 +124,11 @@ public final class BuildToolsTask extends Task<Long> {
         console.setOptionalText( "" );
 
         LogHandler.info( "Cloning Spigot..." );
-        File spigot = new File( dirs.getWorkingDir().getFile(), "Spigot" );
-        if ( !spigot.exists() ) {
+        Directory spigot = new Directory( dirs.getWorkingDir(), "Spigot" );
+        if ( !spigot.getFile().exists() ) {
+            spigot.getFile().mkdirs();
             String repo = settings.getStashRepoLink() + "spigot.git";
-            GitCloneTask task = new GitCloneTask( repo, spigot );
-            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
+            GitCloneTask task = new GitCloneTask( repo, spigot, console );
             projectPool.submit( task );
             task.get();
         } else {
@@ -141,13 +137,11 @@ public final class BuildToolsTask extends Task<Long> {
         console.setOptionalText( "" );
 
         LogHandler.info( "Cloning BuildData..." );
-        File buildData = new File( dirs.getWorkingDir().getFile(), "BuildData" );
-        if ( !buildData.exists() ) {
+        Directory buildData = new Directory( dirs.getWorkingDir(), "BuildData" );
+        if ( !buildData.getFile().exists() ) {
+            buildData.getFile().mkdirs();
             String repo = settings.getStashRepoLink() + "builddata.git";
-            GitCloneTask task = new GitCloneTask( repo, buildData );
-            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
+            GitCloneTask task = new GitCloneTask( repo, buildData, console );
             projectPool.submit( task );
             task.get();
         } else {
@@ -156,81 +150,72 @@ public final class BuildToolsTask extends Task<Long> {
         console.setOptionalText( "" );
 
         dirs.getMvnDir().getFile().mkdirs();
-        String mvn = new File( dirs.getMvnDir().getFile(), "/bin/mvn" ).getAbsolutePath();
-
-        // Close these when done using them; they could keep file references open
-        Git bukkitGit = Git.open( bukkit );
-        Git craftBukkitGit = Git.open( craftBukkit );
-        Git spigotGit = Git.open( spigot );
-        Git buildGit = Git.open( buildData );
+        Directory mvnBinDir = new Directory( dirs.getMvnDir().getFile(), "/bin/mvn" );
+        String mvn = mvnBinDir.toString();
 
         BuildInfo buildInfo = BuildInfo.getDefaultImpl();
 
+        Git buildGit = Git.open( buildData.getFile() );
+        Git craftBukkitGit = Git.open( craftBukkit.getFile() );
         if ( !options.isDontUpdate() ) {
             dirs.getVersionsDir().getFile().mkdirs();
-            final String askedVersion = options.getVersion();
-            LogHandler.info( "Attempting to build version: '" + askedVersion + "' use --rev <version> to override" );
+            String askedVersion = options.getVersion();
+            LogHandler.info( "Attempting to build version: " + askedVersion );
 
-            String text = askedVersion + ".json";
-            File versionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
-            versionsDir.mkdirs();
-            File verInfo = new File( versionsDir, text );
-            if ( !verInfo.exists() ) {
-                // download file
+            String versionText = askedVersion + ".json";
+            Directory versionsDirectory = new Directory( dirs.getVersionsDir(), "spigot" );
+            Directory versionInfo = new Directory( versionsDirectory, versionText );
+            if ( !versionInfo.exists() ) {
                 String url = settings.getVersionLink() + askedVersion + ".json";
-                verInfo = TaskUtil.asyncDownloadFile( url, verInfo );
-
+                FileDownloadTask dlTask = new FileDownloadTask( url, versionInfo, console );
+                projectPool.submit( dlTask );
+                dlTask.get();
                 LogHandler.info( "Downloaded " + askedVersion + "\'s version file." );
             } else {
                 LogHandler.info( "Found version " + askedVersion );
             }
-            buildInfo = SettingsFactory.getGson().fromJson( new FileReader( verInfo ), BuildInfo.class );
+            FileReader versionFileReader = new FileReader( versionInfo.getFile() );
+            buildInfo = SettingsFactory.getGson().fromJson( versionFileReader, BuildInfo.class );
             console.setOptionalText( "" );
 
             // BuildData
             LogHandler.info( "Pulling updates from BuildData remote..." );
             GitPullTask buildDataTask = new GitPullTask( buildGit, buildInfo.getRefs().getBuildData(), console );
-            buildDataTask.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
             projectPool.submit( buildDataTask );
             buildDataTask.get();
             console.setOptionalText( "" );
 
             // Bukkit
+            Git bukkitGit = Git.open( bukkit.getFile() );
+
             LogHandler.info( "Pulling updates from Bukkit remote..." );
             GitPullTask bukkitTask = new GitPullTask( bukkitGit, buildInfo.getRefs().getBukkit(), console );
-            bukkitTask.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
             projectPool.submit( bukkitTask );
             bukkitTask.get();
+            clearRefs( bukkitGit, bukkit );
             console.setOptionalText( "" );
 
             // CraftBukkit
             LogHandler.info( "Pulling updates from CraftBukkit remote..." );
             GitPullTask craftBukkitTask = new GitPullTask( craftBukkitGit, buildInfo.getRefs().getCraftBukkit(), console );
-            craftBukkitTask.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
             projectPool.submit( craftBukkitTask );
             craftBukkitTask.get();
             console.setOptionalText( "" );
 
             // Spigot
+            Git spigotGit = Git.open( spigot.getFile() );
+
             LogHandler.info( "Pulling updates from BuildData remote..." );
             GitPullTask spigotTask = new GitPullTask( spigotGit, buildInfo.getRefs().getSpigot(), console );
-            spigotTask.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
             projectPool.submit( spigotTask );
             spigotTask.get();
         }
         console.setOptionalText( "" );
 
-        File infoFile = new File( dirs.getWorkingDir().getFile(), "BuildData/info.json" );
-        infoFile.mkdirs();
-        VersionInfo versionInfo = SettingsFactory.getGson().fromJson( new FileReader( infoFile ), VersionInfo.class );
+        Directory infoFile = new Directory( dirs.getWorkingDir(), "BuildData/info.json" );
+        infoFile.getFile().mkdirs();
+        FileReader infoReader = new FileReader( infoFile.getFile() );
+        VersionInfo versionInfo = SettingsFactory.getGson().fromJson( infoReader, VersionInfo.class );
         // Default to latest version
         if ( versionInfo == null ) {
             LogHandler.info( "Could not generate version. Using default ( " + settings.getDefaultVersion() + " )." );
@@ -240,14 +225,17 @@ public final class BuildToolsTask extends Task<Long> {
 
         String jarName = "minecraft_server." + versionInfo.getMinecraftVersion() + ".jar";
         dirs.getJarDir().getFile().mkdirs();
-        File vanillaJar = new File( dirs.getJarDir().getFile(), jarName );
-        if ( !vanillaJar.exists() || !HashChecker.checkHash( vanillaJar, versionInfo ) ) {
+        Directory vanillaJar = new Directory( dirs.getJarDir(), jarName );
+        if ( !vanillaJar.exists() || !HashChecker.checkHash( vanillaJar.getFile(), versionInfo ) ) {
             LogHandler.info( "Downloading Minecraft Server Version \'" + versionInfo.getMinecraftVersion() + "\' jar." );
             String url = options.getVersionManifest().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
-            vanillaJar = TaskUtil.asyncDownloadFile( url, vanillaJar );
+            FileDownloadTask jarDLTask = new FileDownloadTask( url, vanillaJar, console );
+            projectPool.submit( jarDLTask );
+            jarDLTask.get();
         }
+        console.setOptionalText( "" );
 
-        if ( !HashChecker.checkHash( vanillaJar, versionInfo ) ) {
+        if ( !HashChecker.checkHash( vanillaJar.getFile(), versionInfo ) ) {
             LogHandler.error( "**** Could not download clean Minecraft jar, giving up. ****" );
             options.setRunning( false );
             cancel( true );
@@ -275,21 +263,24 @@ public final class BuildToolsTask extends Task<Long> {
             File clMappedJar = new File( finalMappedJar + "-cl" );
             File mMappedJar = new File( finalMappedJar + "-m" );
 
-            File fernflower = new File( buildData, "bin/fernflower.jar" );
-            File specialSource = new File( buildData, "bin/SpecialSource.jar" );
-            File specialSource_2 = new File( buildData, "bin/SpecialSource-2.jar" );
+            Directory specialSource = new Directory( buildData, "bin/SpecialSource.jar" );
+            Directory specialSource2 = new Directory( buildData, "bin/SpecialSource-2.jar" );
+
+            String ssPath = specialSource.toString();
+            String ss2Path = specialSource2.toString();
+            String vanillaJarPath = vanillaJar.toString();
 
             LogHandler.info( "Applying first mappings..." );
-            CommandHandler.getCommandIssuer().executeCommand( buildData, "java", "-jar", specialSource_2.getAbsolutePath(), "map", "-i", vanillaJar.getAbsolutePath(), "-m", "mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getAbsolutePath() );
+            CommandHandler.getCommandIssuer().executeCommand( buildData.getFile(), "java", "-jar", ss2Path, "map", "-i", vanillaJarPath, "-m", "mappings/" + versionInfo.getClassMappings(), "-o", clMappedJar.getAbsolutePath() );
             LogHandler.info( clMappedJar.getName() + " created!" );
 
             LogHandler.info( "Applying second mappings..." );
-            CommandHandler.getCommandIssuer().executeCommand( buildData, "java", "-jar", specialSource_2.getAbsolutePath(), "map", "-i", clMappedJar.getAbsolutePath(),
+            CommandHandler.getCommandIssuer().executeCommand( buildData.getFile(), "java", "-jar", ss2Path, "map", "-i", clMappedJar.getAbsolutePath(),
                     "-m", "mappings/" + versionInfo.getMemberMappings(), "-o", mMappedJar.getAbsolutePath() );
             LogHandler.info( mMappedJar.getName() + " created!" );
 
             LogHandler.info( "Applying final mappings..." );
-            CommandHandler.getCommandIssuer().executeCommand( buildData, "java", "-jar", specialSource.getAbsolutePath(), "--kill-lvt", "-i", mMappedJar.getAbsolutePath(), "--access-transformer", "mappings/" + versionInfo.getAccessTransforms(),
+            CommandHandler.getCommandIssuer().executeCommand( buildData.getFile(), "java", "-jar", ssPath, "--kill-lvt", "-i", mMappedJar.getAbsolutePath(), "--access-transformer", "mappings/" + versionInfo.getAccessTransforms(),
                     "-m", "mappings/" + versionInfo.getPackageMappings(), "-o", finalMappedJar.getAbsolutePath() );
         } else {
             LogHandler.info( "Mapped jar for mappings version \'" + mappingsVersion + "\' already exists!" );
@@ -307,16 +298,16 @@ public final class BuildToolsTask extends Task<Long> {
         command.executeCommand( dirs.getWorkingDir().getFile(), goals );
 
         LogHandler.info( "Decompiling: " );
-        File decompileDir = new File( dirs.getWorkDir().getFile(), "decompile-" + mappingsVersion );
+        Directory decompileDir = new Directory( dirs.getWorkDir(), "decompile-" + mappingsVersion );
         if ( !decompileDir.exists() ) {
-            decompileDir.mkdir();
+            decompileDir.getFile().mkdir();
 
-            LogHandler.info( "Extracting " + finalMappedJar.getName() + " into " + decompileDir.getAbsolutePath() );
-            File clazzDir = new File( decompileDir, "classes" );
-            clazzDir.mkdir();
+            LogHandler.info( "Extracting " + finalMappedJar.getName() + " into " + decompileDir.toString() );
+            Directory clazzDir = new Directory( decompileDir, "classes" );
+            clazzDir.getFile().mkdir();
             LogHandler.debug( "Unzipping " + finalMappedJar.getName() + " into " + clazzDir );
 
-            ExtractFilesTask task = new ExtractFilesTask( finalMappedJar, clazzDir, console, (str) -> str.startsWith( "net/minecraft/server/" ) );
+            ExtractFilesTask task = new ExtractFilesTask( finalMappedJar, clazzDir.getFile(), console, (str) -> str.startsWith( "net/minecraft/server/" ) );
             task.call();
             console.setOptionalText( "" );
 
@@ -328,7 +319,7 @@ public final class BuildToolsTask extends Task<Long> {
             // call fernflower - all this is so we can capture the output and redirect it accordingly
             LogHandler.info( "Running decompile command..." );
             ICommandIssuer handler = CommandHandler.getCommandIssuer();
-            Process process = handler.issue( dirs.getWorkingDir().getFile(), MessageFormat.format( versionInfo.getDecompileCommand(), clazzDir.getAbsolutePath(), decompileDir.getAbsolutePath() ).split( " " ) );
+            Process process = handler.issue( dirs.getWorkingDir().getFile(), MessageFormat.format( versionInfo.getDecompileCommand(), clazzDir.toString(), decompileDir.toString() ).split( " " ) );
             BufferedReader reader = new BufferedReader( new InputStreamReader( process.getInputStream() ) );
             String line = "";
             int numDecompiled = 0;
@@ -346,10 +337,10 @@ public final class BuildToolsTask extends Task<Long> {
                 }
             }
 
-            LogHandler.info( "Finished decompiling " + numDecompiled + "classes in " + FilenameUtils.getBaseName( clazzDir.getName() ) );
+            LogHandler.info( "Finished decompiling " + numDecompiled + "classes in " + FilenameUtils.getBaseName( clazzDir.getFile().getName() ) );
         } else {
             // check to see if the directory has net/minecraft/server
-            if ( decompileDir.isDirectory() && decompileDir.listFiles().length > 0 ) {
+            if ( decompileDir.isDirectory() && decompileDir.getFile().listFiles().length > 0 ) {
                 LogHandler.info( "Decompile directory " + decompileDir + " already exists!" );
             } else {
                 LogHandler.error( "*** Decompile directory is not valid. Please delete it, or try invalidating your cache! ***" );
@@ -362,36 +353,36 @@ public final class BuildToolsTask extends Task<Long> {
         console.setOptionalText( "" );
 
         LogHandler.info( "Applying CraftBukkit Patches" );
-        File nmsDir = new File( craftBukkit, "src/main/java/net/" );
-        nmsDir.mkdir();
+        Directory nmsDir = new Directory( craftBukkit, "src/main/java/net/" );
         if ( nmsDir.exists() ) {
             dirs.getTmpDir().getFile().mkdirs();
             LogHandler.info( "Backing up NMS dir" );
-            FileUtils.moveDirectory( nmsDir, new File( dirs.getTmpDir().getFile(), "nms.old." + System.currentTimeMillis() ) );
+            FileUtils.moveDirectory( nmsDir.getFile(), new File( dirs.getTmpDir().getFile(), "nms.old." + System.currentTimeMillis() ) );
         }
 
         LogHandler.info( "Starting NMS patches..." );
-        File patchDir = new File( craftBukkit, "nms-patches" );
+        Directory patchDir = new Directory( craftBukkit, "nms-patches" );
         /*
          * Apply patches from 'patchDir' to the files in 'decompileDir' and put the resulting file in 'nmsDir'
          */
         LogHandler.info( "Patch File Dir: " + patchDir.getPath() );
         LogHandler.info( "Source File Dir: " + decompileDir.getPath() );
         LogHandler.info( "Output File Dir: " + nmsDir.getPath() );
-        ApplyPatchesTask applyPatchesTask = new ApplyPatchesTask( patchDir, decompileDir, nmsDir, console );
+        ApplyPatchesTask applyPatchesTask = new ApplyPatchesTask( patchDir.getFile(), decompileDir.getFile(), nmsDir.getFile(), console );
         projectPool.submit( applyPatchesTask );
         int patchesApplied = applyPatchesTask.get();
-        int totalPatches = patchDir.listFiles( (file, name) -> name.endsWith( ".patch" ) ).length;
+        File[] patchDirFiles = patchDir.getFile().listFiles();
+        int totalPatches = ( patchDirFiles == null || patchDirFiles.length < 1 ) ? 0 : patchDirFiles.length;
 
-        File cbNMSDir = new File( nmsDir, "minecraft/server/" );
+        Directory cbNMSDir = new Directory( nmsDir, "minecraft/server/" );
         if ( cbNMSDir.exists() ) {
             LogHandler.info( "Applied " + patchesApplied + "/" + totalPatches + " patches." );
         }
         console.setOptionalText( "" );
         LogHandler.info( "Patching complete!" );
 
-        File tmpNms = new File( craftBukkit, "tmp-nms" );
-        FileUtils.copyDirectory( nmsDir, tmpNms );
+        Directory tmpNms = new Directory( craftBukkit, "tmp-nms" );
+        FileUtils.copyDirectory( nmsDir.getFile(), tmpNms.getFile() );
 
         LogHandler.info( "Deleting \'patched\' branch..." );
         craftBukkitGit.branchDelete().setBranchNames( "patched" ).setForce( true ).call();
@@ -408,30 +399,24 @@ public final class BuildToolsTask extends Task<Long> {
         LogHandler.info( "Checking out " + buildInfo.getRefs().getCraftBukkit() );
         craftBukkitGit.checkout().setName( buildInfo.getRefs().getCraftBukkit() ).call();
 
-        LogHandler.info( "Moving " + tmpNms.getName() + " to " + nmsDir.getAbsolutePath() );
-        FileUtils.moveDirectory( tmpNms, nmsDir );
+        LogHandler.info( "Moving " + tmpNms.getFile().getName() + " to " + nmsDir.toString() );
+        FileUtils.moveDirectory( tmpNms.getFile(), nmsDir.getFile() );
 
         LogHandler.info( "Cloning SpigotAPI" );
-        File spigotApi = new File( spigot, "Bukkit" );
+        Directory spigotApi = new Directory( spigot, "Bukkit" );
         if ( !spigotApi.exists() ) {
-            String url = "file://" + bukkit.getAbsolutePath();
-            GitCloneTask task = new GitCloneTask( url, spigotApi );
-            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
+            String url = "file://" + bukkit.getFile().getAbsolutePath();
+            GitCloneTask task = new GitCloneTask( url, spigotApi, console );
             projectPool.submit( task );
             task.get();
         }
         console.setOptionalText( "" );
 
         LogHandler.info( "Cloning SpigotServer" );
-        File spigotServer = new File( spigot, "CraftBukkit" );
+        Directory spigotServer = new Directory( spigot, "CraftBukkit" );
         if ( !spigotServer.exists() ) {
-            String url = "file://" + craftBukkit.getAbsolutePath();
-            GitCloneTask task = new GitCloneTask( url, spigotServer );
-            task.messageProperty().addListener( (observable, oldValue, newValue) -> {
-                console.setOptionalText( newValue );
-            } );
+            String url = "file://" + craftBukkit.toString();
+            GitCloneTask task = new GitCloneTask( url, spigotServer, console );
             projectPool.submit( task );
             task.get();
         }
@@ -440,22 +425,22 @@ public final class BuildToolsTask extends Task<Long> {
         if ( !options.isSkipCompile() ) {
             MavenCommandBuilder mvnBuild = MavenCommandBuilder.builder().setInteractiveMode( false );
             LogHandler.info( "### Compiling Bukkit ###" );
-            mvnBuild.setBaseDirectory( bukkit ).setGoals( Arrays.asList( "install" ) ).execute();
+            mvnBuild.setBaseDirectory( bukkit.getFile() ).setGoals( Arrays.asList( "install" ) ).execute();
             if ( options.isGenDocumentation() ) {
-                mvnBuild.setBaseDirectory( bukkit ).setGoals( Arrays.asList( "javadoc:jar" ) ).execute();
+                mvnBuild.setBaseDirectory( bukkit.getFile() ).setGoals( Arrays.asList( "javadoc:jar" ) ).execute();
             }
             if ( options.isGenSource() ) {
-                mvnBuild.setBaseDirectory( bukkit ).setGoals( Arrays.asList( "source:jar" ) ).execute();
+                mvnBuild.setBaseDirectory( bukkit.getFile() ).setGoals( Arrays.asList( "source:jar" ) ).execute();
             }
             LogHandler.info( "### Compiling CraftBukkit ###" );
-            mvnBuild.setBaseDirectory( craftBukkit ).setGoals( Arrays.asList( "install" ) ).execute();
+            mvnBuild.setBaseDirectory( craftBukkit.getFile() ).setGoals( Arrays.asList( "install" ) ).execute();
         }
         console.setOptionalText( "" );
 
         try {
             LogHandler.info( "Starting applyPatches for Spigot" );
-            File spigotDir = new File( dirs.getWorkingDir().getFile(), "Spigot" );
-            CommandHandler.getCommandIssuer().executeCommand( spigotDir, applyPatchesShell, "applyPatches.sh" );
+            Directory spigotDir = new Directory( dirs.getWorkingDir(), "Spigot" );
+            CommandHandler.getCommandIssuer().executeCommand( spigotDir.getFile(), applyPatchesShell, "applyPatches.sh" );
             ;
 
             LogHandler.info( "*** Spigot patches applied!" );
@@ -463,7 +448,7 @@ public final class BuildToolsTask extends Task<Long> {
             if ( !options.isSkipCompile() ) {
                 LogHandler.info( "### Compiling Spigot & Spigot-API ###" );
                 MavenCommandBuilder spigotBuilder = MavenCommandBuilder.builder()
-                                                                       .setBaseDirectory( new File( dirs.getWorkingDir().getFile(), "Spigot" ) )
+                        .setBaseDirectory( spigotDir.getFile() )
                                                                        .setInteractiveMode( false )
                                                                        .setGoals( Arrays.asList( "clean", "install" ) );
                 spigotBuilder.execute().getExitCode();
@@ -477,24 +462,27 @@ public final class BuildToolsTask extends Task<Long> {
             return -1L;
         }
 
+        // Remove references
+        clearRefs( craftBukkitGit, craftBukkit );
+        clearRefs( buildGit, buildData );
+        spigot.clearReference();
+        bukkit.clearReference();
+        craftBukkit.clearReference();
+        buildData.clearReference();
+
         for ( int i = 0; i < 5; i++ ) {
             LogHandler.info( " " );
         }
 
-        final String version = versionInfo.getMinecraftVersion();
+        String version = versionInfo.getMinecraftVersion();
         if ( !options.isSkipCompile() ) {
             projectPool.submit( () -> {
                 LogHandler.info( "Success! Everything compiled successfully. Copying final .jar files now." );
                 LogHandler.debug( "OutputDirectories: " + options.getOutputDirectories() );
-                final File bukkitSourceDir = new File( dirs.getWorkingDir().getFile(), "Bukkit/target" );
-                final File craftSourceDir = new File( dirs.getWorkingDir().getFile(), "CraftBukkit/target" );
-                final File spigotSourceDir = new File( dirs.getWorkingDir().getFile(), "Spigot/Spigot-Server/target" );
-                final Predicate<String> isValidJar = new Predicate<String>() {
-                    @Override
-                    public boolean test(String str) {
-                        return str.contains( version ) && str.endsWith( ".jar" );
-                    }
-                };
+                File bukkitSourceDir = new File( dirs.getWorkingDir().getFile(), "Bukkit/target" );
+                File craftSourceDir = new File( dirs.getWorkingDir().getFile(), "CraftBukkit/target" );
+                File spigotSourceDir = new File( dirs.getWorkingDir().getFile(), "Spigot/Spigot-Server/target" );
+                Predicate<String> isValidJar = (str) -> str.contains( version ) && str.endsWith( ".jar" );
                 for ( String outputDir : options.getOutputDirectories() ) {
                     try {
                         FileUtil.copyJar( craftSourceDir, new File( outputDir ), "craftbukkit-" + version + ".jar", isValidJar );
@@ -506,23 +494,31 @@ public final class BuildToolsTask extends Task<Long> {
                         if ( options.isGenDocumentation() ) {
                             FileUtil.copyJar( bukkitSourceDir, new File( outputDir ), "bukkit-" + version + "-javadoc.jar", (str) -> isValidJar.test( str ) && str.contains( "-javadoc" ) );
                         }
+
+                        if ( options.isGenSource() ) {
+                            FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-sources" ) );
+                        }
+                        if ( options.isGenDocumentation() ) {
+                            FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-javadoc" ) );
+                        }
+                        FileUtil.deleteFilesInDirectory( craftSourceDir, (str) -> str.endsWith( ".jar" ) );
+                        FileUtil.deleteFilesInDirectory( spigotSourceDir, (str) -> str.endsWith( ".jar" ) );
+
                     } catch ( IOException e ) {
                         e.printStackTrace();
                         break;
+
+                    } finally { // Remove references so we can delete them later
+                        bukkitSourceDir = null;
+                        craftSourceDir = null;
+                        spigotSourceDir = null;
                     }
                 }
-                if ( options.isGenSource() ) {
-                    FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-sources" ) );
-                }
-                if ( options.isGenDocumentation() ) {
-                    FileUtil.deleteFilesInDirectory( bukkitSourceDir, (str) -> isValidJar.test( str ) && str.contains( "-javadoc" ) );
-                }
-                FileUtil.deleteFilesInDirectory( craftSourceDir, (str) -> str.endsWith( ".jar" ) );
-                FileUtil.deleteFilesInDirectory( spigotSourceDir, (str) -> str.endsWith( ".jar" ) );
 
                 return true;
             } ).get();
         }
+        // remove references
         console.setOptionalText( "" );
 
         watch = watch.stop();
@@ -556,5 +552,23 @@ public final class BuildToolsTask extends Task<Long> {
         } catch ( IOException e ) {
 
         }
+    }
+
+    private void clearTaskRefs(Git repo, Directory target, Task task) {
+        task.setOnCancelled( (event) -> {
+            clearRefs( repo, target );
+        } );
+        task.setOnFailed( (event) -> {
+            clearRefs( repo, target );
+        } );
+        task.setOnSucceeded( (event) -> {
+            clearRefs( repo, target );
+        } );
+
+    }
+
+    private void clearRefs(Git repo, Directory target) {
+        repo.close();
+        target.clearReference();
     }
 }

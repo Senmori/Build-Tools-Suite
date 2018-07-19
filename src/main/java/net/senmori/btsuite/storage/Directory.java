@@ -29,44 +29,88 @@
 
 package net.senmori.btsuite.storage;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
+import java.util.regex.Pattern;
 
 /**
  * A {@link Directory} can be either a file or actual directory.
  * The type is determined by the {@link #getPath()} attribute.
  */
+@Getter
 public class Directory {
+    private static final Pattern SEPARATOR_PATTERN = Pattern.compile( ".*[/\\\\].*" );
 
     /**
      * Get the parent of this directory
      */
-    @Getter
     private final String parent;
 
     /**
      * Get the actual name of this directory, or file.
      */
-    @Getter
     private final String path;
 
+    @Getter(AccessLevel.NONE)
+    private WeakReference<File> file;
+
+    /**
+     * Create a new Directory instance with the given path.
+     *
+     * @param parent the parent folder of the directory
+     * @param path   Either the file, or subfolder of the parent
+     */
     public Directory(String parent, String path) {
         this.parent = parent;
         this.path = path;
+        file = new WeakReference<>( new File( this.parent, this.path ) );
+    }
+
+    public Directory(File parent, String child) {
+        this( parent.getPath(), child );
     }
 
     public Directory(Directory parent, String path) {
-        this.parent = parent.getFile().getAbsolutePath();
-        this.path = path;
+        this( parent.getFile().getPath(), path );
     }
 
     /**
-     * Get this {@link Directory} as a {@link File}
+     * Get this Directory as a {@link File}
      *
      * @return this directory as a {@link File}
      */
     public File getFile() {
-        return new File( parent, path );
+        if ( file.get() != null ) {
+            return file.get();
+        }
+        file = new WeakReference<>( new File( parent, path ) );
+        return file.get();
+    }
+
+    public void clearReference() {
+        file.clear();
+    }
+
+    public boolean isFile() {
+        return getFile().isFile();
+    }
+
+    public boolean isDirectory() {
+        return getFile().isDirectory();
+    }
+
+    public boolean exists() {
+        return getFile().exists();
+    }
+
+    public boolean isRepository() {
+        return getFile().exists(); // TODO: Implement a way to tell if it's actually a repo
+    }
+
+    public String toString() {
+        return parent + File.separator + path;
     }
 }

@@ -30,27 +30,84 @@
 package net.senmori.btsuite.task;
 
 import javafx.concurrent.Task;
-import net.senmori.btsuite.download.FileDownloader;
+import lombok.Cleanup;
+import net.senmori.btsuite.Console;
+import net.senmori.btsuite.storage.Directory;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 
-public class FileDownloadTask extends Task<File> {
+public class FileDownloadTask extends Task<Directory> {
     private final String url;
-    private final File target;
-    private final String finalName;
+    private final Directory target;
+    private final Console console;
 
-    public FileDownloadTask(String url, File target) {
+    public FileDownloadTask(String url, Directory target) {
         this( url, target, null );
     }
 
-    public FileDownloadTask(String url, File target, String fileName) {
+    public FileDownloadTask(String url, Directory target, Console console) {
         this.url = url;
         this.target = target;
-        this.finalName = fileName;
+        this.console = console;
     }
 
     @Override
-    public File call() throws Exception {
-        return new FileDownloader().download( url, target, finalName );
+    public Directory call() throws Exception {
+        File targetFile = target.getFile();
+        try {
+            URL link = new URL( url );
+            URLConnection connection = link.openConnection();
+            int totalSize = connection.getContentLength();
+            if ( totalSize < 0 ) {
+                // can't determine file size, just download it
+                return fosDownload( connection );
+            }
+            InputStream inputStream = connection.getInputStream();
+            BufferedInputStream in = new BufferedInputStream( inputStream );
+            FileOutputStream fos = new FileOutputStream( targetFile );
+
+            int count = 0;
+            byte[] data = new byte[1024];
+            double sumCount = 0.0D;
+
+            while ( ( count = in.read( data, 0, 1024 ) ) != -1 ) {
+                fos.write( data, 0, count );
+
+                sumCount += count;
+                if ( ( totalSize > 0 ) && ( console != null ) ) {
+                    int percent = ( int ) ( ( sumCount / ( double ) totalSize ) * 100.0D );
+                    console.setOptionalText( "Downloading: " + percent + '%' );
+                }
+            }
+        } catch ( MalformedURLException e ) {
+            e.printStackTrace();
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
+        return target;
+    }
+
+    private Directory fosDownload(URLConnection connection) {
+        File targetFile = target.getFile();
+        try {
+            @Cleanup InputStream stream = connection.getInputStream();
+            @Cleanup FileOutputStream fos = new FileOutputStream( targetFile );
+            @Cleanup ReadableByteChannel rbc = Channels.newChannel( stream );
+            fos.getChannel().transferFrom( rbc, 0L, Long.MAX_VALUE );
+        } catch ( MalformedURLException e ) {
+            e.printStackTrace();
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
+        return target;
     }
 }

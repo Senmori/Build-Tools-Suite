@@ -63,6 +63,7 @@ public class VersionManifest {
 
     public void importVersions() {
         importVersionsProxyProperty.set( true );
+        availableVersions.clear();
     }
 
     public MinecraftVersion getVersion(String version) {

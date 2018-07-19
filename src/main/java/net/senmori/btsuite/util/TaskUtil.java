@@ -29,10 +29,11 @@
 
 package net.senmori.btsuite.util;
 
+import net.senmori.btsuite.Console;
 import net.senmori.btsuite.pool.TaskPools;
+import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.task.FileDownloadTask;
 
-import java.io.File;
 import java.util.concurrent.ExecutionException;
 
 public class TaskUtil {
@@ -44,9 +45,9 @@ public class TaskUtil {
      * @param target the target file
      * @return the target file
      */
-    public static File asyncDownloadFile(String url, File target) {
+    public static Directory asyncDownloadFile(String url, Directory target, Console console) {
         try {
-            FileDownloadTask task = new FileDownloadTask( url, target );
+            FileDownloadTask task = new FileDownloadTask( url, target, console );
             TaskPools.submit( task );
             return task.get();
         } catch ( InterruptedException e ) {

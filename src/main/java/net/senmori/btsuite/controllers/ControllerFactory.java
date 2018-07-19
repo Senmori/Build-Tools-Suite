@@ -92,7 +92,7 @@ public class ControllerFactory implements Callback<Class<?>, Object> {
         MavenInstaller maven = new MavenInstaller();
         TaskPools.submit( maven );
 
-        buildTabController.importVersions();
-        minecraftTabController.importVersions();
+        buildTabController.importVersions( false );
+        minecraftTabController.importVersions( false );
     }
 }

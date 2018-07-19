@@ -30,6 +30,7 @@
 package net.senmori.btsuite.controllers;
 
 import com.google.common.collect.Maps;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -54,10 +55,10 @@ import net.senmori.btsuite.minecraft.ReleaseType;
 import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
+import net.senmori.btsuite.storage.Directory;
 import net.senmori.btsuite.task.FileDownloadTask;
 import net.senmori.btsuite.task.ImportMinecraftVersionTask;
 import net.senmori.btsuite.util.LogHandler;
-import org.apache.commons.io.FileDeleteStrategy;
 
 import java.io.File;
 import java.io.IOException;
@@ -110,8 +111,8 @@ public class MinecraftTabController {
         downloadServerBtn.disableProperty().bind( Bindings.isNull( currentVersionProperty ) );
         importVersionsProxy.bindBidirectional( versionManifest.getImportVersionsProxyProperty() );
         importVersionsProxy.addListener( (observable, oldValue, newValue) -> {
-            if ( newValue == true ) {
-                updateVersionsBtn.fire();
+            if ( newValue ) {
+                Platform.runLater( () -> updateVersionsBtn.fire() );
             }
             importVersionsProxy.set( false );
         } );
@@ -149,13 +150,6 @@ public class MinecraftTabController {
                 SHA1TextField.setText( currentVersionProperty.get().getSHA_1() );
             }
         } ) );
-
-//        GitInstaller git = new GitInstaller();
-//        git.setOnSucceeded( (worker) -> {
-//            TaskPools.submit( new GitConfigurationTask( buildTools.getSettings() ) );
-//        } );
-//        TaskPools.submit( git );
-//        TaskPools.submit( new MavenInstaller() );
     }
 
 
@@ -167,12 +161,12 @@ public class MinecraftTabController {
             chooser.setTitle( "Choose Destination" );
             chooser.setInitialDirectory( Main.WORKING_DIR.getFile() );
             File directory = chooser.showDialog( Main.getWindow() );
-            File serverFile = new File( directory, "minecraft_server-" + workingVersion.getVersion() + ".jar" );
+            Directory serverFile = new Directory( directory, "minecraft_server-" + workingVersion.getVersion() + ".jar" );
 
-            FileDownloadTask task = new FileDownloadTask( workingVersion.getServerDownloadURL(), serverFile );
+            FileDownloadTask task = new FileDownloadTask( workingVersion.getServerDownloadURL(), serverFile, console );
             task.setOnSucceeded( (worker) -> {
                 try {
-                    Runtime.getRuntime().exec( "explorer.exe /select," + task.getValue().getAbsolutePath() );
+                    Runtime.getRuntime().exec( "explorer.exe /select," + task.getValue().getFile().getAbsolutePath() );
                 } catch ( IOException e ) {
                     e.printStackTrace();
                 }
@@ -204,25 +198,22 @@ public class MinecraftTabController {
     @FXML
     void onUpdateVersionBtn(ActionEvent event) {
         Main.setActiveTab( WindowTab.CONSOLE );
-        TaskPools.submit( () -> {
-            // Invalidate cache, if it exists
-            BuildToolsSettings settings = buildTools.getSettings();
-            BuildToolsSettings.Directories dirs = settings.getDirectories();
-            File versionsDir = new File( dirs.getVersionsDir().getFile(), "minecraft" );
-            if ( versionsDir.exists() && versionsDir.isDirectory() ) {
-                File manifestFile = new File( versionsDir, "version_manifest.json" );
-                if ( manifestFile.exists() && manifestFile.isFile() ) {
-                    try {
-                        FileDeleteStrategy.FORCE.delete( manifestFile );
-                    } catch ( IOException e ) {
-                        LogHandler.error( "*** Unable to delete version_manifest file! ***" );
-                        return;
-                    }
-                }
+        // Invalidate cache, if it exists
+        BuildToolsSettings settings = buildTools.getSettings();
+        BuildToolsSettings.Directories dirs = settings.getDirectories();
+        File versionsDir = new File( dirs.getVersionsDir().getFile(), "minecraft" );
+        if ( versionsDir.exists() && versionsDir.isDirectory() ) {
+            File manifestFile = new File( versionsDir, "version_manifest.json" );
+            if ( manifestFile.delete() ) {
+                LogHandler.info( "Deleted old version_manifest.json!" );
+            } else {
+                LogHandler.error( "*** Unable to delete version_manifest.json" );
             }
-        } );
+        }
         versionMap.clear();
-        importVersions();
+        releaseTypeComboBox.getItems().clear();
+        versionComboBox.getItems().clear();
+        importVersions( true );
     }
 
     @FXML
@@ -231,10 +222,10 @@ public class MinecraftTabController {
     }
 
 
-    public Task importVersions() {
+    public Task importVersions(boolean reset) {
         // ensure we're on the main thread
         String url = buildTools.getSettings().getMinecraftVersionManifestURL();
-        ImportMinecraftVersionTask task = new ImportMinecraftVersionTask( buildTools );
+        ImportMinecraftVersionTask task = new ImportMinecraftVersionTask( buildTools, reset );
         task.setOnRunning( (worker) -> {
             console.reset();
             console.setProgressText( "Importing Minecraft Versions" );

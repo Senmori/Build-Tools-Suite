@@ -38,8 +38,6 @@ import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.SystemChecker;
 import net.senmori.btsuite.util.TaskUtil;
 
-import java.io.File;
-
 public class GitInstaller extends Task<Boolean> {
 
     private final BuildToolsSettings settings = BuildToolsSettings.getInstance();
@@ -64,7 +62,7 @@ public class GitInstaller extends Task<Boolean> {
     private boolean doInstall() {
         try {
             if ( SystemChecker.isWindows() ) {
-                File portableGitDir = dirs.getPortableGitDir().getFile();
+                Directory portableGitDir = dirs.getPortableGitDir();
                 Directory portableGitExe = new Directory( dirs.getPortableGitDir().getFile().getAbsolutePath(), "PortableGit" );
 
                 if ( portableGitExe.getFile().exists() && portableGitExe.getFile().isDirectory() ) {
@@ -74,15 +72,15 @@ public class GitInstaller extends Task<Boolean> {
                 }
 
                 if ( ! portableGitDir.exists() ) {
-                    portableGitDir.mkdirs();
+                    portableGitDir.getFile().mkdirs();
                     LogHandler.warn( "*** Could not find PortableGit executable, downloading. ***" );
-                    portableGitDir = TaskUtil.asyncDownloadFile( settings.getGitInstallerLink(), portableGitDir );
+                    portableGitDir = TaskUtil.asyncDownloadFile( settings.getGitInstallerLink(), portableGitDir, null );
                 }
                 if ( ! FileUtil.isDirectory( portableGitExe.getFile() ) ) {
                     portableGitExe.getFile().mkdirs();
                     // yes to all, silent, don't install.  Only -y seems to work
                     // ProcessRunner appends information we don't need
-                    Runtime.getRuntime().exec( portableGitDir.getPath(), new String[] { "-y", "-gm2", "-nr" }, portableGitDir.getParentFile() );
+                    Runtime.getRuntime().exec( portableGitDir.getPath(), new String[]{"-y", "-gm2", "-nr"}, portableGitDir.getFile().getParentFile() );
 
                     LogHandler.warn( "*** Please note this is a beta feature, so if it does not work please also try a manual install valueOf git from https://git-for-windows.github.io/ ***" );
                     dirs.setPortableGitDir( portableGitExe );

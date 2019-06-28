@@ -41,7 +41,6 @@ import net.senmori.btsuite.storage.SectionKey;
 import net.senmori.btsuite.storage.annotations.Exclude;
 import net.senmori.btsuite.storage.annotations.Section;
 import net.senmori.btsuite.storage.serializers.DefaultSerializer;
-import net.senmori.btsuite.storage.serializers.DirectorySectionSerializer;
 import net.senmori.btsuite.storage.serializers.SectionSerializer;
 import net.senmori.btsuite.util.AnnotationUtil;
 
@@ -62,7 +61,6 @@ public class BuildToolsSerializer implements JsonSerializer<BuildToolsSettings> 
     public BuildToolsSerializer() {
         serializers.put( SectionKey.NONE, new DefaultSerializer() );
         serializers.put( SectionKey.URL, new SectionSerializer( SectionKey.URL ) );
-        serializers.put( SectionKey.DIRECTORIES, new DirectorySectionSerializer() );
         serializers.put( SectionKey.VERSIONS, new SectionSerializer( SectionKey.VERSIONS ) );
         serializers.put( SectionKey.OUTPUT_DIRS, new SectionSerializer( SectionKey.OUTPUT_DIRS ) );
     }

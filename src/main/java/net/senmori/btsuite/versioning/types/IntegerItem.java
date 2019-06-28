@@ -27,44 +27,64 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite.util;
+package net.senmori.btsuite.versioning.types;
 
-import com.google.gson.annotations.SerializedName;
-import net.senmori.btsuite.storage.SectionKey;
-import net.senmori.btsuite.storage.annotations.Section;
-import net.senmori.btsuite.storage.annotations.SerializedValue;
+import net.senmori.btsuite.versioning.Item;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
+import java.math.BigInteger;
 
-public final class AnnotationUtil {
+/**
+ * Represents a numeric item in the version item list that can be represented with an int.
+ */
+public class IntegerItem implements Item {
 
+    public static final IntegerItem ZERO = new IntegerItem();
 
-    public static boolean isAnnotationPresent(Field field, Class<? extends Annotation> annotation) {
-        return field.getAnnotationsByType( annotation ) != null;
+    private final BigInteger value;
+
+    private IntegerItem() {
+        this.value = BigInteger.ZERO;
     }
 
-    public static SectionKey getSectionKeyFromField(Field field) {
-        if ( field.getAnnotation( Section.class ) == null ) {
-            return SectionKey.NONE;
-        }
-        return field.getAnnotation( Section.class ).value();
+    public IntegerItem(String str) {
+        this.value = new BigInteger( str );
     }
 
-    public static String getSerializedName(Field field) {
-        String name = field.getName();
-        if ( AnnotationUtil.isAnnotationPresent( field, SerializedName.class ) ) {
-            SerializedName anno = field.getAnnotation( SerializedName.class );
-            return anno.value();
+    @Override
+    public int compareTo(Item other) {
+        if ( other == null ) {
+            return BigInteger.ZERO.equals( value ) ? 0 : 1;
         }
-        return name;
+
+        switch ( other.getType() ) {
+            case INTEGER_ITEM:
+                return value.compareTo( ( ( IntegerItem ) other ).value );
+
+            case STRING_ITEM: // 1.1 > 1-sp
+            case LIST_ITEM: // 1.1 > 1-1
+                return 1;
+            default:
+                throw new IllegalStateException( "Invalid item: " + other.getClass() );
+        }
     }
 
-    public static String getSerializedValue(Field field, Object owner) throws IllegalAccessException {
-        if ( isAnnotationPresent( field, SerializedValue.class ) ) {
-            SerializedValue anno = field.getAnnotation( SerializedValue.class );
-            return anno.value();
-        }
-        return field.get( owner ).toString();
+    @Override
+    public boolean isNull() {
+        return BigInteger.ZERO.equals( value );
+    }
+
+    @Override
+    public int getType() {
+        return Item.INTEGER_ITEM;
+    }
+
+    @Override
+    public String getValue() {
+        return value.toString();
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

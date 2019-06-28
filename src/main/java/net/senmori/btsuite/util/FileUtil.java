@@ -71,16 +71,15 @@ public final class FileUtil {
     }
 
     public static boolean isNonEmptyDirectory(File dir) {
-        if ( dir != null && dir.exists() && dir.isDirectory() ) {
+        if ( isDirectory( dir ) ) {
             File[] files = dir.listFiles();
             return files != null && files.length > 0;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public static void deleteDirectory(File dir) {
-        if ( ! dir.exists() || ! dir.isDirectory() ) return;
+        if ( dir == null || !dir.exists() || !dir.isDirectory() ) return;
         for ( File file : dir.listFiles() ) {
             if ( file.isDirectory() ) {
                 deleteDirectory(file);
@@ -99,7 +98,7 @@ public final class FileUtil {
             }
         }
         toDelete.forEach( (file) -> {
-            LogHandler.debug( "Deleting " + file.getName() + " from " + file.getPath() );
+            LogHandler.info( "Deleting " + file.getName() + " from " + file.getPath() );
             file.delete();
         } );
     }

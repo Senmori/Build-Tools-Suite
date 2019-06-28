@@ -37,5 +37,5 @@ import java.lang.annotation.Target;
 @Retention( RetentionPolicy.RUNTIME )
 @Target( { ElementType.FIELD, ElementType.TYPE } )
 public @interface Exclude {
-    String reason() default ""; // reason
+    String value() default "";
 }

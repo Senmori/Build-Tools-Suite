@@ -34,6 +34,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import lombok.Getter;
+import net.senmori.btsuite.versioning.ComparableVersion;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -66,18 +67,21 @@ public class VersionManifest {
     }
 
     public MinecraftVersion getVersion(String version) {
-        return availableVersions.stream().filter( (ver) -> ver.getVersion().equalsIgnoreCase( version ) ).findFirst().orElse( null );
+        return availableVersions.stream()
+                .filter( (ver) -> ver.getVersion().equals( new ComparableVersion( version ) ) )
+                .findFirst()
+                .orElse( null );
     }
 
     public Collection<MinecraftVersion> getVersionsByReleaseType(ReleaseType releaseType) {
-        return availableVersions.stream().filter( (ver) -> ver.getReleaseType() == releaseType ).collect( Collectors.toList() );
+        return availableVersions.stream()
+                .filter( (ver) -> ver.getReleaseType() == releaseType )
+                .collect( Collectors.toList() );
     }
 
     public void setAvailableVersions(Collection<MinecraftVersion> versions) {
         this.availableVersions.clear();
-        for ( MinecraftVersion v : versions ) {
-            availableVersions.add( v );
-        }
+        availableVersions.addAll( versions );
         this.initializedProperty.set( true );
     }
 }

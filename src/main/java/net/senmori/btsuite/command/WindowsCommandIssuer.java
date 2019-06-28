@@ -30,6 +30,7 @@
 package net.senmori.btsuite.command;
 
 import com.google.common.collect.ObjectArrays;
+import net.senmori.btsuite.Main;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.util.StreamCapturer;
 
@@ -38,7 +39,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class WindowsCommandIssuer implements ICommandIssuer {
-    private static final BuildToolsSettings.Directories dirs = BuildToolsSettings.getInstance().getDirectories();
+    private static final BuildToolsSettings.Directories dirs = Main.getSettings().getDirectories();
 
     @Override
     public Process issue(File workDir, String... command) {
@@ -71,7 +72,7 @@ public class WindowsCommandIssuer implements ICommandIssuer {
         pb.directory( workDir );
         pb.environment().put( "JAVA_HOME", System.getProperty( "java.home" ) );
         if ( ! pb.environment().containsKey( "MAVEN_OPTS" ) ) {
-            pb.environment().put( "MAVEN_OPTS", "-Xmx1024M" );
+            pb.environment().put( "MAVEN_OPTS", "-Xmx1024M" ); // otherwise it will stall
         }
         if ( dirs.getPortableGitDir() != null ) {
             String pathEnv = null;

@@ -27,44 +27,49 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite.util;
+package net.senmori.btsuite.versioning;
 
-import com.google.gson.annotations.SerializedName;
-import net.senmori.btsuite.storage.SectionKey;
-import net.senmori.btsuite.storage.annotations.Section;
-import net.senmori.btsuite.storage.annotations.SerializedValue;
+public class Qualifier implements Item {
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
+    private final String value;
 
-public final class AnnotationUtil {
-
-
-    public static boolean isAnnotationPresent(Field field, Class<? extends Annotation> annotation) {
-        return field.getAnnotationsByType( annotation ) != null;
+    private Qualifier() {
+        this.value = "";
     }
 
-    public static SectionKey getSectionKeyFromField(Field field) {
-        if ( field.getAnnotation( Section.class ) == null ) {
-            return SectionKey.NONE;
-        }
-        return field.getAnnotation( Section.class ).value();
+    public Qualifier(String str) {
+        this.value = str;
     }
 
-    public static String getSerializedName(Field field) {
-        String name = field.getName();
-        if ( AnnotationUtil.isAnnotationPresent( field, SerializedName.class ) ) {
-            SerializedName anno = field.getAnnotation( SerializedName.class );
-            return anno.value();
-        }
-        return name;
+    @Override
+    public String getValue() {
+        return value;
     }
 
-    public static String getSerializedValue(Field field, Object owner) throws IllegalAccessException {
-        if ( isAnnotationPresent( field, SerializedValue.class ) ) {
-            SerializedValue anno = field.getAnnotation( SerializedValue.class );
-            return anno.value();
+    @Override
+    public boolean equals(Object other) {
+        if ( this == other ) {
+            return true;
         }
-        return field.get( owner ).toString();
+        if ( getClass() != other.getClass() ) {
+            return false;
+        }
+        Qualifier qualifier = ( Qualifier ) other;
+        return this.value.equalsIgnoreCase( qualifier.getValue() );
+    }
+
+    @Override
+    public int compareTo(Item other) {
+        return 0;
+    }
+
+    @Override
+    public boolean isNull() {
+        return false;
+    }
+
+    @Override
+    public int getType() {
+        return 0;
     }
 }

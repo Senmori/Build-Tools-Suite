@@ -8,43 +8,11 @@
     "s3_download_link": "https://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar"
   },
   "versions": {
-    "default_spigot_version": "1.12.2",
+    "default_spigot_version": "1.14.2",
     "maven_version": "3.5.0",
     "portable_git_version": "2.15.0"
   },
   "output_directories": [
     "working_dir"
   ],
-  "directories": [
-    {
-      "id": "work_dir",
-      "parent": "working_dir",
-      "path": "work"
-    },
-    {
-      "id": "tmp_dir",
-      "parent": "working_dir",
-      "path": "tmp"
-    },
-    {
-      "id": "versions_dir",
-      "parent": "work_dir",
-      "path": "versions"
-    },
-    {
-      "id": "jar_dir",
-      "parent": "working_dir",
-      "path": "jars"
-    },
-    {
-      "id": "mvn_dir",
-      "parent": "working_dir",
-      "path": "maven"
-    },
-    {
-      "id": "git_dir",
-      "parent": "working_dir",
-      "path": "PortableGit"
-    }
-  ]
 }

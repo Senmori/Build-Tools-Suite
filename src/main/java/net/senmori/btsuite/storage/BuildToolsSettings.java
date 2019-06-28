@@ -54,25 +54,7 @@ import java.util.Map;
 public final class BuildToolsSettings {
     private static BuildToolsSettings INSTANCE = null;
 
-    public static BuildToolsSettings getInstance() {
-        if ( INSTANCE == null ) {
-            throw new IllegalStateException( "Cannot retrieve BuildToolsSettings before it has been created!" );
-        }
-        return INSTANCE;
-    }
-
-    public static BuildToolsSettings create() {
-        return create( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
-    }
-
-    public static BuildToolsSettings create(Map<String, String> map, Map<String, Directory> directories, List<String> recentOutputDirectories) {
-        if ( INSTANCE == null ) {
-            INSTANCE = new BuildToolsSettings( map, directories, recentOutputDirectories );
-        }
-        return INSTANCE;
-    }
-
-    @Section( SectionKey.DIRECTORIES )
+    @Exclude
     private BuildToolsSettings.Directories directories;
 
     /**
@@ -165,21 +147,22 @@ public final class BuildToolsSettings {
      * The output will automatically be put in {@link Main#WORKING_DIR} if no other options exist.
      */
     @Section( SectionKey.OUTPUT_DIRS )
-    private final List<String> recentOutputDirectories = Lists.newLinkedList();
+    private final List<String> recentOutputDirectories;
 
     public BuildToolsSettings() {
-        this( Maps.newHashMap(), Maps.newHashMap(), Lists.newLinkedList() );
+        this( Maps.newHashMap(), Lists.newLinkedList() );
     }
 
-    public BuildToolsSettings(Map<String, String> map, Map<String, Directory> directories, List<String> recentOutputDirectories) {
-        this.directories = new Directories( directories );
+    public BuildToolsSettings(Map<String, String> map, List<String> recentOutputDirs) {
+
+        this.directories = new BuildToolsSettings.Directories();
 
         // versions
         this.defaultVersion = map.getOrDefault( "defaultVersion", "1.12.2" );
         this.mavenVersion = map.getOrDefault( "mvnVersion", "3.5.0" );
         // git
         this.gitVersion = map.getOrDefault( "gitVersion", "2.15.0" );
-        this.recentOutputDirectories.addAll( recentOutputDirectories );
+        this.recentOutputDirectories = Lists.newArrayList( recentOutputDirs );
 
         // urls
         String formatMvn = map.getOrDefault( "mavenInstallerLink", "https://static.spigotmc.org/maven/apache-maven-{0}-bin.zip" );
@@ -226,55 +209,45 @@ public final class BuildToolsSettings {
         /**
          * The location where most valueOf the work done by BuildToolsSuite is performed.
          */
-        @SerializedName( ConfigurationKey.Name.WORK_DIR )
-        private final Directory workDir;
+        @Exclude
+        private final Directory workDir = new Directory( workingDir, "work" );
 
         /**
          * Temp working directory that gets deleted after the program closes.
          */
-        @SerializedName( ConfigurationKey.Name.TEMP_DIR )
-        private final Directory tmpDir;
+        @Exclude
+        private final Directory tmpDir = new Directory( workingDir, "tmp" );
 
 
         /**
          * The location all version files will be downloaded to for caching.
          */
-        @SerializedName( ConfigurationKey.Name.VERSIONS_DIR )
-        private final Directory versionsDir;
+        @Exclude
+        private final Directory versionsDir = new Directory( workDir, "versions" );
 
         /**
          * The location all jar files will be downloaded to for caching.
          */
-        @SerializedName( ConfigurationKey.Name.JAR_DIR )
-        private final Directory jarDir;
+        @Exclude
+        private final Directory jarDir = new Directory( workingDir, "jars" );
 
         //
         //  All directories below here can be set to a different value, although I don't recommend it ;)
         //
 
         /**
-         * The location valueOf where Maven is installed.
+         * The location where Maven is installed.
          */
         @Setter
-        @SerializedName( ConfigurationKey.Name.MAVEN_DIR )
-        private Directory mvnDir;
+        @Exclude
+        private Directory mvnDir = new Directory( workingDir, "maven" );
 
         /**
-         * The location valueOf where Git, or PortableGit, is installed.
+         * The location where Git, or PortableGit, is installed.
          */
         @Setter
-        @SerializedName( ConfigurationKey.Name.PORTABLE_GIT_DIR )
-        private Directory portableGitDir;
-
-        private Directories(Map<String, Directory> map) {
-            workDir = map.getOrDefault( ConfigurationKey.Name.WORK_DIR, new Directory( workingDir, "work" ) );
-            tmpDir = map.getOrDefault( ConfigurationKey.Name.TEMP_DIR, new Directory( workingDir, "tmp" ) );
-            versionsDir = map.getOrDefault( ConfigurationKey.Name.VERSIONS_DIR, new Directory( workDir, "versions" ) );
-            jarDir = map.getOrDefault( ConfigurationKey.Name.JAR_DIR, new Directory( workingDir, "jars" ) );
-            mvnDir = map.getOrDefault( ConfigurationKey.Name.MAVEN_DIR, new Directory( workingDir, "maven" ) );
-            portableGitDir = map.getOrDefault( ConfigurationKey.Name.PORTABLE_GIT_DIR, new Directory( workingDir, "PortableGit" ) );
-            init();
-        }
+        @Exclude
+        private Directory portableGitDir = new Directory( workingDir, "PortableGit" );
 
         public void init() {
             workingDir.getFile().mkdir(); // Required & immutable.
@@ -290,6 +263,5 @@ public final class BuildToolsSettings {
             versionsDir.getFile().mkdir();
             jarDir.getFile().mkdir();
         }
-
     }
 }

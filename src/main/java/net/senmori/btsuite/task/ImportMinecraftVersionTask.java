@@ -44,6 +44,7 @@ import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.util.LogHandler;
 import net.senmori.btsuite.util.TaskUtil;
+import net.senmori.btsuite.versioning.ComparableVersion;
 import org.apache.commons.io.FileDeleteStrategy;
 import org.apache.commons.io.FilenameUtils;
 
@@ -113,11 +114,6 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                 String releaseTime = version.get( "releaseTime" ).getAsString();
                 String verURL = version.get( "url" ).getAsString();
 
-                if ( !type.equalsIgnoreCase( lastType ) ) {
-                    lastType = type;
-                    LogHandler.info( "Processing release type: " + lastType );
-                }
-
                 ReleaseType releaseType = ReleaseType.getByName( type );
 
                 LocalDateTime releaseDate = LocalDateTime.parse( releaseTime, DateTimeFormatter.ISO_OFFSET_DATE_TIME ); // ISO_OFFSET_DATE_TIME
@@ -153,7 +149,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                         String sha = server.get( "sha1" ).getAsString();
                         String serverDownloadURL = server.get( "url" ).getAsString();
 
-                        MinecraftVersion minecraftVersion = new MinecraftVersion( id, releaseType, releaseDate, sha, serverDownloadURL );
+                        MinecraftVersion minecraftVersion = new MinecraftVersion( new ComparableVersion( id ), releaseType, releaseDate, sha, serverDownloadURL );
 
                         availableVersions.add( minecraftVersion );
 
@@ -164,7 +160,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                         String sha = server.get( "sha1" ).getAsString();
                         String serverDownloadURL = server.get( "url" ).getAsString();
 
-                        MinecraftVersion minecraftVersion = new MinecraftVersion( id, releaseType, releaseDate, sha, serverDownloadURL );
+                        MinecraftVersion minecraftVersion = new MinecraftVersion( new ComparableVersion( id ), releaseType, releaseDate, sha, serverDownloadURL );
 
                         availableVersions.add( minecraftVersion );
                     }

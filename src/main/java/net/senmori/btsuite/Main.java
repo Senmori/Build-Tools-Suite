@@ -52,9 +52,14 @@ public class Main extends Application {
     public static final Directory SETTINGS_FILE = new Directory( WORKING_DIR, "BTS_Settings.json" );
 
     private static Main INSTANCE = null;
+    private static BuildToolsSettings settings;
 
     public static Main getInstance() {
         return INSTANCE;
+    }
+
+    public static BuildToolsSettings getSettings() {
+        return settings;
     }
 
     private Map<WindowTab, Tab> tabMap = Maps.newConcurrentMap();
@@ -65,7 +70,7 @@ public class Main extends Application {
     public static void main(String[] args) {
         PrintStream empty = new PrintStream( new OutputStream() {
             @Override
-            public void write(int b) throws IOException {
+            public void write(int bite) throws IOException {
 
             }
         } );
@@ -78,8 +83,8 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception {
         INSTANCE = this;
         WORKING_DIR.getFile().mkdirs();
-        BuildToolsSettings.create();
-        BuildToolsSettings.getInstance().getDirectories().init();
+        settings = new BuildToolsSettings();
+        settings.getDirectories().init();
 
         window = primaryStage;
         window.setTitle( "Build Tools Suite" );
@@ -88,7 +93,7 @@ public class Main extends Application {
         Image icon = new Image( this.getClass().getClassLoader().getResourceAsStream( "icon.png" ) );
         window.getIcons().add( icon );
 
-        ControllerFactory factory = new ControllerFactory( BuildToolsSettings.getInstance() );
+        ControllerFactory factory = new ControllerFactory( settings );
 
         FXMLLoader loader = new FXMLLoader();
         loader.setControllerFactory( factory );

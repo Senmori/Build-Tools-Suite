@@ -29,6 +29,7 @@
 
 package net.senmori.btsuite.util.builders;
 
+import net.senmori.btsuite.Main;
 import net.senmori.btsuite.storage.BuildToolsSettings;
 import net.senmori.btsuite.util.LogHandler;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -45,7 +46,7 @@ public class MavenCommandBuilder {
 
     private Invoker invoker = new DefaultInvoker();
     private InvocationRequest request = new DefaultInvocationRequest();
-    private final BuildToolsSettings settings = BuildToolsSettings.getInstance();
+    private final BuildToolsSettings settings = Main.getSettings();
     private final BuildToolsSettings.Directories dirs = settings.getDirectories();
 
     private MavenCommandBuilder() {

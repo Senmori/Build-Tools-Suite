@@ -69,10 +69,6 @@ public class InvalidateCacheTask extends Task<Boolean> {
 
         Stream.of( files ).forEach( this::delete );
 
-        // Re-import spigot and minecraft versions
-        buildTools.importVersions();
-        manifest.importVersions();
-
         return true;
     }
 

@@ -59,11 +59,8 @@ import net.senmori.btsuite.task.InvalidateCacheTask;
 import net.senmori.btsuite.task.SpigotVersionImportTask;
 import net.senmori.btsuite.util.FileUtil;
 import net.senmori.btsuite.util.LogHandler;
-import org.apache.commons.io.FileDeleteStrategy;
-import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -154,7 +151,7 @@ public class BuildTabController {
         choiceComboBox.setConverter( new StringConverter<String>() {
             @Override
             public String toString(String object) {
-                return ( ( object == null ) || object.trim().isEmpty() ) ? settings.getDefaultVersion() : object;
+                return ( ( object == null ) || object.trim().isEmpty() ) ? settings.getDefaultVersion() : object.toString();
             }
 
             @Override
@@ -223,7 +220,7 @@ public class BuildTabController {
         File output = dirChooser.showDialog( Main.getWindow() );
         if ( FileUtil.isDirectory( output ) ) {
             this.outputDirListView.getItems().add( output.getAbsolutePath() );
-            BuildToolsSettings.getInstance().getRecentOutputDirectories().add( output.getAbsolutePath() );
+            settings.getRecentOutputDirectories().add( output.getAbsolutePath() );
         }
     }
 
@@ -311,15 +308,13 @@ public class BuildTabController {
                 buildTools.setRunning( false );
                 buildTools.getConsole().reset();
                 LogHandler.error( "BuildToolsTask was cancelled!" );
-                if ( task.getException() != null ) {
-                    LogHandler.error( task.getException().getMessage() );
-                }
+                LogHandler.error( worker.getSource().getException().getLocalizedMessage() );
             } );
             task.setOnFailed( (worker) -> {
                 buildTools.setRunning( false );
                 buildTools.getConsole().reset();
                 LogHandler.error( "BuildToolsTask failed!" );
-                LogHandler.error( task.getException().getMessage() );
+                LogHandler.error( worker.getSource().getException().getLocalizedMessage() );
             } );
 
 
@@ -341,18 +336,8 @@ public class BuildTabController {
             BuildToolsSettings.Directories dirs = settings.getDirectories();
             File versionsDir = new File( dirs.getVersionsDir().getFile(), "spigot" );
             LogHandler.info( "Deleting " + versionsDir + '.' );
-            File[] files = versionsDir.listFiles();
-            if ( ( files != null ) && ( files.length > 0 ) ) {
-                for ( File file : files ) {
-                    try {
-                        buildTools.getConsole().setOptionalText( FilenameUtils.getBaseName( file.getName() ) );
-                        FileDeleteStrategy.FORCE.delete( file );
-                    } catch ( IOException e ) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            buildTools.getConsole().reset();
+            //FileUtil.deleteFilesInDirectory( versionsDir, (name) -> name.contains( ".json" ) );
+            //buildTools.getConsole().reset();
             buildTools.getConsole().setOptionalText( "Re-importing spigot versions..." );
             LogHandler.info( "Re-importing spigot versions..." );
             importVersions();
@@ -375,11 +360,14 @@ public class BuildTabController {
         } );
 
         task.setOnFailed( (worker) -> {
+            LogHandler.info( "Failed SpigotImportVersions task." );
+            LogHandler.info( worker.getEventType().toString() + ": " + worker.getSource().getException().getMessage() );
             updateVersionCheckBox.setSelected( false );
             buildTools.setRunning( false );
             buildTools.getConsole().reset();
         } );
         task.setOnCancelled( (worker) -> {
+            LogHandler.info( "Import Spigot Versions task cancelled." );
             updateVersionCheckBox.setSelected( false );
             buildTools.setRunning( false );
             buildTools.getConsole().reset();
@@ -396,6 +384,7 @@ public class BuildTabController {
         for ( SpigotVersion ver : versions ) {
             this.choiceComboBox.getItems().add( ver.getVersionString() );
         }
+        choiceComboBox.getSelectionModel().select( 0 ); // select newest version
         return true;
     }
 }

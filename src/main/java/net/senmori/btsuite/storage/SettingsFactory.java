@@ -64,7 +64,7 @@ public class SettingsFactory {
                 settings = GSON.fromJson( new FileReader( file ), BuildToolsSettings.class );
             }
             if ( settings == null ) {
-                return BuildToolsSettings.create();
+                return new BuildToolsSettings();
             }
             return settings;
         } catch ( FileNotFoundException e ) {

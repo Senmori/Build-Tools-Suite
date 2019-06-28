@@ -31,6 +31,7 @@ package net.senmori.btsuite.minecraft;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import net.senmori.btsuite.versioning.ComparableVersion;
 
 import java.time.LocalDateTime;
 
@@ -38,7 +39,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class MinecraftVersion {
 
-    private final String version;
+    private final ComparableVersion version;
     private final ReleaseType releaseType;
     private final LocalDateTime releaseDate;
     private final String SHA_1;
@@ -46,6 +47,6 @@ public class MinecraftVersion {
 
 
     public String toString() {
-        return version;
+        return version.toString();
     }
 }

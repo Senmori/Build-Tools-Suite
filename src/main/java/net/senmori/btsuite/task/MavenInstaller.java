@@ -43,10 +43,12 @@ import java.util.concurrent.ExecutionException;
 
 public class MavenInstaller extends Task<File> {
 
-    private final BuildToolsSettings buildToolsSettings = BuildToolsSettings.getInstance();
-    private final BuildToolsSettings.Directories dirs = buildToolsSettings.getDirectories();
+    private final BuildToolsSettings settings;
+    private final BuildToolsSettings.Directories dirs;
 
-    public MavenInstaller() {
+    public MavenInstaller(BuildToolsSettings settings) {
+        this.settings = settings;
+        this.dirs = settings.getDirectories();
     }
 
 
@@ -61,6 +63,7 @@ public class MavenInstaller extends Task<File> {
         }
 
         File maven = dirs.getMvnDir().getFile();
+        String mvnVersion = settings.getMavenVersion();
         if ( !maven.exists() ) {
             maven.mkdirs();
             LogHandler.info( "Maven does not exist, downloading. Please wait." );
@@ -68,7 +71,7 @@ public class MavenInstaller extends Task<File> {
             File mvnTemp = new File( dirs.getWorkingDir().getFile(), "mvn.zip" );
 
             try {
-                String url = buildToolsSettings.getMvnInstallerLink();
+                String url = settings.getMvnInstallerLink();
                 FileDownloadTask task = new FileDownloadTask( url, mvnTemp );
                 task.messageProperty().addListener( (observable, oldValue, newValue) -> {
                     updateMessage( newValue );
@@ -80,7 +83,7 @@ public class MavenInstaller extends Task<File> {
                 mvnTemp = task.get();
 
                 ZipUtil.unzip( mvnTemp, dirs.getMvnDir().getFile() );
-                dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() ) );
+                dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + mvnVersion ) );
                 mvnTemp.delete();
             } catch ( IOException | InterruptedException | ExecutionException e ) {
                 e.printStackTrace();
@@ -88,16 +91,16 @@ public class MavenInstaller extends Task<File> {
             }
         } else {
             // get inner folder
-            maven = new File( dirs.getMvnDir().getFile(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() );
-            if ( ! maven.exists() ) {
+            maven = new File( dirs.getMvnDir().getFile(), "apache-maven-" + mvnVersion );
+            if ( !maven.exists() ) {
                 LogHandler.info( "Maven directory was found, but no maven installation!" );
                 FileUtils.deleteQuietly( dirs.getMvnDir().getFile() ); // delete and ignore errors
-                TaskPools.execute( new MavenInstaller() );
+                TaskPools.execute( new MavenInstaller( settings ) );
                 this.cancel( true );
                 return null;
             } else { // apache-maven-<version> exists
                 LogHandler.info( "Local install of maven found!" );
-                dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + BuildToolsSettings.getInstance().getMavenVersion() ) );
+                dirs.setMvnDir( new Directory( dirs.getMvnDir(), "apache-maven-" + mvnVersion ) );
             }
         }
         LogHandler.info( "Maven is installed at " + dirs.getMvnDir().getFile() );
@@ -106,6 +109,6 @@ public class MavenInstaller extends Task<File> {
 
     private boolean isInstalled() {
         String m2Home = System.getenv("M2_HOME");
-        return m2Home != null && new File(m2Home).exists();
+        return ( m2Home != null ) && new File( m2Home ).exists();
     }
 }

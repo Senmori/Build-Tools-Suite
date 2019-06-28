@@ -42,10 +42,12 @@ import java.io.File;
 
 public class GitInstaller extends Task<Boolean> {
 
-    private final BuildToolsSettings settings = BuildToolsSettings.getInstance();
-    private final BuildToolsSettings.Directories dirs = settings.getDirectories();
+    private final BuildToolsSettings settings;
+    private final BuildToolsSettings.Directories dirs;
 
-    public GitInstaller() {
+    public GitInstaller(BuildToolsSettings settings) {
+        this.settings = settings;
+        this.dirs = settings.getDirectories();
     }
 
     @Override

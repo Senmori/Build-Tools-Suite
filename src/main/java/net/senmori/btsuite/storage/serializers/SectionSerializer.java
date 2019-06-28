@@ -32,7 +32,6 @@ package net.senmori.btsuite.storage.serializers;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.senmori.btsuite.storage.SectionKey;
-import net.senmori.btsuite.storage.SettingsFactory;
 import net.senmori.btsuite.storage.annotations.Exclude;
 import net.senmori.btsuite.storage.annotations.Section;
 import net.senmori.btsuite.util.AnnotationUtil;
@@ -78,28 +77,5 @@ public class SectionSerializer {
             }
         }
         element.add( sectionKey.getSection(), section );
-    }
-
-    public static class OutputDirectories extends SectionSerializer {
-        public OutputDirectories() {
-            super( SectionKey.URL );
-        }
-
-        @Override
-        public void serialize(JsonObject element, Collection<Field> fields, Object owner) {
-
-            for ( Field field : fields ) {
-                if ( ! field.getType().isAssignableFrom( Collection.class ) ) {
-                    continue;
-                }
-                try {
-                    Collection<?> collection = ( Collection<?> ) field.get( owner );
-                    JsonElement tree = SettingsFactory.getGson().toJsonTree( collection, field.getType() );
-                    element.add( getSectionKey().getSection(), tree );
-                } catch ( IllegalAccessException e ) {
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 }

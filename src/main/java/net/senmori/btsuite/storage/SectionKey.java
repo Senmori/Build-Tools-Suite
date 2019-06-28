@@ -35,7 +35,6 @@ package net.senmori.btsuite.storage;
 public enum SectionKey {
 
     URL( "urls" ),
-    DIRECTORIES( "directories" ),
     VERSIONS( "versions" ),
     OUTPUT_DIRS( "output_directories" ),
     NONE( "" );

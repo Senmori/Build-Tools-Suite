@@ -43,6 +43,8 @@ import net.senmori.btsuite.buildtools.BuildTools;
 import net.senmori.btsuite.buildtools.VersionInfo;
 import net.senmori.btsuite.command.CommandHandler;
 import net.senmori.btsuite.command.ICommandIssuer;
+import net.senmori.btsuite.minecraft.MinecraftVersion;
+import net.senmori.btsuite.minecraft.VersionManifest;
 import net.senmori.btsuite.pool.TaskPool;
 import net.senmori.btsuite.pool.TaskPools;
 import net.senmori.btsuite.storage.BuildToolsSettings;
@@ -250,11 +252,17 @@ public final class BuildToolsTask extends Task<Long> {
 
         String jarName = "minecraft_server." + versionInfo.getMinecraftVersion() + ".jar";
         dirs.getJarDir().getFile().mkdirs();
-        File vanillaJar = new File( dirs.getJarDir().getFile(), jarName );
+        File jarDir = new File( dirs.getJarDir().getFile(), versionInfo.getMinecraftVersion() );
+        if ( !jarDir.exists() ) {
+            jarDir.mkdir();
+        }
+        File vanillaJar = new File( jarDir, jarName );
         if ( !vanillaJar.exists() || !HashChecker.checkHash( vanillaJar, versionInfo ) ) {
             LogHandler.info( "Downloading Minecraft Server Version \'" + versionInfo.getMinecraftVersion() + "\' jar." );
-            String url = options.getVersionManifest().getVersion( versionInfo.getMinecraftVersion() ).getServerDownloadURL();
-            vanillaJar = TaskUtil.asyncDownloadFile( url, vanillaJar );
+            VersionManifest manifest = options.getVersionManifest();
+            MinecraftVersion minecraftVersion = manifest.getVersion( versionInfo.getMinecraftVersion() );
+            String url = minecraftVersion.getServerDownloadURL();
+            vanillaJar = new FileDownloadTask( url, vanillaJar ).call();
         }
 
         if ( !HashChecker.checkHash( vanillaJar, versionInfo ) ) {
@@ -278,7 +286,7 @@ public final class BuildToolsTask extends Task<Long> {
         String mappingsVersion = mappingsHash.hash().toString().substring( 24 ); // Last 8 chars
 
         LogHandler.info( "Attempting to create mapped jar." );
-        File finalMappedJar = new File( dirs.getJarDir().getFile(), "mapped." + mappingsVersion + ".jar" );
+        File finalMappedJar = new File( jarDir, "mapped." + mappingsVersion + ".jar" );
         if ( !finalMappedJar.exists() ) {
             LogHandler.info( "Final mapped jar: " + finalMappedJar + " does not exist, creating!" );
 

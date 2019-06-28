@@ -27,44 +27,61 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-package net.senmori.btsuite.util;
+package net.senmori.btsuite.versioning.types;
 
-import com.google.gson.annotations.SerializedName;
-import net.senmori.btsuite.storage.SectionKey;
-import net.senmori.btsuite.storage.annotations.Section;
-import net.senmori.btsuite.storage.annotations.SerializedValue;
+import net.senmori.btsuite.versioning.Item;
+import net.senmori.btsuite.versioning.Qualifiers;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-
-public final class AnnotationUtil {
+public class StringItem implements Item {
 
 
-    public static boolean isAnnotationPresent(Field field, Class<? extends Annotation> annotation) {
-        return field.getAnnotationsByType( annotation ) != null;
+    private final String value;
+
+    public StringItem(String value, boolean followedByDigit) {
+        if ( followedByDigit && value.length() == 1 ) {
+            value = Qualifiers.getQualifier( String.valueOf( value.charAt( 0 ) ) ).getValue();
+        }
+        this.value = Qualifiers.getQualifier( value ).getValue();
     }
 
-    public static SectionKey getSectionKeyFromField(Field field) {
-        if ( field.getAnnotation( Section.class ) == null ) {
-            return SectionKey.NONE;
+    @Override
+    public int compareTo(Item item) {
+        if ( item == null ) {
+            // 1-rc < 1, 1-ga > 1
+            return Qualifiers.comparableQualifier( value ).compareTo( Qualifiers.RELEASE_VERSION_INDEX );
         }
-        return field.getAnnotation( Section.class ).value();
+        switch ( item.getType() ) {
+            case Item.INTEGER_ITEM:
+                return -1; // 1.any < 1.1 ?
+
+            case Item.STRING_ITEM:
+                return Qualifiers.comparableQualifier( value ).compareTo( Qualifiers.comparableQualifier( ( ( StringItem ) item ).value ) );
+
+            case Item.LIST_ITEM:
+                return -1; // 1.any < 1-1
+
+            default:
+                throw new RuntimeException( "invalid item: " + item.getClass() );
+        }
     }
 
-    public static String getSerializedName(Field field) {
-        String name = field.getName();
-        if ( AnnotationUtil.isAnnotationPresent( field, SerializedName.class ) ) {
-            SerializedName anno = field.getAnnotation( SerializedName.class );
-            return anno.value();
-        }
-        return name;
+    @Override
+    public boolean isNull() {
+        return ( Qualifiers.comparableQualifier( value ).compareTo( Qualifiers.RELEASE_VERSION_INDEX ) == 0 );
     }
 
-    public static String getSerializedValue(Field field, Object owner) throws IllegalAccessException {
-        if ( isAnnotationPresent( field, SerializedValue.class ) ) {
-            SerializedValue anno = field.getAnnotation( SerializedValue.class );
-            return anno.value();
-        }
-        return field.get( owner ).toString();
+    @Override
+    public int getType() {
+        return Item.STRING_ITEM;
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return value;
     }
 }

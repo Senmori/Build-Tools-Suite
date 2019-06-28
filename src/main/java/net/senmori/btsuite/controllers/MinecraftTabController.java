@@ -153,13 +153,12 @@ public class MinecraftTabController {
             }
         } ) );
 
-        GitInstaller git = new GitInstaller();
+        GitInstaller git = new GitInstaller( buildTools.getSettings() );
         git.setOnSucceeded( (worker) -> {
             TaskPools.submit( new GitConfigurationTask( buildTools.getSettings() ) );
         } );
         TaskPools.submit( git );
-        TaskPools.submit( new MavenInstaller() );
-
+        TaskPools.submit( new MavenInstaller( buildTools.getSettings() ) );
         importVersions();
     }
 
@@ -266,12 +265,12 @@ public class MinecraftTabController {
             console.reset();
         } );
         task.setOnCancelled( (worker) -> {
-            downloadServerBtn.setDisable( true );
+            //downloadServerBtn.setDisable( true );
             updateMCVersionsCheckBox.setSelected( true );
             console.reset();
         } );
         task.setOnFailed( (worker) -> {
-            downloadServerBtn.setDisable( true );
+            //downloadServerBtn.setDisable( true );
             updateMCVersionsCheckBox.setSelected( true );
             console.reset();
         } );

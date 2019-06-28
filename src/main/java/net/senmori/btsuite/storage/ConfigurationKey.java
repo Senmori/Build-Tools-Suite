@@ -61,36 +61,7 @@ public interface ConfigurationKey {
 
         public static final String MAVEN_VERSION = "maven_version";
 
-        /* *********************************
-         *          DIRECTORIES
-         * *********************************
-         */
-        public static final String WORK_DIR = "work_dir";
-
-        public static final String TEMP_DIR = "tmp_dir";
-
-        public static final String VERSIONS_DIR = "versions_dir";
-
-        public static final String JAR_DIR = "jar_dir";
-
-        public static final String MAVEN_DIR = "maven_dir";
-
         public static final String PORTABLE_GIT_DIR = "portable_git_dir";
-
-        /* *********************************
-         *       INTERNAL USE ONLY
-         * *********************************
-         */
-
-        @Deprecated
-        public static final String DIR_ID = "id";
-
-        @Deprecated
-        public static final String DIR_PARENT = "parent";
-
-        @Deprecated
-        public static final String DIR_PATH = "path";
-
     }
 
     final class Value {

@@ -95,7 +95,7 @@ public class SpigotVersionImportTask extends Task<Map<SpigotVersion, BuildInfo>>
                 continue;
             String text = element.wholeText(); // 1.12.2.json
             String versionText = JSON_PATTERN.matcher(text).replaceAll(""); // 1.12.2
-            if ( versionText.split( "\\." ).length == 0 || NUMBERS_ONLY_EXCLUSION.matcher( versionText ).find() ) {
+            if ( ( versionText.split( "\\." ).length == 0 ) || NUMBERS_ONLY_EXCLUSION.matcher( versionText ).find() ) {
                 continue;
             }
 

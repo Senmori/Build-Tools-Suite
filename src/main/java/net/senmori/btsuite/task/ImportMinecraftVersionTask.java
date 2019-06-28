@@ -88,7 +88,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
             console.setOptionalText( "" );
 
             if ( manifestFile == null ) {
-                LogHandler.error( "*** Could not download \' version_manifest.json\' file." );
+                LogHandler.error( "*** Could not download \'version_manifest.json\' file." );
                 return availableVersions;
             }
             LogHandler.info( "Downloaded new " + FilenameUtils.getBaseName( manifestFile.getName() ) );
@@ -103,16 +103,15 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
 
         if ( json.has( "versions" ) ) {
             LogHandler.info( "Processing versions..." );
-            String lastType = "";
-            JsonArray array = json.getAsJsonArray( "versions" );
+            JsonArray versionsArray = json.getAsJsonArray( "versions" );
 
-            for ( JsonElement element : array ) {
+            for ( JsonElement element : versionsArray ) {
                 JsonObject version = element.getAsJsonObject();
 
                 String id = version.get( "id" ).getAsString();
                 String type = version.get( "type" ).getAsString();
                 String releaseTime = version.get( "releaseTime" ).getAsString();
-                String verURL = version.get( "url" ).getAsString();
+                String versionURL = version.get( "url" ).getAsString();
 
                 ReleaseType releaseType = ReleaseType.getByName( type );
 
@@ -124,7 +123,7 @@ public class ImportMinecraftVersionTask extends Task<Collection<MinecraftVersion
                 File versionFile = new File( versionsDir, id + ".json" );
                 if ( !versionFile.exists() ) {
                     versionFile.createNewFile();
-                    versionFile = TaskUtil.asyncDownloadFile( verURL, versionFile );
+                    versionFile = TaskUtil.asyncDownloadFile( versionURL, versionFile );
 
                     if ( versionFile == null ) {
                         LogHandler.error( "*** Unable to download \'" + id + "\'\'s version file." );

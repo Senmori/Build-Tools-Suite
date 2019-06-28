@@ -67,8 +67,9 @@ public class VersionManifest {
     }
 
     public MinecraftVersion getVersion(String version) {
+        ComparableVersion compare = new ComparableVersion( version );
         return availableVersions.stream()
-                .filter( (ver) -> ver.getVersion().equals( new ComparableVersion( version ) ) )
+                .filter( (ver) -> ver.getVersion().equals( compare ) )
                 .findFirst()
                 .orElse( null );
     }
